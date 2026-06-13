@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NatalChartWheelWeb from './NatalChartWheelWeb';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -213,7 +214,7 @@ function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToP
 
 // ── Chart Placeholder ─────────────────────────────────────────────────────
 
-function ChartView() {
+function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKnown: boolean }) {
   return (
     <div style={{
       position: 'absolute',
@@ -223,23 +224,14 @@ function ChartView() {
       justifyContent: 'center',
     }}>
       <div style={{
-        width: '80vw',
-        maxWidth: '320px',
+        width: 'min(calc(100dvh - 120px), calc(100vw - 24px))',
+        maxWidth: '600px',
         aspectRatio: '1',
         borderRadius: '50%',
-        border: '1px solid rgba(253,245,237,0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        overflow: 'hidden',
+        position: 'relative',
       }}>
-        <span style={{
-          fontFamily: 'var(--font-geist-mono), monospace',
-          fontSize: '11px',
-          color: 'rgba(253,245,237,0.20)',
-          letterSpacing: '2px',
-        }}>
-          CHART
-        </span>
+        <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
       </div>
     </div>
   );
@@ -344,7 +336,7 @@ export default function ChartSection({
         left: 0,
         right: 0,
       }}>
-        {activeView === 'chart' && <ChartView />}
+        {activeView === 'chart' && <ChartView chartData={chartData} birthTimeKnown={!!chartData} />}
         {activeView === 'focus' && <FocusView />}
         {activeView === 'list' && <ListView chartData={chartData} onScrollToPlanet={onScrollToPlanet} />}
       </div>
