@@ -226,8 +226,7 @@ function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKno
       {/* Radial gradient circle behind wheel */}
       <div style={{
         position: 'absolute',
-        width: 'min(calc(100dvh - 80px), calc(100vw - 8px))',
-        maxWidth: '640px',
+        width: 'min(130vw, 85dvh)',
         aspectRatio: '1',
         borderRadius: '50%',
         backgroundImage: 'url(https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png)',
@@ -236,8 +235,7 @@ function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKno
       }} />
       {/* Wheel */}
       <div style={{
-        width: 'min(calc(100dvh - 120px), calc(100vw - 24px))',
-        maxWidth: '600px',
+        width: 'min(calc(100dvh - 120px), calc(100vw - 24px), 70dvh)',
         aspectRatio: '1',
         borderRadius: '50%',
         overflow: 'hidden',
@@ -287,12 +285,20 @@ export default function ChartSection({
     <div style={{
       position: 'absolute',
       inset: 0,
-      background: isLight ? '#FDF5ED' : '#0e0c1a',
-      backgroundImage: isLight ? 'none' : 'url(https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png)',
+      backgroundColor: '#0e0c1a',
+      backgroundImage: 'url(https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png)',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      transition: 'background 0.3s ease',
     }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundColor: '#FDF5ED',
+        opacity: isLight ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
 
       {/* TEXTURE wordmark */}
       <div style={{
