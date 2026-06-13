@@ -230,7 +230,7 @@ function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKno
         maxWidth: '640px',
         aspectRatio: '1',
         borderRadius: '50%',
-        backgroundImage: 'url(/chart-radial.png)',
+        backgroundImage: 'url(https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }} />
@@ -288,7 +288,7 @@ export default function ChartSection({
       position: 'absolute',
       inset: 0,
       background: isLight ? '#FDF5ED' : '#0e0c1a',
-      backgroundImage: isLight ? 'none' : 'url(/sky-background.png)',
+      backgroundImage: isLight ? 'none' : 'url(https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png)',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       transition: 'background 0.3s ease',
