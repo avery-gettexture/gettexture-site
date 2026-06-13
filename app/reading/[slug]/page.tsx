@@ -336,7 +336,19 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
           ref={el => { sectionRefs.current[3 + index] = el; }}
         >
           <div className="wordmark">TEXTURE</div>
-          <div className="section-bg" style={{ backgroundImage: `url(${planet.background})` }} />
+          <div
+            className="section-bg"
+            style={{
+              backgroundImage: `url(${planet.background})`,
+              backgroundPosition: (() => {
+                if (planet.id === 'north-node') return 'center top';
+                if (planet.id === 'south-node') return 'center bottom';
+                if (planet.id === 'asc') return 'center center';
+                if (planet.id === 'mc') return 'center top';
+                return 'center center';
+              })(),
+            }}
+          />
           <PlanetCard planet={planet} reading={reading} customerName={customerName} />
           <button className="next-arrow" onClick={() => scrollToNext(3 + index)}>↓</button>
         </div>
