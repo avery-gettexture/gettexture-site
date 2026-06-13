@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, use } from 'react';
 import { supabase } from '@/lib/supabase';
+import ChartSection from '@/app/components/ChartSection';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -305,22 +306,25 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         <button className="next-arrow" style={{ color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToNext(1)}>↓</button>
       </div>
 
-      {/* ── 2. CHART (placeholder) ── */}
+      {/* ── 2. CHART ── */}
       <div
-        className="reading-section chart-placeholder"
+        className="reading-section"
+        style={{ background: '#0e0c1a' }}
         ref={el => { sectionRefs.current[2] = el; }}
       >
-        <div className="wordmark">TEXTURE</div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '200px', height: '200px', borderRadius: '50%',
-            border: '1px solid rgba(253,245,237,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '11px', color: 'rgba(253,245,237,0.20)', letterSpacing: '2px' }}>CHART</span>
-          </div>
-          <div className="chart-placeholder-label">CHART · FOCUS · LIST</div>
-        </div>
+        <ChartSection 
+          chartData={reading?.chart_data} 
+          customerName={customerName}
+          onScrollToPlanet={(planetId) => {
+            const PLANET_TO_INDEX: Record<string, number> = {
+              sun: 3, moon: 4, mercury: 5, venus: 6, mars: 7,
+              jupiter: 8, saturn: 9, uranus: 10, neptune: 11, pluto: 12,
+              ascendant: 13, medium_coeli: 14, mean_north_lunar_node: 15, mean_south_lunar_node: 16,
+            };
+            const index = PLANET_TO_INDEX[planetId];
+            if (index !== undefined) scrollToSection(index);
+          }}
+        />
         <button className="next-arrow" onClick={() => scrollToNext(2)}>↓</button>
       </div>
 
