@@ -62,14 +62,39 @@ const PLACEHOLDER_REFERENCE = 'Reference content loading...';
 
 // ── Helper: get planet meta from chart_data ────────────────────────────────
 
+const PLANET_KEY_MAP: Record<string, string> = {
+  sun: 'sun', moon: 'moon', mercury: 'mercury', venus: 'venus',
+  mars: 'mars', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus',
+  neptune: 'neptune', pluto: 'pluto', asc: 'ascendant', mc: 'medium_coeli',
+  'north-node': 'mean_north_lunar_node', 'south-node': 'mean_south_lunar_node',
+};
+
+const SIGN_ABBR_MAP: Record<string, string> = {
+  Ari: 'Aries', Tau: 'Taurus', Gem: 'Gemini', Can: 'Cancer',
+  Leo: 'Leo', Vir: 'Virgo', Lib: 'Libra', Sco: 'Scorpio',
+  Sag: 'Sagittarius', Cap: 'Capricorn', Aqu: 'Aquarius', Pis: 'Pisces',
+};
+
+const HOUSE_ORDINALS: Record<string, string> = {
+  First_House: '1st House', Second_House: '2nd House', Third_House: '3rd House',
+  Fourth_House: '4th House', Fifth_House: '5th House', Sixth_House: '6th House',
+  Seventh_House: '7th House', Eighth_House: '8th House', Ninth_House: '9th House',
+  Tenth_House: '10th House', Eleventh_House: '11th House', Twelfth_House: '12th House',
+};
+
 function getPlanetMeta(chartData: any, planetId: string): { sign: string; house: string; degree: string; retrograde: boolean } {
-  if (!chartData?.planets) return { sign: '', house: '', degree: '', retrograde: false };
-  const planet = chartData.planets.find((p: any) => p.id === planetId);
+  if (!chartData?.subject) return { sign: '', house: '', degree: '', retrograde: false };
+  const key = PLANET_KEY_MAP[planetId];
+  if (!key) return { sign: '', house: '', degree: '', retrograde: false };
+  const planet = chartData.subject[key];
   if (!planet) return { sign: '', house: '', degree: '', retrograde: false };
+  const sign = SIGN_ABBR_MAP[planet.sign] ?? planet.sign ?? '';
+  const house = ['ascendant', 'medium_coeli'].includes(key) ? '' : (HOUSE_ORDINALS[planet.house] ?? '');
+  const degree = planet.position != null ? `${Math.floor(planet.position)}°` : '';
   return {
-    sign: planet.sign ?? '',
-    house: planet.house ? `${planet.house}th House` : '',
-    degree: planet.degree ? `${Math.floor(planet.degree)}°` : '',
+    sign,
+    house,
+    degree,
     retrograde: planet.retrograde ?? false,
   };
 }
