@@ -41,20 +41,20 @@ interface PlanetConfig {
 // ── Planet config ──────────────────────────────────────────────────────────
 
 const PLANETS: PlanetConfig[] = [
-  { id: 'sun',        name: 'Sun',        background: '/backgrounds/sun-background.png',        contentKey: 'sun'        },
-  { id: 'moon',       name: 'Moon',       background: '/backgrounds/moon-background.png',       contentKey: 'moon'       },
-  { id: 'mercury',    name: 'Mercury',    background: '/backgrounds/mercury-background.png',    contentKey: 'mercury'    },
-  { id: 'venus',      name: 'Venus',      background: '/backgrounds/venus-background.png',      contentKey: 'venus'      },
-  { id: 'mars',       name: 'Mars',       background: '/backgrounds/mars-background.png',       contentKey: 'mars'       },
-  { id: 'jupiter',    name: 'Jupiter',    background: '/backgrounds/jupiter-background.png',    contentKey: 'jupiter'    },
-  { id: 'saturn',     name: 'Saturn',     background: '/backgrounds/saturn-background.png',     contentKey: 'saturn'     },
-  { id: 'uranus',     name: 'Uranus',     background: '/backgrounds/uranus-background.png',     contentKey: 'uranus'     },
-  { id: 'neptune',    name: 'Neptune',    background: '/backgrounds/neptune-background.png',    contentKey: 'neptune'    },
-  { id: 'pluto',      name: 'Pluto',      background: '/backgrounds/pluto-background.png',      contentKey: 'pluto'      },
-  { id: 'asc',        name: 'Ascendant',  background: '/backgrounds/asc-background.png',        contentKey: 'asc_reading'},
-  { id: 'mc',         name: 'Midheaven',  background: '/backgrounds/mc-background.png',         contentKey: 'mc'         },
-  { id: 'north-node', name: 'North Node', background: '/backgrounds/north-node-background.png', contentKey: 'north_node' },
-  { id: 'south-node', name: 'South Node', background: '/backgrounds/south-node-background.png', contentKey: 'south_node' },
+  { id: 'sun',        name: 'Sun',        background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sun-background.png',        contentKey: 'sun'        },
+  { id: 'moon',       name: 'Moon',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/moon-background.png',       contentKey: 'moon'       },
+  { id: 'mercury',    name: 'Mercury',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mercury-background.png',    contentKey: 'mercury'    },
+  { id: 'venus',      name: 'Venus',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/venus-background.png',      contentKey: 'venus'      },
+  { id: 'mars',       name: 'Mars',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mars-background.png',       contentKey: 'mars'       },
+  { id: 'jupiter',    name: 'Jupiter',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/jupiter-background.png',    contentKey: 'jupiter'    },
+  { id: 'saturn',     name: 'Saturn',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/saturn-background.png',     contentKey: 'saturn'     },
+  { id: 'uranus',     name: 'Uranus',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/uranus-background.png',     contentKey: 'uranus'     },
+  { id: 'neptune',    name: 'Neptune',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/neptune-background.png',    contentKey: 'neptune'    },
+  { id: 'pluto',      name: 'Pluto',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/pluto-background.png',      contentKey: 'pluto'      },
+  { id: 'asc',        name: 'Ascendant',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/asc-background.png',        contentKey: 'asc_reading'},
+  { id: 'mc',         name: 'Midheaven',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mc-background.png',         contentKey: 'mc'         },
+  { id: 'north-node', name: 'North Node', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/north-node-background.png', contentKey: 'north_node' },
+  { id: 'south-node', name: 'South Node', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/south-node-background.png', contentKey: 'south_node' },
 ];
 
 const PLACEHOLDER_SYNTHESIS = 'Interpretation loading...';
