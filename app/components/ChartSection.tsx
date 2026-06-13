@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 
 type ChartView = 'chart' | 'focus' | 'list';
@@ -9,6 +9,7 @@ interface ChartSectionProps {
   chartData: any;
   customerName: string;
   onScrollToPlanet?: (planetId: string) => void;
+  activeViewOverride?: ChartView;
 }
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -158,8 +159,11 @@ function FocusView() {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-export default function ChartSection({ chartData, customerName, onScrollToPlanet }: ChartSectionProps) {
+export default function ChartSection({ chartData, customerName, onScrollToPlanet, activeViewOverride }: ChartSectionProps) {
   const [activeView, setActiveView] = useState<ChartView>('chart');
+  React.useEffect(() => {
+    if (activeViewOverride) setActiveView(activeViewOverride);
+  }, [activeViewOverride]);
   const isLight = activeView === 'list';
 
   return (
@@ -196,11 +200,6 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
             {view.charAt(0).toUpperCase() + view.slice(1)}
           </button>
         ))}
-      </div>
-
-      {/* TEXTURE wordmark — on top of everything */}
-      <div style={{ position: 'absolute', top: '16px', left: '20px', fontFamily: 'var(--font-anton), sans-serif', fontSize: '14px', color: 'rgba(185,18,18,0.75)', letterSpacing: '2px', zIndex: 10 }}>
-        TEXTURE
       </div>
 
       {/* Content — each view manages its own background */}

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback, use } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchAllPlanetReferences, type PlacementReferenceResult } from '@/lib/reference-utils';
+import ReferencePage from '@/app/components/ReferencePage';
 import ChartSection from '@/app/components/ChartSection';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -106,10 +108,12 @@ function PlanetCard({
   planet,
   reading,
   customerName,
+  referenceData,
 }: {
   planet: PlanetConfig;
   reading: Reading | null;
   customerName: string;
+  referenceData?: PlacementReferenceResult;
 }) {
   const [openSection, setOpenSection] = useState<SectionKey>('synthesis');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -163,7 +167,49 @@ function PlanetCard({
 
           {openSection === 'reference' && (
             <div className="section-body">
-              <p className="placeholder-text">{PLACEHOLDER_REFERENCE}</p>
+              {!referenceData ? (
+                <p className="placeholder-text">Loading...</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {[
+                    referenceData.planet,
+                    referenceData.sign,
+                    referenceData.house,
+                    referenceData.motion,
+                    referenceData.degree,
+                  ].filter(Boolean).map((entry, i) => entry && (
+                    <div key={i}>
+                      <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
+                        {entry.category === 'motion' ? `${entry.name} MOTION` : entry.category === 'degree' ? `${entry.name} DEGREE` : entry.name}
+                      </div>
+                      <p className="body-text" style={{ color: 'rgba(22,22,18,0.70)', fontSize: 'clamp(13px, 3.6vw, 15px)' }}>{entry.description}</p>
+                    </div>
+                  ))}
+                  {(() => {
+                    const grouped: Array<{ instances: string[]; entry: typeof referenceData.aspects[0]['entry'] }> = [];
+                    referenceData.aspects.forEach(a => {
+                      if (a.showDescription) {
+                        grouped.push({ instances: [a.instance], entry: a.entry });
+                      } else {
+                        grouped[grouped.length - 1]?.instances.push(a.instance);
+                      }
+                    });
+                    return grouped.map((group, i) => (
+                      <div key={`aspect-group-${i}`}>
+                        {group.instances.map((inst, j) => (
+                          <div key={j} style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                            {inst}
+                          </div>
+                        ))}
+                        <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px', marginTop: '2px' }}>
+                          {group.entry.name}
+                        </div>
+                        <p className="body-text" style={{ color: 'rgba(22,22,18,0.70)', fontSize: 'clamp(13px, 3.6vw, 15px)' }}>{group.entry.description}</p>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              )}
             </div>
           )}
 
@@ -187,6 +233,8 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
   const [reading, setReading] = useState<Reading | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [referenceData, setReferenceData] = useState<Record<string, PlacementReferenceResult>>({});
+  const [jumpToList, setJumpToList] = useState(false);
 
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -207,6 +255,13 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
     }
     fetchReading();
   }, [slug]);
+
+  useEffect(() => {
+    if (!reading?.chart_data) return;
+    const planetIds = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','asc','mc','north-node','south-node'];
+    fetchAllPlanetReferences(planetIds, reading.chart_data, reading.birth_time_known ?? true)
+      .then(setReferenceData);
+  }, [reading]);
 
   const scrollToSection = useCallback((index: number) => {
     const section = sectionRefs.current[index];
@@ -315,6 +370,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         <ChartSection 
           chartData={reading?.chart_data} 
           customerName={customerName}
+          activeViewOverride={jumpToList ? 'list' : undefined}
           onScrollToPlanet={(planetId) => {
             const PLANET_TO_INDEX: Record<string, number> = {
               sun: 3, moon: 4, mercury: 5, venus: 6, mars: 7,
@@ -335,7 +391,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
           className="reading-section"
           ref={el => { sectionRefs.current[3 + index] = el; }}
         >
-          <div className="wordmark">TEXTURE</div>
+          <div className="wordmark" style={{ cursor: 'pointer' }} onClick={() => { setJumpToList(true); scrollToSection(2); setTimeout(() => setJumpToList(false), 500); }}>TEXTURE</div>
           <div
             className="section-bg"
             style={{
@@ -349,7 +405,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
               })(),
             }}
           />
-          <PlanetCard planet={planet} reading={reading} customerName={customerName} />
+          <PlanetCard planet={planet} reading={reading} customerName={customerName} referenceData={referenceData[planet.id]} />
           <button className="next-arrow" onClick={() => scrollToNext(3 + index)}>↓</button>
         </div>
       ))}
@@ -361,16 +417,8 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         ref={el => { sectionRefs.current[3 + PLANETS.length] = el; }}
       >
         <div className="wordmark" style={{ color: 'var(--red-strong)' }}>TEXTURE</div>
-        <div className="reference-card">
-          <div className="reference-header">
-            <h2 className="reference-title">Reference</h2>
-            <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', marginTop: '8px' }} />
-          </div>
-          <div className="reference-content">
-            <p className="placeholder-text" style={{ padding: '16px 4px' }}>
-              The reference dictionary will appear here.
-            </p>
-          </div>
+        <div className="card-inner">
+          <ReferencePage />
         </div>
       </div>
 
