@@ -156,7 +156,8 @@ function PlanetCard({
 // ── Main Reading Page ──────────────────────────────────────────────────────
 
 export default function ReadingPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
+  const resolvedParams = use(params);
+  const slug = resolvedParams.slug;
   const [reading, setReading] = useState<Reading | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
