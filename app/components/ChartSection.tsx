@@ -84,7 +84,7 @@ function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToP
         retrograde: data.retrograde ?? false,
       };
     })
-    .filter(Boolean) as NonNullable<ReturnType<typeof PLANET_ORDER[0] extends infer T ? T : never>>[];
+    .filter((p): p is NonNullable<typeof p> => p !== null);
 
   return (
     <div style={{
@@ -223,6 +223,18 @@ function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKno
       alignItems: 'center',
       justifyContent: 'center',
     }}>
+      {/* Radial gradient circle behind wheel */}
+      <div style={{
+        position: 'absolute',
+        width: 'min(calc(100dvh - 80px), calc(100vw - 8px))',
+        maxWidth: '640px',
+        aspectRatio: '1',
+        borderRadius: '50%',
+        backgroundImage: 'url(/chart-radial.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }} />
+      {/* Wheel */}
       <div style={{
         width: 'min(calc(100dvh - 120px), calc(100vw - 24px))',
         maxWidth: '600px',
@@ -276,6 +288,9 @@ export default function ChartSection({
       position: 'absolute',
       inset: 0,
       background: isLight ? '#FDF5ED' : '#0e0c1a',
+      backgroundImage: isLight ? 'none' : 'url(/sky-background.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
       transition: 'background 0.3s ease',
     }}>
 
