@@ -419,7 +419,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
       >
         <div className="wordmark" style={{ color: 'var(--red-strong)', cursor: 'pointer' }} onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}>TEXTURE</div>
         <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToSection(PLANET_START + PLANETS.length - 1)}>↑</button>
-        <div className="card-inner">
+        <div className="card-inner" style={{ borderBottom: '1.5px solid rgba(185,18,18,0.50)' }}>
           <ReferencePage />
         </div>
       </div>
