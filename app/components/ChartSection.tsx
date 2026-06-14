@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 
-type ChartView = 'chart' | 'focus' | 'list';
+type ChartView = 'chart' | 'list';
 
 interface ChartSectionProps {
   chartData: any;
   customerName: string;
   onScrollToPlanet?: (planetId: string) => void;
   activeViewOverride?: ChartView;
+  onScrollNext?: () => void;
 }
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -59,7 +60,6 @@ const SKY_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/publi
 const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png';
 
 // ── List View ─────────────────────────────────────────────────────────────
-// Has its own cream background — independent of outer container
 
 function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToPlanet?: (planetId: string) => void }) {
   const subject = chartData?.subject;
@@ -90,29 +90,50 @@ function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToP
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      <div style={{ flexShrink: 0, padding: '16px 20px 10px', borderBottom: '1.5px solid rgba(185,18,18,0.50)' }}>
-        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(28px, 8vw, 36px)', color: '#161612', letterSpacing: '1px' }}>
+      {/* Header — compact, close to nav */}
+      <div style={{
+        flexShrink: 0,
+        padding: '8px 20px 6px',
+        borderBottom: '1.5px solid rgba(185,18,18,0.50)',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-anton), sans-serif',
+          fontSize: 'clamp(22px, 6vw, 30px)',
+          color: '#161612',
+          letterSpacing: '1px',
+        }}>
           Placements
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0', scrollbarWidth: 'none' }}>
+
+      {/* Planet rows — no scroll, use space-evenly to fill */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-evenly',
+        padding: '0',
+      }}>
         {planets.map((planet, index) => (
           <div
             key={planet.key}
             onClick={() => onScrollToPlanet?.(planet.key)}
             style={{
-              display: 'flex', alignItems: 'center', padding: '10px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 20px',
               borderBottom: index < planets.length - 1 ? '0.5px solid rgba(22,22,18,0.10)' : 'none',
               cursor: onScrollToPlanet ? 'pointer' : 'default',
+              flex: 1,
             }}
           >
-            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.5vw, 15px)', color: 'rgba(22,22,18,0.45)', width: '24px', flexShrink: 0 }}>{planet.glyph}</span>
-            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.8vw, 15px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{planet.label}</span>
-            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.8vw, 15px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '6px' }}>{planet.sign}</span>
-            <span style={{ fontSize: 'clamp(12px, 3.2vw, 13px)', color: 'rgba(22,22,18,0.45)', marginRight: '8px' }}>{planet.signGlyph}</span>
-            <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(11px, 3vw, 13px)', color: 'rgba(22,22,18,0.55)', marginRight: '6px' }}>{planet.degree}°</span>
-            {planet.house && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.35)', marginRight: '6px' }}>{planet.house}</span>}
-            {planet.retrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(185,18,18,0.75)', letterSpacing: '1px' }}>R</span>}
+            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3vw, 14px)', color: 'rgba(22,22,18,0.45)', width: '20px', flexShrink: 0 }}>{planet.glyph}</span>
+            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{planet.label}</span>
+            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{planet.sign}</span>
+            <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '6px' }}>{planet.signGlyph}</span>
+            <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'rgba(22,22,18,0.55)', marginRight: '4px' }}>{planet.degree}°</span>
+            {planet.house && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 2.4vw, 11px)', color: 'rgba(22,22,18,0.35)', marginRight: '4px' }}>{planet.house}</span>}
+            {planet.retrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 2.4vw, 11px)', color: 'rgba(185,18,18,0.75)', letterSpacing: '1px' }}>R</span>}
           </div>
         ))}
       </div>
@@ -147,38 +168,39 @@ function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKno
   );
 }
 
-// ── Focus View ────────────────────────────────────────────────────────────
-
-function FocusView() {
-  return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(253,245,237,0.20)', letterSpacing: '2px' }}>FOCUS</span>
-    </div>
-  );
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────
 
-export default function ChartSection({ chartData, customerName, onScrollToPlanet, activeViewOverride }: ChartSectionProps) {
+export default function ChartSection({ chartData, customerName, onScrollToPlanet, activeViewOverride, onScrollNext }: ChartSectionProps) {
   const [activeView, setActiveView] = useState<ChartView>('chart');
-  React.useEffect(() => {
-    if (activeViewOverride) setActiveView(activeViewOverride);
-  }, [activeViewOverride]);
-  const isLight = activeView === 'list';
+  const currentView = activeViewOverride ?? activeView;
+  const isLight = currentView === 'list';
 
   return (
     <div style={{
       position: 'absolute',
       inset: 0,
       backgroundColor: isLight ? '#FDF5ED' : '#0e0c1a',
-      backgroundImage: isLight ? 'none' : `url(${SKY_BG})`,
+      backgroundImage: isLight ? '' : `url(${SKY_BG})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     }}>
 
-      {/* Nav tabs */}
-      <div style={{ position: 'absolute', top: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '32px', zIndex: 10 }}>
-        {(['chart', 'focus', 'list'] as ChartView[]).map(view => (
+      {/* TEXTURE wordmark */}
+      <div style={{
+        position: 'absolute', top: '16px', left: '20px',
+        fontFamily: 'var(--font-anton), sans-serif',
+        fontSize: '14px', color: 'rgba(185,18,18,0.75)',
+        letterSpacing: '2px', zIndex: 20,
+      }}>
+        TEXTURE
+      </div>
+
+      {/* Nav — Chart | List only */}
+      <div style={{
+        position: 'absolute', top: '16px', left: 0, right: 0,
+        display: 'flex', justifyContent: 'center', gap: '32px', zIndex: 20,
+      }}>
+        {(['chart', 'list'] as ChartView[]).map(view => (
           <button
             key={view}
             onClick={() => setActiveView(view)}
@@ -186,15 +208,12 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
               fontFamily: 'var(--font-geist-mono), monospace',
               fontSize: 'clamp(13px, 3.5vw, 16px)',
               letterSpacing: '1px',
-              color: activeView === view
+              color: currentView === view
                 ? (isLight ? '#161612' : 'rgba(253,245,237,1)')
                 : (isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.35)'),
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px 0',
-              textTransform: 'capitalize',
-              fontWeight: activeView === view ? 'bold' : 'normal',
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '4px 0', textTransform: 'capitalize',
+              fontWeight: currentView === view ? 'bold' : 'normal',
             }}
           >
             {view.charAt(0).toUpperCase() + view.slice(1)}
@@ -202,24 +221,32 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
         ))}
       </div>
 
-      {/* Content — each view manages its own background */}
-      <div style={{ position: 'absolute', top: '52px', bottom: '48px', left: 0, right: 0 }}>
-        {activeView === 'chart' && <ChartView chartData={chartData} birthTimeKnown={!!chartData} />}
-        {activeView === 'focus' && <FocusView />}
-        {activeView === 'list' && <ListView chartData={chartData} onScrollToPlanet={onScrollToPlanet} />}
+      {/* Content */}
+      <div style={{ position: 'absolute', top: '52px', bottom: '36px', left: 0, right: 0 }}>
+        {currentView === 'chart' && <ChartView chartData={chartData} birthTimeKnown={!!chartData} />}
+        {currentView === 'list' && <ListView chartData={chartData} onScrollToPlanet={onScrollToPlanet} />}
       </div>
 
-      {/* Customer name */}
-      <div style={{
-        position: 'absolute', bottom: '12px', left: 0, right: 0, textAlign: 'center',
-        fontFamily: 'var(--font-geist-mono), monospace',
-        fontSize: 'clamp(13px, 3.5vw, 16px)',
-        color: isLight ? 'rgba(22,22,18,0.45)' : 'rgba(253,245,237,0.45)',
-        letterSpacing: '1px',
-        zIndex: 10,
-      }}>
-        {customerName}
-      </div>
+      {/* Arrow */}
+      <button
+        onClick={onScrollNext}
+        style={{
+          position: 'absolute',
+          bottom: '8px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontFamily: 'var(--font-geist-mono), monospace',
+          fontSize: '18px',
+          color: isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '8px 16px',
+          zIndex: 30,
+        }}
+      >
+        ↓
+      </button>
 
     </div>
   );

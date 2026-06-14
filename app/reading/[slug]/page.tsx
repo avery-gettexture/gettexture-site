@@ -145,7 +145,7 @@ function PlanetCard({
         <div className="card-header">
           <h1 className="planet-name">{planet.name}</h1>
           {metaString ? <p className="planet-meta">{metaString}</p> : null}
-          <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '4px' }} />
+          <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
         </div>
 
         <div className="card-content" ref={contentRef}>
@@ -323,7 +323,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         <div className="intro-card">
           <div className="card-header">
             <h2 className="planet-name" style={{ fontSize: 'clamp(24px, 6vw, 36px)' }}>Your Reading</h2>
-            <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '4px' }} />
+            <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0px' }} />
           </div>
           <div className="intro-content">
             <p className="body-text">
@@ -354,8 +354,8 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
             const index = PLANET_TO_INDEX[planetId];
             if (index !== undefined) scrollToSection(index);
           }}
+          onScrollNext={() => scrollToNext(CHART_INDEX)}
         />
-        <button className="next-arrow" onClick={() => scrollToNext(CHART_INDEX)}>↓</button>
       </div>
 
       {/* ── 4–17. PLANET SECTIONS ── */}
