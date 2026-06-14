@@ -64,7 +64,7 @@ const PLANETS: PlanetConfig[] = [
   { id: 'south-node', name: 'South Node', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/south-node-background.png', contentKey: 'south_node' },
 ];
 
-const PLACEHOLDER_SYNTHESIS = 'Interpretation loading...';
+const PLACEHOLDER_SYNTHESIS = 'This interpretation is being prepared. Check back shortly.';
 
 // ── Section indices ────────────────────────────────────────────────────────
 // 0: Cover

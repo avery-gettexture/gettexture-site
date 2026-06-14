@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+
+const ADMIN_PASSWORD = 'tx-9k2mR#vQ';
 
 function generateSlug(length = 12): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -27,6 +29,9 @@ async function geocodeLocation(location: string): Promise<{ lat: number; lng: nu
 }
 
 export default function AdminPage() {
+  const [authed, setAuthed] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -36,8 +41,59 @@ export default function AdminPage() {
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<{ slug: string; url: string } | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genLog, setGenLog] = useState<string[]>([]);
+  const [genDone, setGenDone] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
+
+  async function runGeneration(retryOnly = false) {
+    if (!result) return;
+    setGenerating(true);
+    setHasFailed(false);
+    setGenLog(prev => [...prev, retryOnly ? 'Retrying failed placements...' : 'Starting content generation...', 'Warming cache with Sun...']);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: result.slug, retryOnly }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const failed = data.failed ?? [];
+        setGenLog(prev => [...prev,
+          `Generated ${data.generated} placements.`,
+          failed.length > 0 ? `Failed: ${failed.join(', ')}` : 'All placements complete ✓',
+        ]);
+        setHasFailed(failed.length > 0);
+        if (failed.length === 0) setGenDone(true);
+      } else {
+        setGenLog(prev => [...prev, `Error: ${data.error}`]);
+        setHasFailed(true);
+      }
+    } catch (e: any) {
+      setGenLog(prev => [...prev, `Error: ${e.message}`]);
+      setHasFailed(true);
+    }
+    setGenerating(false);
+  }
+
   const [error, setError] = useState('');
   const [log, setLog] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (localStorage.getItem('tx_admin_auth') === '1') setAuthed(true);
+  }, []);
+
+  function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSWORD) {
+      localStorage.setItem('tx_admin_auth', '1');
+      setAuthed(true);
+    } else {
+      setPasswordError(true);
+      setPasswordInput('');
+    }
+  }
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg]);
 
@@ -143,6 +199,28 @@ export default function AdminPage() {
     marginBottom: '6px',
     display: 'block',
   };
+
+  if (!authed) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#FDF5ED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '280px' }}>
+          <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '14px', color: 'rgba(185,18,18,0.75)', letterSpacing: '2px', marginBottom: '8px' }}>TEXTURE</div>
+          <input
+            type="password"
+            placeholder="Password"
+            value={passwordInput}
+            onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+            style={{ padding: '10px 12px', fontFamily: 'var(--font-questrial), sans-serif', fontSize: '16px', border: `1px solid ${passwordError ? 'rgba(185,18,18,0.75)' : 'rgba(22,22,18,0.20)'}`, outline: 'none', borderRadius: '2px' }}
+            autoFocus
+          />
+          {passwordError && <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(185,18,18,0.75)', letterSpacing: '1px' }}>INCORRECT</div>}
+          <button type="submit" style={{ padding: '12px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', background: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer' }}>
+            ENTER →
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -332,6 +410,45 @@ export default function AdminPage() {
             }}>
               Send this URL to the customer.
             </div>
+
+            <button
+              onClick={() => runGeneration(false)}
+              disabled={generating || genDone}
+              style={{
+                marginTop: '16px', width: '100%', padding: '14px',
+                fontFamily: 'var(--font-geist-mono), monospace',
+                fontSize: '13px', letterSpacing: '2px',
+                color: genDone ? 'rgba(22,22,18,0.35)' : '#FDF5ED',
+                background: genDone ? 'rgba(22,22,18,0.08)' : generating ? 'rgba(185,18,18,0.40)' : 'rgba(185,18,18,0.75)',
+                border: 'none', cursor: generating || genDone ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {genDone ? 'CONTENT GENERATED ✓' : generating ? 'GENERATING...' : 'GENERATE CONTENT →'}
+            </button>
+
+            {hasFailed && !generating && (
+              <button
+                onClick={() => runGeneration(true)}
+                style={{
+                  marginTop: '8px', width: '100%', padding: '12px',
+                  fontFamily: 'var(--font-geist-mono), monospace',
+                  fontSize: '13px', letterSpacing: '2px',
+                  color: '#FDF5ED',
+                  background: 'rgba(22,22,18,0.55)',
+                  border: 'none', cursor: 'pointer',
+                }}
+              >
+                RETRY FAILED →
+              </button>
+            )}
+
+            {genLog.length > 0 && (
+              <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(22,22,18,0.04)', border: '1px solid rgba(22,22,18,0.08)' }}>
+                {genLog.map((line, i) => (
+                  <div key={i} style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.55)', lineHeight: '1.8' }}>{line}</div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
