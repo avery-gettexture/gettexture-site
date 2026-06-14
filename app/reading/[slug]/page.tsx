@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchAllPlanetReferences, type PlacementReferenceResult } from '@/lib/reference-utils';
 import ReferencePage from '@/app/components/ReferencePage';
+import CoverSection from '@/app/components/CoverSection';
+import BirthDataSection from '@/app/components/BirthDataSection';
 import ChartSection from '@/app/components/ChartSection';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -16,6 +18,8 @@ interface Reading {
   birth_date: string;
   birth_time: string;
   birth_location: string;
+  birth_lat?: number | null;
+  birth_lng?: number | null;
   birth_time_known: boolean;
   sun: string | null;
   moon: string | null;
@@ -61,7 +65,23 @@ const PLANETS: PlanetConfig[] = [
 ];
 
 const PLACEHOLDER_SYNTHESIS = 'Interpretation loading...';
-const PLACEHOLDER_REFERENCE = 'Reference content loading...';
+
+// ── Section indices ────────────────────────────────────────────────────────
+// 0: Cover
+// 1: Birth Data
+// 2: Intro
+// 3: Chart
+// 4-17: Planets (14 total)
+// 18: Reference
+
+const CHART_INDEX = 3;
+const PLANET_START = 4;
+
+const PLANET_TO_INDEX: Record<string, number> = {
+  sun: 4, moon: 5, mercury: 6, venus: 7, mars: 8,
+  jupiter: 9, saturn: 10, uranus: 11, neptune: 12, pluto: 13,
+  ascendant: 14, medium_coeli: 15, mean_north_lunar_node: 16, mean_south_lunar_node: 17,
+};
 
 // ── Helper: get planet meta from chart_data ────────────────────────────────
 
@@ -94,12 +114,7 @@ function getPlanetMeta(chartData: any, planetId: string): { sign: string; house:
   const sign = SIGN_ABBR_MAP[planet.sign] ?? planet.sign ?? '';
   const house = ['ascendant', 'medium_coeli'].includes(key) ? '' : (HOUSE_ORDINALS[planet.house] ?? '');
   const degree = planet.position != null ? `${Math.floor(planet.position)}°` : '';
-  return {
-    sign,
-    house,
-    degree,
-    retrograde: planet.retrograde ?? false,
-  };
+  return { sign, house, degree, retrograde: planet.retrograde ?? false };
 }
 
 // ── Planet Card Component ──────────────────────────────────────────────────
@@ -120,47 +135,34 @@ function PlanetCard({
 
   const meta = reading ? getPlanetMeta(reading.chart_data, planet.id) : { sign: '', house: '', degree: '', retrograde: false };
   const synthesisText = reading ? (reading[planet.contentKey] as string | null) : null;
-
   const metaParts = [meta.sign, meta.house, meta.degree, meta.retrograde ? 'Retrograde' : null].filter(Boolean);
   const metaString = metaParts.join(' · ');
-
-  const toggleSection = (key: SectionKey) => {
-    setOpenSection(key);
-  };
 
   return (
     <>
       <div className="card-outer" />
       <div className="card-inner">
-
-        {/* Header */}
         <div className="card-header">
           <h1 className="planet-name">{planet.name}</h1>
           {metaString ? <p className="planet-meta">{metaString}</p> : null}
           <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '4px' }} />
         </div>
 
-        {/* Scrollable content */}
         <div className="card-content" ref={contentRef}>
-
-          {/* Synthesis row */}
-          <div className="section-row" onClick={() => toggleSection('synthesis')}>
+          <div className="section-row" onClick={() => setOpenSection('synthesis')}>
             <span className="section-row-label">Your {planet.name}</span>
             <span className="section-row-chevron">{openSection === 'synthesis' ? '−' : '+'}</span>
           </div>
 
           {openSection === 'synthesis' && (
             <div className="section-body">
-              <p className="body-text">
-                {synthesisText ?? PLACEHOLDER_SYNTHESIS}
-              </p>
+              <p className="body-text">{synthesisText ?? PLACEHOLDER_SYNTHESIS}</p>
             </div>
           )}
 
           <div className="section-divider" />
 
-          {/* Reference row */}
-          <div className="section-row" onClick={() => toggleSection('reference')}>
+          <div className="section-row" onClick={() => setOpenSection('reference')}>
             <span className="section-row-label">Reference</span>
             <span className="section-row-chevron">{openSection === 'reference' ? '−' : '+'}</span>
           </div>
@@ -212,14 +214,11 @@ function PlanetCard({
               )}
             </div>
           )}
-
         </div>
 
-        {/* Footer */}
         <div className="card-footer">
           <span className="card-name">{customerName}</span>
         </div>
-
       </div>
     </>
   );
@@ -245,7 +244,6 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         .select('*')
         .eq('slug', slug)
         .single();
-
       if (error || !data) {
         setNotFound(true);
       } else {
@@ -274,36 +272,15 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
 
   if (loading) {
     return (
-      <div style={{
-        height: '100dvh',
-        background: 'var(--indigo)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-anton)',
-          fontSize: '14px',
-          color: 'var(--red-strong)',
-          letterSpacing: '4px',
-        }}>
-          TEXTURE
-        </span>
+      <div style={{ height: '100dvh', background: 'var(--indigo)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-anton)', fontSize: '14px', color: 'var(--red-strong)', letterSpacing: '4px' }}>TEXTURE</span>
       </div>
     );
   }
 
   if (notFound) {
     return (
-      <div style={{
-        height: '100dvh',
-        background: 'var(--indigo)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px',
-      }}>
+      <div style={{ height: '100dvh', background: 'var(--indigo)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
         <span style={{ fontFamily: 'var(--font-anton)', fontSize: '14px', color: 'var(--red-strong)', letterSpacing: '4px' }}>TEXTURE</span>
         <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '12px', color: 'rgba(253,245,237,0.30)', letterSpacing: '2px' }}>READING NOT FOUND</span>
       </div>
@@ -311,34 +288,36 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
   }
 
   const customerName = reading?.name ?? '';
-  const birthDate = reading?.birth_date ?? '';
-  const birthTime = reading?.birth_time ?? '';
+  const birthDate    = reading?.birth_date ?? '';
+  const birthTime    = reading?.birth_time ?? '';
   const birthLocation = reading?.birth_location ?? '';
 
   return (
     <div className="reading-container">
 
       {/* ── 0. COVER ── */}
-      <div
-        className="reading-section cover-section"
-        ref={el => { sectionRefs.current[0] = el; }}
-      >
-        <div className="wordmark">TEXTURE</div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-          <div className="cover-wordmark">TEXTURE</div>
-          <div className="cover-name">{customerName}</div>
-          <div className="cover-meta">{birthDate} · {birthTime}{'\n'}{birthLocation}</div>
-          <div style={{ height: '1px', background: 'rgba(253,245,237,0.15)', width: '60px' }} />
-          <div className="cover-tagline">Your chart is a map of one specific moment in the sky.</div>
-        </div>
-        <button className="next-arrow" onClick={() => scrollToNext(0)}>↓</button>
+      <div className="reading-section" ref={el => { sectionRefs.current[0] = el; }}>
+        <CoverSection customerName={customerName} onScrollNext={() => scrollToNext(0)} />
       </div>
 
-      {/* ── 1. INTRO ── */}
+      {/* ── 1. BIRTH DATA ── */}
+      <div className="reading-section" ref={el => { sectionRefs.current[1] = el; }}>
+        <BirthDataSection
+          name={customerName}
+          birthDate={birthDate}
+          birthTime={birthTime}
+          birthLocation={birthLocation}
+          birthLat={reading?.birth_lat}
+          birthLng={reading?.birth_lng}
+          onScrollNext={() => scrollToNext(1)}
+        />
+      </div>
+
+      {/* ── 2. INTRO ── */}
       <div
         className="reading-section"
         style={{ background: 'var(--cream)' }}
-        ref={el => { sectionRefs.current[1] = el; }}
+        ref={el => { sectionRefs.current[2] = el; }}
       >
         <div className="wordmark" style={{ color: 'var(--red-strong)' }}>TEXTURE</div>
         <div className="intro-card">
@@ -358,40 +337,42 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
             </p>
           </div>
         </div>
-        <button className="next-arrow" style={{ color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToNext(1)}>↓</button>
+        <button className="next-arrow" style={{ color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToNext(2)}>↓</button>
       </div>
 
-      {/* ── 2. CHART ── */}
+      {/* ── 3. CHART ── */}
       <div
         className="reading-section"
         style={{ background: '#0e0c1a' }}
-        ref={el => { sectionRefs.current[2] = el; }}
+        ref={el => { sectionRefs.current[CHART_INDEX] = el; }}
       >
-        <ChartSection 
-          chartData={reading?.chart_data} 
+        <ChartSection
+          chartData={reading?.chart_data}
           customerName={customerName}
           activeViewOverride={jumpToList ? 'list' : undefined}
           onScrollToPlanet={(planetId) => {
-            const PLANET_TO_INDEX: Record<string, number> = {
-              sun: 3, moon: 4, mercury: 5, venus: 6, mars: 7,
-              jupiter: 8, saturn: 9, uranus: 10, neptune: 11, pluto: 12,
-              ascendant: 13, medium_coeli: 14, mean_north_lunar_node: 15, mean_south_lunar_node: 16,
-            };
             const index = PLANET_TO_INDEX[planetId];
             if (index !== undefined) scrollToSection(index);
           }}
         />
-        <button className="next-arrow" onClick={() => scrollToNext(2)}>↓</button>
+        <button className="next-arrow" onClick={() => scrollToNext(CHART_INDEX)}>↓</button>
       </div>
 
-      {/* ── 3–16. PLANET SECTIONS ── */}
+      {/* ── 4–17. PLANET SECTIONS ── */}
       {PLANETS.map((planet, index) => (
         <div
           key={planet.id}
           className="reading-section"
-          ref={el => { sectionRefs.current[3 + index] = el; }}
+          ref={el => { sectionRefs.current[PLANET_START + index] = el; }}
         >
-          <div className="wordmark" style={{ cursor: 'pointer' }} onClick={() => { setJumpToList(true); scrollToSection(2); setTimeout(() => setJumpToList(false), 500); }}>TEXTURE</div>
+          <div
+            className="wordmark"
+            style={{ cursor: 'pointer' }}
+            onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}
+          >
+            TEXTURE
+          </div>
+          <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%' }} onClick={() => scrollToSection(PLANET_START + index - 1)}>↑</button>
           <div
             className="section-bg"
             style={{
@@ -406,17 +387,18 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
             }}
           />
           <PlanetCard planet={planet} reading={reading} customerName={customerName} referenceData={referenceData[planet.id]} />
-          <button className="next-arrow" onClick={() => scrollToNext(3 + index)}>↓</button>
+          <button className="next-arrow" onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
         </div>
       ))}
 
-      {/* ── 17. REFERENCE ── */}
+      {/* ── 18. REFERENCE ── */}
       <div
         className="reading-section"
         style={{ background: 'var(--cream)' }}
-        ref={el => { sectionRefs.current[3 + PLANETS.length] = el; }}
+        ref={el => { sectionRefs.current[PLANET_START + PLANETS.length] = el; }}
       >
         <div className="wordmark" style={{ color: 'var(--red-strong)' }}>TEXTURE</div>
+        <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%' }} onClick={() => scrollToSection(PLANET_START + PLANETS.length - 1)}>↑</button>
         <div className="card-inner">
           <ReferencePage />
         </div>
