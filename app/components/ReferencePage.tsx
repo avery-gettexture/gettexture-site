@@ -28,7 +28,7 @@ const MOTION_ORDER = ['Direct','Retrograde'];
 const DEGREE_ORDER = ['Early','Middle','Late'];
 const ASPECT_ORDER = ['Conjunction','Sextile','Square','Trine','Opposition'];
 
-type SectionKey = 'signs' | 'houses' | 'planets' | 'motion' | 'degree' | 'aspects';
+type SectionKey = 'signs' | 'houses' | 'planets' | 'motion' | 'degree' | 'aspects' | 'support';
 
 function CollapsibleSection({
   title,
@@ -210,6 +210,30 @@ export default function ReferencePage() {
             <CollapsibleSection title="Motion"  entries={motion}  isOpen={openSection === 'motion'}  onToggle={() => toggle('motion')} />
             <CollapsibleSection title="Degree"  entries={degree}  isOpen={openSection === 'degree'}  onToggle={() => toggle('degree')} />
             <CollapsibleSection title="Aspects" entries={aspects} isOpen={openSection === 'aspects'} onToggle={() => toggle('aspects')} />
+            
+            {/* Support row */}
+            <div style={{ borderBottom: '0.5px solid rgba(22,22,18,0.10)' }}>
+              <div
+                onClick={() => toggle('support')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 4px', cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(14px, 3.8vw, 16px)', color: '#161612', letterSpacing: '-0.2px' }}>Support</span>
+                <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(12px, 3vw, 14px)', color: 'rgba(22,22,18,0.35)' }}>{openSection === 'support' ? '−' : '+'}</span>
+              </div>
+              {openSection === 'support' && (
+                <div style={{ padding: '0 4px 24px' }}>
+                  <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.6vw, 15px)', color: 'rgba(22,22,18,0.70)', lineHeight: '1.7', letterSpacing: '-0.2px' }}>
+                    Privacy policy, data deletion requests, and general information about Texture are available at{' '}
+                    <a href="https://gettexture.app" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>gettexture.app</a>.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Copyright */}
+            <div style={{ padding: '20px 4px 8px', textAlign: 'center', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.25)', letterSpacing: '1px' }}>
+              © 2026 TEXTURE
+            </div>
           </>
         )}
       </div>
