@@ -263,7 +263,9 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
 
   const scrollToSection = useCallback((index: number) => {
     const section = sectionRefs.current[index];
-    if (section) section.scrollIntoView({ behavior: 'smooth' });
+    if (!section) return;
+    const top = section.offsetTop;
+    document.documentElement.scrollTo({ top, behavior: 'smooth' });
   }, []);
 
   const scrollToNext = useCallback((currentIndex: number) => {
