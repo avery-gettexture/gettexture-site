@@ -261,11 +261,13 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
       .then(setReferenceData);
   }, [reading]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const scrollToSection = useCallback((index: number) => {
     const section = sectionRefs.current[index];
-    if (!section) return;
-    const top = section.offsetTop;
-    document.documentElement.scrollTo({ top, behavior: 'smooth' });
+    const container = containerRef.current;
+    if (!section || !container) return;
+    container.scrollTo({ top: section.offsetTop, behavior: 'smooth' });
   }, []);
 
   const scrollToNext = useCallback((currentIndex: number) => {
@@ -295,7 +297,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
   const birthLocation = reading?.birth_location ?? '';
 
   return (
-    <div className="reading-container">
+    <div className="reading-container" ref={containerRef}>
 
       {/* ── 0. COVER ── */}
       <div className="reading-section" ref={el => { sectionRefs.current[0] = el; }}>
