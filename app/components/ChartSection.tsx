@@ -222,8 +222,7 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
         ))}
       </div>
 
-      {/* Content */}
-      <div style={{ position: 'absolute', top: '52px', bottom: '36px', left: 0, right: 0 }}>
+      <div style={{ position: 'absolute', top: '44px', bottom: '36px', left: 0, right: 0 }}>
         {currentView === 'chart' && <ChartView chartData={chartData} birthTimeKnown={!!chartData} />}
         {currentView === 'list' && <ListView chartData={chartData} onScrollToPlanet={onScrollToPlanet} />}
       </div>
