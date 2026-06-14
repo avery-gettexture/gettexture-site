@@ -392,7 +392,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
           >
             TEXTURE
           </div>
-          <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%' }} onClick={() => scrollToSection(PLANET_START + index - 1)}>↑</button>
+          <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: planet.id === 'south-node' ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToSection(PLANET_START + index - 1)}>↑</button>
           <div
             className="section-bg"
             style={{
@@ -407,7 +407,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
             }}
           />
           <PlanetCard planet={planet} reading={reading} customerName={customerName} referenceData={referenceData[planet.id]} />
-          <button className="next-arrow" onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
+          <button className="next-arrow" style={{ color: ['mc', 'north-node'].includes(planet.id) ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
         </div>
       ))}
 
@@ -417,8 +417,8 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         style={{ background: 'var(--cream)' }}
         ref={el => { sectionRefs.current[PLANET_START + PLANETS.length] = el; }}
       >
-        <div className="wordmark" style={{ color: 'var(--red-strong)' }}>TEXTURE</div>
-        <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%' }} onClick={() => scrollToSection(PLANET_START + PLANETS.length - 1)}>↑</button>
+        <div className="wordmark" style={{ color: 'var(--red-strong)', cursor: 'pointer' }} onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}>TEXTURE</div>
+        <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToSection(PLANET_START + PLANETS.length - 1)}>↑</button>
         <div className="card-inner">
           <ReferencePage />
         </div>

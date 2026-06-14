@@ -74,6 +74,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-bottom: 1.5px solid rgba(185, 18, 18, 0.50);
 }
 
 /* ── Card header ── */
@@ -272,6 +273,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   border-top: 1.5px solid rgba(185, 18, 18, 0.50);
+  border-bottom: 1.5px solid rgba(185, 18, 18, 0.50);
 }
 
 .intro-content {
@@ -311,6 +313,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-bottom: 1.5px solid rgba(185, 18, 18, 0.50);
 }
 
 .reference-header {

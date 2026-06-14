@@ -89,6 +89,7 @@ function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToP
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
+      borderBottom: '1.5px solid rgba(185,18,18,0.50)',
     }}>
       {/* Header — compact, close to nav */}
       <div style={{

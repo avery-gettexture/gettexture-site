@@ -57,7 +57,7 @@ function ConstellationBelt() {
     mountedRef.current = true;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const SPEED = 0.35;
+    const SPEED = 0.70;
 
     const resize = () => {
       canvas.width = canvas.offsetWidth;
