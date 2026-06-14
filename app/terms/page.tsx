@@ -3,126 +3,162 @@ import Link from 'next/link';
 export default function TermsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FDF5ED', color: '#161612' }}>
-
-      <header style={{ padding: '28px 40px', borderBottom: '0.5px solid rgba(22,22,18,0.10)' }}>
-        <Link href="/" style={{
-          fontFamily: 'var(--font-anton), sans-serif',
-          fontSize: '14px',
-          color: 'rgba(185,18,18,0.75)',
-          letterSpacing: '2px',
-          textDecoration: 'none',
-        }}>
-          TEXTURE
-        </Link>
+      <header style={{ padding: '32px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(22,22,18,0.10)' }}>
+        <Link href="/" style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', color: 'rgba(185,18,18,0.75)', letterSpacing: '0.06em', textDecoration: 'none' }}>TEXTURE</Link>
       </header>
 
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '60px 40px 100px' }}>
+      <div style={{ maxWidth: '760px', margin: '0 auto', padding: '60px 48px 100px', fontFamily: 'var(--font-questrial), sans-serif', fontSize: '15px', lineHeight: 1.7, color: 'rgba(22,22,18,0.85)' }}>
 
-        <h1 style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(28px, 7vw, 40px)', letterSpacing: '1px', marginBottom: '8px' }}>
-          Terms and Conditions
-        </h1>
-        <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', marginBottom: '48px' }}>
-          Last updated June 14, 2026
+        <h1 style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '28px', fontWeight: 700, color: '#161612', marginBottom: '8px' }}>Terms and Conditions</h1>
+        <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', color: 'rgba(22,22,18,0.40)', marginBottom: '48px' }}>Last updated June 14, 2026</p>
+
+        <p style={{ marginBottom: '12px' }}>These Terms and Conditions ("Legal Terms") constitute a legally binding agreement between you and Texture LLC ("Company," "we," "us," "our") concerning your access to and use of gettexture.app and the personalized birth chart reading service delivered through it (collectively, the "Services").</p>
+        <p style={{ marginBottom: '12px' }}>By purchasing or accessing a reading, you confirm that you have read, understood, and agree to be bound by these Legal Terms. If you do not agree, you must discontinue use immediately.</p>
+        <p style={{ marginBottom: '32px' }}>You can contact us at <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a> or by mail to Texture LLC, Long Beach, California, United States.</p>
+
+        {/* TOC */}
+        <div style={{ background: 'rgba(22,22,18,0.04)', borderRadius: '8px', padding: '24px 28px', marginBottom: '48px' }}>
+          <p style={{ fontWeight: 600, marginBottom: '12px', color: '#161612' }}>Table of Contents</p>
+          <ol style={{ marginLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px' }}>
+            {['Our Services','Intellectual Property Rights','User Representations','Prohibited Activities','Services Management','Term and Termination','Modifications and Interruptions','Governing Law','Dispute Resolution','Disclaimer','Limitations of Liability','Indemnification','Interpretive Content Disclaimer','AI-Generated Content','Third-Party Service Providers','Service Availability','Accuracy of User-Provided Information','Service Performance','Purchases and Refunds','Minor Access','Sharing and Screenshot Policy','User Data','Corrections','Miscellaneous','Contact Us'].map(item => (
+              <li key={item} style={{ color: 'rgba(22,22,18,0.65)' }}>{item}</li>
+            ))}
+          </ol>
+        </div>
+
+        <H2>1. Our Services</H2>
+        <p style={{ marginBottom: '12px' }}>Texture is a web-based service that uses artificial intelligence to generate personalized astrology interpretations based on your birth chart. Each reading is a one-time purchase delivered as a permanent URL. The Services are intended for personal use only.</p>
+        <p style={{ marginBottom: '32px' }}>The information provided through the Services is not intended for distribution or use in any jurisdiction where such use would be contrary to law or regulation.</p>
+
+        <H2>2. Intellectual Property Rights</H2>
+        <H3>Our intellectual property</H3>
+        <p style={{ marginBottom: '12px' }}>We are the owner of all intellectual property rights in our Services, including all source code, functionality, software, AI systems, text, graphics, and content in the Services (collectively, the "Content"), as well as the trademarks, service marks, and logos contained therein (the "Marks").</p>
+        <p style={{ marginBottom: '12px' }}>All astrological interpretations and other content generated by Texture is the original work of Texture LLC and is protected by copyright. Texture's AI system generates original interpretations and does not reproduce content from any third-party astrology service, publication, or practitioner. Astrological tradition, symbolism, and technique are part of the public domain accumulated over thousands of years. Texture's original contribution is the specific expression, synthesis, and delivery of this knowledge through its proprietary AI system.</p>
+        <p style={{ marginBottom: '32px' }}>Subject to your compliance with these Legal Terms, we grant you a non-exclusive, non-transferable, revocable license to access and use the Services solely for your personal, non-commercial use. No part of the Services and no Content or Marks may be copied, reproduced, republished, uploaded, posted, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose without our express prior written permission.</p>
+
+        <H2>3. User Representations</H2>
+        <p style={{ marginBottom: '32px' }}>By using the Services, you represent and warrant that: (1) you are at least 18 years of age; (2) you have the legal capacity to agree to these Legal Terms; (3) you will not access the Services through automated or non-human means; (4) you will not use the Services for any illegal or unauthorized purpose; and (5) your use of the Services will not violate any applicable law or regulation.</p>
+
+        <H2>4. Prohibited Activities</H2>
+        <p style={{ marginBottom: '12px' }}>You may not access or use the Services for any purpose other than that for which we make the Services available. As a user of the Services, you agree not to:</p>
+        <ul style={{ margin: '12px 0 32px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <li>Use the content or AI-generated interpretations as medical, legal, financial, or professional advice</li>
+          <li>Reproduce, distribute, or commercialize any AI-generated interpretations or content without written permission from Texture LLC</li>
+          <li>Attempt to reverse engineer, scrape, or extract content, AI prompts, or underlying systems</li>
+          <li>Provide false birth data to generate a reading for another person without their consent</li>
+          <li>Systematically retrieve data or content from the Services to create a collection, database, or directory without written permission</li>
+          <li>Trick, defraud, or mislead us or other users</li>
+          <li>Circumvent, disable, or otherwise interfere with security-related features of the Services</li>
+          <li>Use the Services in a manner inconsistent with any applicable laws or regulations</li>
+          <li>Engage in any automated use of the system, such as using scripts, bots, scrapers, or data mining tools</li>
+          <li>Attempt to decipher, decompile, disassemble, or reverse engineer any of the software comprising the Services</li>
+          <li>Use the Services as part of any effort to compete with us or for any revenue-generating endeavor without our written consent</li>
+        </ul>
+
+        <H2>5. Services Management</H2>
+        <p style={{ marginBottom: '32px' }}>We reserve the right, but not the obligation, to: (1) monitor the Services for violations of these Legal Terms; (2) take appropriate legal action against anyone who violates these Legal Terms; (3) refuse, restrict, limit, or disable access to the Services at our sole discretion; and (4) otherwise manage the Services in a manner designed to protect our rights and property.</p>
+
+        <H2>6. Term and Termination</H2>
+        <p style={{ marginBottom: '32px' }}>These Legal Terms shall remain in full force and effect while you use the Services. We reserve the right to deny access to and use of the Services to any person for any reason or no reason, including for breach of these Legal Terms.</p>
+
+        <H2>7. Modifications and Interruptions</H2>
+        <p style={{ marginBottom: '12px' }}>We reserve the right to change, modify, or remove the contents of the Services at any time or for any reason at our sole discretion without notice. We will not be liable to you or any third party for any modification, suspension, or discontinuance of the Services.</p>
+        <p style={{ marginBottom: '32px' }}>We cannot guarantee the Services will be available at all times. We may experience hardware, software, or other problems or need to perform maintenance, resulting in interruptions, delays, or errors.</p>
+
+        <H2>8. Governing Law</H2>
+        <p style={{ marginBottom: '32px' }}>These Legal Terms shall be governed by and construed in accordance with the laws of the State of California, United States, without regard to conflict of law principles.</p>
+
+        <H2>9. Dispute Resolution</H2>
+        <H3>Informal Negotiations</H3>
+        <p style={{ marginBottom: '12px' }}>To expedite resolution and control the cost of any dispute, the parties agree to first attempt to negotiate any dispute informally for at least 30 days before initiating arbitration. Informal negotiations commence upon written notice sent to <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a>.</p>
+        <H3>Binding Arbitration</H3>
+        <p style={{ marginBottom: '12px' }}>If informal negotiations fail, any dispute arising out of or in connection with these Legal Terms shall be finally resolved by binding arbitration in California, United States, under substantive California law, conducted in English.</p>
+        <p style={{ marginBottom: '12px' }}>Any arbitration shall be limited to the dispute between the parties individually. There is no right for any dispute to be arbitrated on a class-action basis or in a purported representative capacity on behalf of the general public.</p>
+        <H3>Exceptions</H3>
+        <p style={{ marginBottom: '32px' }}>The following disputes are not subject to arbitration: (a) disputes seeking to enforce or protect intellectual property rights; (b) disputes related to allegations of theft, piracy, or unauthorized use; and (c) claims for injunctive relief.</p>
+
+        <H2>10. Disclaimer</H2>
+        <div style={{ background: 'rgba(22,22,18,0.04)', borderRadius: '8px', padding: '20px 24px', marginBottom: '32px' }}>
+          <p>THE SERVICES ARE PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE MAKE NO WARRANTIES ABOUT THE ACCURACY OR COMPLETENESS OF THE SERVICES' CONTENT AND WILL ASSUME NO LIABILITY FOR ANY ERRORS, MISTAKES, OR INACCURACIES OF CONTENT AND MATERIALS.</p>
+        </div>
+
+        <H2>11. Limitations of Liability</H2>
+        <p style={{ marginBottom: '12px' }}>IN NO EVENT WILL WE OR OUR DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICES. OUR LIABILITY TO YOU FOR ANY CAUSE WHATSOEVER WILL AT ALL TIMES BE LIMITED TO THE LESSER OF THE AMOUNT PAID BY YOU TO US OR $100 USD.</p>
+        <p style={{ marginBottom: '32px' }}>CERTAIN STATE LAWS DO NOT ALLOW LIMITATIONS ON IMPLIED WARRANTIES OR THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES. IF THESE LAWS APPLY TO YOU, SOME OR ALL OF THE ABOVE DISCLAIMERS OR LIMITATIONS MAY NOT APPLY TO YOU.</p>
+
+        <H2>12. Indemnification</H2>
+        <p style={{ marginBottom: '32px' }}>You agree to defend, indemnify, and hold us harmless, including our officers, agents, partners, and employees, from and against any loss, damage, liability, claim, or demand, including reasonable attorneys' fees, made by any third party due to or arising out of: (1) use of the Services; (2) breach of these Legal Terms; (3) breach of your representations and warranties; or (4) your violation of the rights of a third party.</p>
+
+        <H2>13. Interpretive Content Disclaimer</H2>
+        <div style={{ background: 'rgba(22,22,18,0.04)', borderRadius: '8px', padding: '20px 24px', marginBottom: '32px' }}>
+          <p>All astrological interpretations and other content generated by Texture are provided for reflective and personal interest purposes only. They do not constitute medical, psychological, legal, financial, or professional advice of any kind. Texture LLC makes no representations or warranties regarding the accuracy, completeness, or fitness of any interpretation for any particular purpose. No professional or advisory relationship of any kind is created between the user and Texture LLC by use of the Services. Users assume full responsibility for any decisions made based on content generated by Texture.</p>
+        </div>
+
+        <H2>14. AI-Generated Content</H2>
+        <p style={{ marginBottom: '32px' }}>Content within Texture is generated by artificial intelligence based on astrological tradition and your birth chart data. AI-generated interpretations may contain errors, omissions, or inaccuracies. Texture LLC does not warrant that AI-generated content is error-free or that it accurately reflects any established astrological system. The AI content is intended as a starting point for personal reflection, not as definitive astrological analysis.</p>
+
+        <H2>15. Third-Party Service Providers</H2>
+        <p style={{ marginBottom: '32px' }}>Texture uses third-party service providers to deliver its core functionality. Birth date, time, and location are transmitted to Vercel (vercel.com) solely for the purpose of calculating your astrological chart. This data is not stored by Vercel. Chart data is transmitted to Anthropic (anthropic.com) solely for the purpose of generating personalized interpretations. No data transmitted to Anthropic is linked to your identity or stored by Anthropic. Your reading data is stored in Supabase (supabase.com). Payments are processed through Etsy and their payment partners; Texture does not receive or store payment information.</p>
+
+        <H2>16. Service Availability</H2>
+        <p style={{ marginBottom: '32px' }}>Texture relies on third-party AI services to generate interpretive content. Texture LLC does not guarantee uninterrupted availability of AI-generated content and is not liable for any failure, delay, or interruption caused by third-party service outages. Texture LLC reserves the right to modify, suspend, or discontinue any feature or the entire service at any time with or without notice, without liability to the user.</p>
+
+        <H2>17. Accuracy of User-Provided Information</H2>
+        <p style={{ marginBottom: '32px' }}>Astrological interpretations are based entirely on birth data provided by the user, including date, time, and location of birth. Texture LLC makes no representations regarding the accuracy of interpretations generated from incorrect or incomplete birth data. Users are solely responsible for ensuring the accuracy of the birth information they provide. Interpretations generated from inaccurate birth data are not grounds for refund or dispute.</p>
+
+        <H2>18. Service Performance</H2>
+        <p style={{ marginBottom: '32px' }}>Texture LLC will make reasonable efforts to maintain service functionality and address issues in a timely manner. However, Texture LLC does not warrant that the service will be error-free, uninterrupted, or function without defect. Texture LLC is not liable for any data loss or interruption of service. Features may change or be removed at any time.</p>
+
+        <H2>19. Purchases and Refunds</H2>
+        <p style={{ marginBottom: '32px' }}>Readings are purchased as one-time purchases through Etsy. Because readings involve the generation of personalized content using your birth data, all sales are final once content generation has begun. If you experience a technical issue that prevents you from accessing your reading, contact us at <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a> and we will make it right.</p>
+
+        <H2>20. Minor Access</H2>
+        <p style={{ marginBottom: '32px' }}>Texture is intended for users 18 years of age or older. If a minor accesses the Services, the minor's parent or legal guardian is deemed to have accepted these Terms on the minor's behalf and assumes full responsibility for the minor's use of the Services.</p>
+
+        <H2>21. Sharing and Screenshot Policy</H2>
+        <p style={{ marginBottom: '32px' }}>Users may capture and share content generated by Texture for personal, non-commercial purposes. Shared content must not be represented as the user's own original work or as the work of any astrologer or astrological service other than Texture. Commercial use, resale, or bulk reproduction of any Texture-generated content is strictly prohibited without prior written consent from Texture LLC.</p>
+
+        <H2>22. User Data</H2>
+        <p style={{ marginBottom: '32px' }}>Personal data you provide — including your name, birth data, and email — is stored in our database to enable permanent access to your reading. Birth date, time, and location are transmitted transiently to Vercel for chart calculation and are not retained by Vercel. Chart data is transmitted to Anthropic for interpretation generation and is not linked to your identity. You may request deletion of your data at any time by contacting <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a>. See our <Link href="/privacy" style={{ color: 'rgba(185,18,18,0.75)' }}>Privacy Policy</Link> for full details.</p>
+
+        <H2>23. Corrections</H2>
+        <p style={{ marginBottom: '32px' }}>There may be information in the Services that contains typographical errors, inaccuracies, or omissions. We reserve the right to correct any errors, inaccuracies, or omissions and to change or update information at any time without prior notice.</p>
+
+        <H2>24. Miscellaneous</H2>
+        <p style={{ marginBottom: '32px' }}>These Legal Terms constitute the entire agreement between you and us. Our failure to exercise or enforce any right or provision shall not operate as a waiver of such right or provision. If any provision of these Legal Terms is determined to be unlawful, void, or unenforceable, that provision is severable and does not affect the validity of any remaining provisions. There is no joint venture, partnership, employment, or agency relationship created between you and us as a result of these Legal Terms.</p>
+
+        <H2>25. Contact Us</H2>
+        <p style={{ marginBottom: '12px' }}>To resolve a complaint regarding the Services or to receive further information, please contact us at:</p>
+        <p style={{ marginBottom: '32px' }}>
+          <strong>Texture LLC</strong><br />
+          Long Beach, California, United States<br />
+          <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a>
         </p>
-
-        <Section title="Agreement">
-          <p>These Terms and Conditions constitute a legally binding agreement between you and Texture LLC ("Company," "we," "us," "our") concerning your access to and use of gettexture.app and the personalized birth chart reading service delivered through it (collectively, the "Services").</p>
-          <p>By purchasing or accessing a reading, you agree to these Terms. If you do not agree, do not use the Services.</p>
-          <p>Contact us at <a href="mailto:help@gettexture.app">help@gettexture.app</a> or by mail to Texture LLC, Long Beach, California, United States.</p>
-        </Section>
-
-        <Section title="The Service">
-          <p>Texture is a web-based service that uses artificial intelligence to generate personalized astrology interpretations based on your birth chart. Each reading is a one-time purchase delivered as a permanent URL accessible at any time.</p>
-          <p>The Services are intended for personal, reflective use only and are not a substitute for professional advice of any kind.</p>
-        </Section>
-
-        <Section title="Purchases and Refunds">
-          <p>Readings are purchased through Etsy. Payment processing and order fulfillment policies are subject to Etsy's terms of service in addition to these Terms.</p>
-          <p>Because readings involve the generation of personalized content using your birth data, all sales are final once content generation has begun. If you experience a technical issue that prevents you from accessing your reading, contact us at <a href="mailto:help@gettexture.app">help@gettexture.app</a> and we will make it right.</p>
-        </Section>
-
-        <Section title="Acceptable Use">
-          <p>You agree not to:</p>
-          <ul>
-            <li>Use the Services for any unlawful or unauthorized purpose</li>
-            <li>Reproduce, distribute, or commercialize any AI-generated content from your reading without written permission from Texture LLC</li>
-            <li>Attempt to reverse engineer, scrape, or extract content, prompts, or underlying systems</li>
-            <li>Provide false birth data to generate a reading for another person without their consent</li>
-            <li>Access the Services through automated means</li>
-          </ul>
-        </Section>
-
-        <Section title="Disclaimer — Astrological Content">
-          <p>All astrological interpretations generated by Texture are provided for reflective and personal interest purposes only. They do not constitute medical, psychological, legal, financial, or professional advice of any kind.</p>
-          <p>Texture LLC makes no representations or warranties regarding the accuracy, completeness, or fitness of any interpretation for any particular purpose. No professional or advisory relationship of any kind is created between you and Texture LLC by use of the Services. You assume full responsibility for any decisions made based on content generated by Texture.</p>
-        </Section>
-
-        <Section title="Disclaimer — AI-Generated Content">
-          <p>Interpretations are generated by a large language model trained on astrological tradition and directed at your specific chart configuration. While we have taken care in designing the system and prompts that produce this content, AI-generated output may contain errors, omissions, or inaccuracies. Texture LLC does not warrant that any interpretation is error-free.</p>
-        </Section>
-
-        <Section title="Third-Party Services">
-          <p>Texture uses third-party service providers to deliver its core functionality. Birth date, time, and location are transmitted to Vercel (vercel.com) for chart calculation. Chart data is transmitted to Anthropic (anthropic.com) for interpretation generation. Your reading data is stored in Supabase (supabase.com). Payments are processed through Etsy and their payment partners.</p>
-        </Section>
-
-        <Section title="Data and Privacy">
-          <p>Your personal information is handled in accordance with our <Link href="/privacy" style={{ color: 'rgba(185,18,18,0.75)' }}>Privacy Policy</Link>. Your reading is stored in our database and accessible at your permanent URL indefinitely. To request deletion of your data, contact <a href="mailto:help@gettexture.app">help@gettexture.app</a>.</p>
-        </Section>
-
-        <Section title="Limitation of Liability">
-          <p>To the fullest extent permitted by law, Texture LLC shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Services. Our total liability to you for any claim arising from the Services shall not exceed the amount you paid for your reading.</p>
-        </Section>
-
-        <Section title="Governing Law">
-          <p>These Terms are governed by the laws of the State of California, United States, without regard to conflict of law principles. Any disputes shall be resolved through binding arbitration in Los Angeles County, California, except that either party may seek injunctive relief in a court of competent jurisdiction.</p>
-        </Section>
-
-        <Section title="Changes to These Terms">
-          <p>We may update these Terms from time to time. Continued use of the Services after changes constitutes acceptance of the updated Terms.</p>
-        </Section>
-
-        <Section title="Contact">
-          <p>Texture LLC<br />Long Beach, California, United States<br /><a href="mailto:help@gettexture.app">help@gettexture.app</a></p>
-        </Section>
 
       </div>
 
-      <footer style={{ padding: '24px 40px', borderTop: '0.5px solid rgba(22,22,18,0.10)', display: 'flex', gap: '24px' }}>
-        <Link href="/" style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', textDecoration: 'none' }}>HOME</Link>
-        <Link href="/privacy" style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', textDecoration: 'none' }}>PRIVACY</Link>
+      <footer style={{ borderTop: '1px solid rgba(22,22,18,0.10)', padding: '28px 48px', display: 'flex', gap: '20px', flexWrap: 'wrap' as const }}>
+        <Link href="/" style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', textDecoration: 'none' }}>TEXTURE</Link>
+        <Link href="/privacy" style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', textDecoration: 'none' }}>Privacy Policy</Link>
+        <a href="mailto:help@gettexture.app" style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', textDecoration: 'none' }}>Support</a>
+        <span style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', width: '100%' }}>© 2026 Texture LLC · Long Beach, California</span>
       </footer>
-
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function H2({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: '40px' }}>
-      <h2 style={{
-        fontFamily: 'var(--font-geist-mono), monospace',
-        fontSize: '11px',
-        color: 'rgba(22,22,18,0.35)',
-        letterSpacing: '2px',
-        textTransform: 'uppercase',
-        marginBottom: '16px',
-        paddingBottom: '8px',
-        borderBottom: '0.5px solid rgba(22,22,18,0.10)',
-      }}>
-        {title}
-      </h2>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        fontFamily: 'var(--font-questrial), sans-serif',
-        fontSize: 'clamp(14px, 3.5vw, 16px)',
-        color: 'rgba(22,22,18,0.80)',
-        lineHeight: 1.7,
-        letterSpacing: '-0.2px',
-      }}>
-        {children}
-      </div>
-    </div>
+    <h2 style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '17px', fontWeight: 700, color: '#161612', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginTop: '48px', marginBottom: '16px' }}>
+      {children}
+    </h2>
+  );
+}
+
+function H3({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '15px', fontWeight: 600, color: '#161612', marginTop: '28px', marginBottom: '12px' }}>
+      {children}
+    </h3>
   );
 }

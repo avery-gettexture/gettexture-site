@@ -4,93 +4,203 @@ export default function HomePage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#0e0c1a',
-      backgroundImage: 'url(https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      display: 'flex',
-      flexDirection: 'column',
+      backgroundColor: '#FDF5ED',
+      color: '#161612',
+      fontFamily: 'var(--font-questrial), sans-serif',
     }}>
 
       {/* Header */}
       <header style={{
-        padding: '24px 32px',
+        padding: '32px 48px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(22,22,18,0.10)',
       }}>
-        <div style={{
+        <span style={{
           fontFamily: 'var(--font-anton), sans-serif',
-          fontSize: '14px',
+          fontSize: '20px',
           color: 'rgba(185,18,18,0.75)',
-          letterSpacing: '2px',
+          letterSpacing: '0.06em',
         }}>
           TEXTURE
-        </div>
-        <a
-          href="mailto:help@gettexture.app"
-          style={{
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '11px',
-            color: 'rgba(253,245,237,0.35)',
-            letterSpacing: '1px',
-            textDecoration: 'none',
-          }}
-        >
+        </span>
+        <a href="mailto:help@gettexture.app" style={{
+          fontSize: '13px',
+          color: 'rgba(22,22,18,0.45)',
+          textDecoration: 'none',
+          letterSpacing: '0.04em',
+        }}>
           help@gettexture.app
         </a>
       </header>
 
       {/* Hero */}
-      <main style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '60px 32px',
-        gap: '40px',
+      <section style={{
+        maxWidth: '680px',
+        margin: '0 auto',
+        padding: '100px 48px 80px',
         textAlign: 'center',
       }}>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '560px' }}>
-          <h1 style={{
+        <div style={{
+          margin: '0 auto 48px',
+          width: '88px',
+          height: '88px',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          background: '#0e0c1a',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 8px 32px rgba(14,12,26,0.18)',
+        }}>
+          <span style={{
             fontFamily: 'var(--font-anton), sans-serif',
-            fontSize: 'clamp(48px, 12vw, 88px)',
-            color: 'rgba(253,245,237,0.95)',
-            letterSpacing: '2px',
-            lineHeight: 1,
-          }}>
-            TEXTURE
-          </h1>
-          <p style={{
-            fontFamily: 'var(--font-questrial), sans-serif',
-            fontSize: 'clamp(16px, 4vw, 20px)',
-            color: 'rgba(253,245,237,0.65)',
-            lineHeight: 1.6,
-            letterSpacing: '-0.2px',
-          }}>
-            A personalized birth chart reading — your full chart interpreted in context, delivered as a permanent URL.
-          </p>
+            fontSize: '28px',
+            color: 'rgba(185,18,18,0.75)',
+            letterSpacing: '0.06em',
+          }}>T</span>
         </div>
 
-        {/* How it works */}
+        <h1 style={{
+          fontFamily: 'var(--font-anton), sans-serif',
+          fontSize: 'clamp(42px, 8vw, 72px)',
+          color: 'rgba(185,18,18,0.75)',
+          letterSpacing: '0.04em',
+          lineHeight: 1,
+          marginBottom: '32px',
+        }}>
+          TEXTURE
+        </h1>
+
+        <p style={{
+          fontSize: 'clamp(16px, 2.5vw, 19px)',
+          color: '#161612',
+          lineHeight: 1.7,
+          maxWidth: '520px',
+          margin: '0 auto 48px',
+        }}>
+          Your chart is a map of one specific moment in the sky. Thousands of years of observation went into understanding what that moment means.{' '}
+          <span style={{ color: 'rgba(185,18,18,0.75)' }}>This is your texture.</span>
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <a
+            href="https://etsy.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '12px',
+              background: '#161612',
+              color: '#FDF5ED',
+              borderRadius: '12px',
+              padding: '14px 28px',
+              textDecoration: 'none',
+              fontFamily: 'var(--font-anton), sans-serif',
+              fontSize: '17px',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Order on Etsy
+          </a>
+          <span style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', letterSpacing: '0.06em' }}>
+            $25 · One-time purchase · No subscription
+          </span>
+        </div>
+      </section>
+
+      <div style={{ width: '1px', height: '80px', background: 'rgba(22,22,18,0.10)', margin: '0 auto' }} />
+
+      {/* What it is */}
+      <section style={{
+        maxWidth: '680px',
+        margin: '0 auto',
+        padding: '80px 48px',
+        textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'rgba(22,22,18,0.70)', lineHeight: 1.75, maxWidth: '520px', margin: '0 auto 24px' }}>
+          A chart is a woven system. All placements are in conversation with each other, but most astrology reads them in isolation — your Sun sign, your Moon sign, each one separately. Texture reads the whole cloth.
+        </p>
+        <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'rgba(22,22,18,0.70)', lineHeight: 1.75, maxWidth: '520px', margin: '0 auto' }}>
+          AI makes that possible: interpretations generated from your specific chart, in full context, just for you. Sign, house, degree, motion, and aspects — all considered together.
+        </p>
+      </section>
+
+      {/* Features */}
+      <section style={{
+        borderTop: '1px solid rgba(22,22,18,0.10)',
+        borderBottom: '1px solid rgba(22,22,18,0.10)',
+        padding: '80px 48px',
+      }}>
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          maxWidth: '440px',
-          width: '100%',
+          maxWidth: '680px',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '48px 64px',
         }}>
           {[
-            { step: '01', text: 'Order on Etsy and provide your birth data at checkout' },
-            { step: '02', text: 'Receive a unique URL with your complete birth chart reading' },
-            { step: '03', text: 'Return to it anytime — it\'s yours permanently' },
-          ].map(({ step, text }) => (
+            {
+              label: 'Personalized Interpretations',
+              text: 'Each interpretation is generated in full context of your chart — sign, house, degree, motion, and aspects all considered together. No shared content, no generic readings.',
+            },
+            {
+              label: 'No Birth Time? No Problem',
+              text: "Don't know your birth time? You still get a full experience — house placements are simply excluded. Interpretations automatically adjust to what's known.",
+            },
+            {
+              label: 'Permanent URL',
+              text: 'Your reading lives at a unique URL — yours to keep and return to anytime. No account required, no subscription, no expiration.',
+            },
+            {
+              label: 'Fourteen Placements',
+              text: 'Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ascendant, Midheaven, North Node, South Node — each interpreted in full context.',
+            },
+          ].map(({ label, text }) => (
+            <div key={label}>
+              <div style={{
+                fontSize: '11px',
+                letterSpacing: '0.10em',
+                color: 'rgba(185,18,18,0.75)',
+                marginBottom: '8px',
+                textTransform: 'uppercase' as const,
+                fontFamily: 'var(--font-questrial), sans-serif',
+              }}>
+                {label}
+              </div>
+              <div style={{ fontSize: '15px', color: 'rgba(22,22,18,0.65)', lineHeight: 1.65 }}>
+                {text}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section style={{ maxWidth: '680px', margin: '0 auto', padding: '80px 48px', textAlign: 'center' }}>
+        <div style={{
+          fontSize: '11px',
+          letterSpacing: '0.10em',
+          color: 'rgba(22,22,18,0.45)',
+          textTransform: 'uppercase' as const,
+          marginBottom: '40px',
+        }}>
+          How it works
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0', maxWidth: '420px', margin: '0 auto 48px', border: '1px solid rgba(22,22,18,0.10)', borderRadius: '12px', overflow: 'hidden' }}>
+          {[
+            { step: '01', text: 'Order on Etsy and provide your name, birth date, birth time, and birth location at checkout' },
+            { step: '02', text: 'Receive a unique URL with your complete personalized birth chart reading' },
+            { step: '03', text: 'Return to it anytime — your reading is permanent and belongs to you' },
+          ].map(({ step, text }, i) => (
             <div key={step} style={{
               display: 'flex',
               gap: '16px',
               alignItems: 'flex-start',
+              padding: '24px',
+              borderBottom: i < 2 ? '1px solid rgba(22,22,18,0.10)' : 'none',
               textAlign: 'left',
             }}>
               <span style={{
@@ -103,96 +213,60 @@ export default function HomePage() {
               }}>
                 {step}
               </span>
-              <span style={{
-                fontFamily: 'var(--font-questrial), sans-serif',
-                fontSize: 'clamp(14px, 3.5vw, 16px)',
-                color: 'rgba(253,245,237,0.55)',
-                lineHeight: 1.6,
-                letterSpacing: '-0.2px',
-              }}>
+              <span style={{ fontSize: '14px', color: 'rgba(22,22,18,0.65)', lineHeight: 1.6 }}>
                 {text}
               </span>
             </div>
           ))}
         </div>
-
-        {/* CTA */}
         <a
           href="https://etsy.com"
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '13px',
-            letterSpacing: '2px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '12px',
+            background: '#161612',
             color: '#FDF5ED',
-            backgroundColor: 'rgba(185,18,18,0.75)',
-            padding: '16px 40px',
+            borderRadius: '12px',
+            padding: '14px 28px',
             textDecoration: 'none',
-            display: 'inline-block',
+            fontFamily: 'var(--font-anton), sans-serif',
+            fontSize: '17px',
+            letterSpacing: '0.04em',
           }}
         >
-          ORDER ON ETSY →
+          Order on Etsy
         </a>
-
-        <p style={{
-          fontFamily: 'var(--font-geist-mono), monospace',
-          fontSize: '11px',
-          color: 'rgba(253,245,237,0.20)',
-          letterSpacing: '1px',
-        }}>
-          $25 · One-time purchase · No subscription
-        </p>
-
-      </main>
+      </section>
 
       {/* Footer */}
       <footer style={{
-        padding: '24px 32px',
-        borderTop: '0.5px solid rgba(253,245,237,0.08)',
+        borderTop: '1px solid rgba(22,22,18,0.10)',
+        padding: '32px 48px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
+        flexWrap: 'wrap' as const,
+        gap: '16px',
       }}>
         <span style={{
-          fontFamily: 'var(--font-geist-mono), monospace',
-          fontSize: '11px',
-          color: 'rgba(253,245,237,0.20)',
-          letterSpacing: '1px',
+          fontFamily: 'var(--font-anton), sans-serif',
+          fontSize: '14px',
+          color: 'rgba(185,18,18,0.75)',
+          letterSpacing: '0.06em',
         }}>
-          © 2026 TEXTURE
+          TEXTURE
         </span>
-        <div style={{ display: 'flex', gap: '24px' }}>
-          <Link href="/privacy" style={{
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '11px',
-            color: 'rgba(253,245,237,0.25)',
-            letterSpacing: '1px',
-            textDecoration: 'none',
-          }}>
-            PRIVACY
-          </Link>
-          <Link href="/terms" style={{
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '11px',
-            color: 'rgba(253,245,237,0.25)',
-            letterSpacing: '1px',
-            textDecoration: 'none',
-          }}>
-            TERMS
-          </Link>
-          <a href="mailto:help@gettexture.app" style={{
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '11px',
-            color: 'rgba(253,245,237,0.25)',
-            letterSpacing: '1px',
-            textDecoration: 'none',
-          }}>
-            SUPPORT
-          </a>
+        <div style={{ display: 'flex', gap: '28px' }}>
+          <Link href="/privacy" style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', textDecoration: 'none', letterSpacing: '0.04em' }}>Privacy Policy</Link>
+          <Link href="/terms" style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', textDecoration: 'none', letterSpacing: '0.04em' }}>Terms of Use</Link>
+          <a href="mailto:help@gettexture.app" style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', textDecoration: 'none', letterSpacing: '0.04em' }}>Support</a>
         </div>
+        <span style={{ fontSize: '12px', color: 'rgba(22,22,18,0.45)', width: '100%' }}>
+          © 2026 Texture LLC · Long Beach, California
+        </span>
       </footer>
 
     </div>
