@@ -232,7 +232,7 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
         onClick={onScrollNext}
         style={{
           position: 'absolute',
-          bottom: '8px',
+          bottom: isLight ? '0.2%' : '0.8%',
           left: '50%',
           transform: 'translateX(-50%)',
           fontFamily: 'var(--font-geist-mono), monospace',
