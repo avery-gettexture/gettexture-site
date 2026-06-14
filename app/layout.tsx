@@ -26,6 +26,11 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Texture",
   description: "Your birth chart reading.",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+  },
 };
 
 export default function RootLayout({
