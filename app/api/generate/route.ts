@@ -141,7 +141,6 @@ async function callAnthropic(
       body: JSON.stringify({
         model: MODEL,
         max_tokens: maxTokens,
-        temperature,
         system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: userMessage }],
       }),
