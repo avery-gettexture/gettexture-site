@@ -36,14 +36,17 @@ export default function HomePage() {
   const locationRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [showStickyCta, setShowStickyCta] = useState(false);
-  const heroCtaRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => setShowStickyCta(!entry.isIntersecting),
+      (entries) => {
+        const anyVisible = entries.some(e => e.isIntersecting);
+        setShowStickyCta(!anyVisible);
+      },
       { threshold: 0 }
     );
-    if (heroCtaRef.current) observer.observe(heroCtaRef.current);
+    const ctaEls = document.querySelectorAll('a[href="#order"]');
+    ctaEls.forEach(el => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
@@ -142,7 +145,7 @@ export default function HomePage() {
         <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(18px, 4vw, 24px)', color: 'rgba(185,18,18,0.75)', lineHeight: 1.6, marginBottom: '48px' }}>
           This is your texture.
         </p>
-        <a ref={heroCtaRef} href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
+        <a href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
           GET YOUR READING — $30 →
         </a>
       </section>
