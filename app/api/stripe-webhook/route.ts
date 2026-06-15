@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
           </p>
           <p style="font-size: 12px; color: rgba(22,22,18,0.30); margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(22,22,18,0.10);">
             ${readingUrl}<br/>
-            Questions? Reply to this email or contact help@gettexture.app
+            Questions? Contact us at help@gettexture.app
           </p>
         </div>
       `,

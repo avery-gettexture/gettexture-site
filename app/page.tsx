@@ -35,6 +35,17 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const locationRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  const heroCtaRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyCta(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    if (heroCtaRef.current) observer.observe(heroCtaRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -131,7 +142,7 @@ export default function HomePage() {
         <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(18px, 4vw, 24px)', color: 'rgba(185,18,18,0.75)', lineHeight: 1.6, marginBottom: '48px' }}>
           This is your texture.
         </p>
-        <a href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
+        <a ref={heroCtaRef} href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
           GET YOUR READING — $30 →
         </a>
       </section>
@@ -361,6 +372,29 @@ export default function HomePage() {
           <a href="mailto:help@gettexture.app" style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.30)', letterSpacing: '1px', textDecoration: 'none' }}>SUPPORT</a>
         </div>
       </footer>
+
+      <div
+        className="mobile-sticky-cta"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: '12px 20px',
+          backgroundColor: '#FDF5ED',
+          borderTop: '1px solid rgba(22,22,18,0.10)',
+          zIndex: 50,
+          display: showStickyCta ? 'flex' : 'none',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}
+      >
+        <a href="#order" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
+          <span>GET YOUR READING →</span>
+          <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', letterSpacing: '1px' }}>$30</span>
+        </a>
+      </div>
 
     </div>
   );
