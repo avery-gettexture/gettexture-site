@@ -40,6 +40,7 @@ export default function HomePage() {
   const ctaRef2 = useRef<HTMLAnchorElement>(null);
   const ctaRef3 = useRef<HTMLAnchorElement>(null);
   const orderFormRef = useRef<HTMLElement>(null);
+  const submitBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -49,7 +50,7 @@ export default function HomePage() {
       },
       { threshold: 0 }
     );
-    [ctaRef1, ctaRef2, ctaRef3, orderFormRef].forEach(ref => {
+    [ctaRef1, ctaRef2, ctaRef3, orderFormRef, submitBtnRef].forEach(ref => {
       if (ref.current) observer.observe(ref.current);
     });
     return () => observer.disconnect();
@@ -311,7 +312,10 @@ export default function HomePage() {
               <input type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: '' })); }} placeholder="Your reading link will be sent here" style={inputStyle('email')} />
               {errors.email && <div style={errorStyle}>{errors.email}</div>}
             </div>
-            <button type="submit" style={{ marginTop: '8px', padding: '16px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer', width: '100%' }}>
+            <button
+              ref={submitBtnRef}
+              type="submit"
+              style={{ marginTop: '8px', padding: '16px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer', width: '100%' }}>
               REVIEW ORDER →
             </button>
           </form>
