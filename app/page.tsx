@@ -48,9 +48,9 @@ export default function HomePage() {
         const anyVisible = entries.some(e => e.isIntersecting);
         setShowStickyCta(!anyVisible);
       },
-      { threshold: 0 }
+      { threshold: 0, rootMargin: '200px 0px 0px 0px' }
     );
-    [ctaRef1, ctaRef2, ctaRef3, orderFormRef, submitBtnRef].forEach(ref => {
+    [ctaRef1, ctaRef2, ctaRef3, orderFormRef].forEach(ref => {
       if (ref.current) observer.observe(ref.current);
     });
     return () => observer.disconnect();
@@ -270,10 +270,10 @@ export default function HomePage() {
       <section id="order" ref={orderFormRef} style={{ borderTop: '1.5px solid rgba(185,18,18,0.50)', padding: '64px 40px 80px' }}>
         <div style={{ maxWidth: '520px', margin: '0 auto' }}>
           <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(28px, 7vw, 40px)', color: '#161612', letterSpacing: '1px', marginBottom: '8px' }}>
-            Order Your Reading
+            Receive Your Reading
           </div>
-          <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: 'rgba(22,22,18,0.45)', lineHeight: 1.6, marginBottom: '40px' }}>
-            Please be as accurate as possible. Birth date, time, and location are used to calculate your chart and cannot be updated once submitted. You'll receive your reading link by email immediately after purchase.
+          <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: 'rgba(22,22,18,0.65)', lineHeight: 1.7, marginBottom: '40px' }}>
+            Please enter the following information so we can deliver your personalized report. This information is used to calculate the position of the planets in the sky relative to the time and place you were born. Accurate information ensures you receive the highest quality report, and cannot be updated once you complete payment, so please be sure to check your entries. You'll receive your reading link by email immediately after purchase.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
