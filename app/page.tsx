@@ -43,17 +43,18 @@ export default function HomePage() {
   const submitBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const anyVisible = entries.some(e => e.isIntersecting);
-        setShowStickyCta(!anyVisible);
-      },
-      { threshold: 0, rootMargin: '200px 0px 0px 0px' }
-    );
-    [ctaRef1, ctaRef2, ctaRef3, orderFormRef, submitBtnRef].forEach(ref => {
-      if (ref.current) observer.observe(ref.current);
-    });
-    return () => observer.disconnect();
+    function checkVisibility() {
+      const els = [ctaRef1, ctaRef2, ctaRef3, orderFormRef, submitBtnRef];
+      const anyVisible = els.some(ref => {
+        if (!ref.current) return false;
+        const rect = ref.current.getBoundingClientRect();
+        return rect.top < window.innerHeight && rect.bottom > 0;
+      });
+      setShowStickyCta(!anyVisible);
+    }
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    checkVisibility();
+    return () => window.removeEventListener('scroll', checkVisibility);
   }, []);
 
   useEffect(() => {
