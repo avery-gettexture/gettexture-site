@@ -50,7 +50,7 @@ export default function HomePage() {
       },
       { threshold: 0, rootMargin: '200px 0px 0px 0px' }
     );
-    [ctaRef1, ctaRef2, ctaRef3, orderFormRef].forEach(ref => {
+    [ctaRef1, ctaRef2, ctaRef3, orderFormRef, submitBtnRef].forEach(ref => {
       if (ref.current) observer.observe(ref.current);
     });
     return () => observer.disconnect();
