@@ -36,6 +36,10 @@ export default function HomePage() {
   const locationRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [showStickyCta, setShowStickyCta] = useState(false);
+  const ctaRef1 = useRef<HTMLAnchorElement>(null);
+  const ctaRef2 = useRef<HTMLAnchorElement>(null);
+  const ctaRef3 = useRef<HTMLAnchorElement>(null);
+  const orderFormRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -45,8 +49,9 @@ export default function HomePage() {
       },
       { threshold: 0 }
     );
-    const ctaEls = document.querySelectorAll('a[href="#order"]');
-    ctaEls.forEach(el => observer.observe(el));
+    [ctaRef1, ctaRef2, ctaRef3, orderFormRef].forEach(ref => {
+      if (ref.current) observer.observe(ref.current);
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -145,7 +150,7 @@ export default function HomePage() {
         <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(18px, 4vw, 24px)', color: 'rgba(185,18,18,0.75)', lineHeight: 1.6, marginBottom: '48px' }}>
           This is your texture.
         </p>
-        <a href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
+        <a ref={ctaRef1} href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
           GET YOUR READING — $30 →
         </a>
       </section>
@@ -203,7 +208,7 @@ export default function HomePage() {
                     Full description ↓
                   </a>
                 </div>
-                <a href="#order" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
+                <a ref={ctaRef2} href="#order" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
                   <span>GET YOUR READING →</span>
                   <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', letterSpacing: '1px' }}>$30</span>
                 </a>
@@ -253,7 +258,7 @@ export default function HomePage() {
                   ))}
                 </ul>
               </div>
-              <a href="#order" style={{ display: 'block', textAlign: 'center', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
+              <a ref={ctaRef3} href="#order" style={{ display: 'block', textAlign: 'center', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
                 GET YOUR READING →
               </a>
             </div>
@@ -263,7 +268,7 @@ export default function HomePage() {
       </section>
 
       {/* Order Form */}
-      <section id="order" style={{ borderTop: '1.5px solid rgba(185,18,18,0.50)', padding: '64px 40px 80px' }}>
+      <section id="order" ref={orderFormRef} style={{ borderTop: '1.5px solid rgba(185,18,18,0.50)', padding: '64px 40px 80px' }}>
         <div style={{ maxWidth: '520px', margin: '0 auto' }}>
           <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(28px, 7vw, 40px)', color: '#161612', letterSpacing: '1px', marginBottom: '8px' }}>
             Order Your Reading
