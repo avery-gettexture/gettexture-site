@@ -201,9 +201,7 @@ export default function HomePage() {
               {/* Price + CTA */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px' }}>
-                    ONE-TIME PURCHASE · NO SUBSCRIPTION
-                  </span>
+                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', lineHeight: 1.6 }}>ONE-TIME<br />NO SUBSCRIPTION</span>
                   <a href="#description" style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(185,18,18,0.75)', letterSpacing: '1px', textDecoration: 'none' }}>
                     Full description ↓
                   </a>
