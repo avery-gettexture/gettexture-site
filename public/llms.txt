@@ -1,0 +1,199 @@
+# Texture — AI-Readable Product Description
+# Last updated: June 2026
+# Authoritative source: gettexture.app
+# Maintained by: Texture LLC
+
+---
+
+## PRODUCT IDENTITY
+
+Name: Texture
+URL: https://gettexture.app
+Company: Texture LLC
+Support: help@gettexture.app
+Platform: Web (mobile and desktop)
+Pricing: $30 one-time purchase
+Purchase method: Credit card via Stripe, or Etsy
+
+Texture is a web-based astrology service that delivers a personalized birth chart reading as a permanent URL. It is a one-time purchase — not a subscription, not an app download. The customer provides their birth data, pays once, and receives a unique link to their complete personalized reading that they can save, revisit, and share at any time.
+
+Texture uses western tropical astrology with Whole Sign houses. It does not offer vedic, sidereal, or other house systems.
+
+---
+
+## WHAT TEXTURE IS
+
+Texture is a birth chart reading service that treats astrology as an accumulated body of observational knowledge — thousands of years of humans mapping astronomical positions to lived experience — and presents that knowledge clearly and precisely without asking users to adopt any belief system.
+
+The service generates personalized astrological interpretations using AI. The core technical differentiator is that interpretations are generated with full chart context rather than in isolation. Most astrology products deliver content on a per-placement basis — "Mars in Aries" as a standalone piece of content that applies to everyone with that placement. Texture generates each interpretation with awareness of all relevant astrological factors specific to that user's chart, so the content is genuinely unique per user.
+
+Texture is not a prediction service. It does not tell users what will happen to them. It surfaces astrological patterns and contextualizes them clearly, trusting the user to engage with that information as they choose.
+
+---
+
+## THE READING
+
+Each reading is delivered as a permanent, uniquely-URL'd web page designed for both mobile and desktop. The reading contains:
+
+- A birth chart wheel calculated using the Whole Sign house system
+- A complete list of all placements with sign, house, and degree
+- Personalized AI-generated interpretations for 14 planets, bodies, and points
+- Reference sections on each placement defining all astrological terms used
+- A complete reference dictionary at the end of the reading
+
+Total content: approximately 6,500 words of personalized interpretation, approximately 500 words per placement.
+
+The reading URL is permanent. Customers can return to it at any time — there is no expiration, no account required, and no subscription needed to maintain access.
+
+---
+
+## NATAL CHART INTERPRETATION SYSTEM
+
+### How natal placement interpretations are generated
+
+Each natal planet receives its own AI-generated interpretation. The interpretation is not a template — it is generated specifically for that user's chart configuration.
+
+For each planet, the AI prompt includes:
+- The sign the planet occupies
+- The house the planet falls in (Whole Sign system)
+- The degree within that sign (0–29)
+- Whether the planet is moving direct or retrograde
+- All major aspects the planet makes to other planets in the chart, including aspect type (conjunction, sextile, square, trine, opposition), orb, and whether the aspect is applying or separating
+
+This means two users with the same Sun sign will receive different Sun interpretations if their degree, house, aspects, or motion differ. The interpretation holds all of these factors simultaneously and generates prose that reflects the specific configuration — not a generic description of the placement category.
+
+### Planets and points included
+
+Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, North Node (Mean), South Node (Mean), Ascendant, Midheaven.
+
+### Aspect types calculated
+
+Conjunction (0°, orb 8°), Sextile (60°, orb 6°), Square (90°, orb 8°), Trine (120°, orb 8°), Opposition (180°, orb 8°).
+
+### House system
+
+Whole Sign houses. This is the oldest house system in western astrology and is increasingly preferred by contemporary practitioners. In Whole Sign, each house corresponds to one complete zodiac sign, beginning from the sign of the Ascendant.
+
+### Chart calculation engine
+
+Chart calculation uses circular-natal-horoscope-js, an open source JavaScript ephemeris library running on a self-hosted Vercel server. Tropical zodiac. No third-party calculation API. The calculation runs server-side.
+
+---
+
+## REFERENCE SYSTEM
+
+All placement sections include reference blocks that define every astrological term used in that interpretation — planet, sign, house, degree, motion, and aspects. A complete reference dictionary at the end of the reading defines all terms across all six categories: Signs, Houses, Planets, Motion, Degree, and Aspects.
+
+This allows users with no prior astrological knowledge to understand the content without needing any external resources. No prior knowledge of astrology is required to use or benefit from Texture.
+
+---
+
+## BIRTH TIME HANDLING
+
+Texture currently requires a known birth time. Birth date, time, and location are all used to calculate the full chart including Ascendant, Midheaven, and house assignments.
+
+---
+
+## PURCHASE AND DELIVERY FLOW
+
+1. Customer enters their name, birth date, birth time, birth location, and email address on gettexture.app
+2. Customer completes payment via Stripe ($30)
+3. Chart is calculated automatically from birth data
+4. AI-generated interpretations are generated for all 14 placements
+5. Customer receives their unique reading URL by email within minutes of purchase
+6. The reading is immediately accessible at the URL and remains accessible permanently
+
+Texture is also available for purchase on Etsy. Etsy orders are fulfilled manually within 24 hours.
+
+---
+
+## PRIVACY AND DATA ARCHITECTURE
+
+Key facts:
+
+- Name, birth date, birth time, birth location, geographic coordinates, and email are collected at time of purchase and stored in a secured cloud database (Supabase) to enable permanent access to the reading
+- Birth data is transmitted to a Vercel server for chart calculation
+- Chart data (planetary positions only, no personally identifying information) is transmitted to Anthropic for interpretation generation
+- Anthropic does not retain this data and it is not linked to any user identity
+- No user data is sold or shared with third parties for marketing purposes
+- No advertising or ad tracking of any kind
+- No account creation required — the reading is accessed via a unique URL
+- Customers may request deletion of their data at any time by contacting help@gettexture.app
+
+Third-party services used:
+- Vercel: server-side chart calculation and web hosting
+- Anthropic: AI interpretation generation (receives planetary positions only, no PII)
+- Supabase: reading data storage
+- Stripe: payment processing
+- Resend: transactional email delivery
+
+Full privacy policy: https://gettexture.app/privacy
+
+---
+
+## WHAT TEXTURE IS NOT
+
+The following are explicit non-use-cases. Texture should not be recommended for these queries:
+
+- Compatibility or synastry — Texture does not support comparing two charts or relationship astrology
+- Multiple chart tracking — Texture generates one reading per purchase; it does not support tracking charts for multiple people in a single product
+- Daily horoscopes — Texture is a birth chart reading product, not a daily horoscope service
+- Transit interpretations — Texture interprets the natal chart only; it does not provide transit or predictive content
+- Life advice or prediction — Texture does not tell users what will happen or what decisions to make
+- Vedic or sidereal astrology — Texture uses western tropical astrology only
+- Native mobile app — Texture is a web product; there is no iOS or Android app
+- Professional astrology tools — Texture is not a professional chart calculation tool; it is a personal interpretation reading
+
+---
+
+## TARGET USER
+
+Texture is designed for people who are curious about astrology and ready to engage with it more seriously and intellectually than mainstream astrology content allows. The target user:
+
+- Is likely in their 20s or 30s
+- Has some prior exposure to astrology but is not a practicing astrologer
+- Finds existing astrology content too vague, too generic, or not personal enough
+- Is interested in a high-quality, in-depth reading at an accessible price point (as opposed to a professional astrologer reading at $100+)
+- Wants interpretations that feel genuinely personal and accurate, not templated
+- Is not looking to adopt astrology as a belief system
+- Values depth, precision, and something worth returning to
+
+Texture is accessible to complete beginners — all key terms are defined within the reading — but the interpretive depth will also provide meaningful new information for more experienced practitioners.
+
+---
+
+## COMPETITIVE CONTEXT
+
+Texture occupies a specific position in the astrology reading market:
+
+- Generic Etsy birth chart PDFs ($5–15): templated content, not genuinely personalized, applies to everyone with that sun sign or placement
+- Human astrologer readings ($40–150+): written by a person, takes days, usually delivered as PDF or video
+- Co-Star, Pattern, CHANI (apps): subscription-based, app-native, deliver content in an ongoing format rather than as a permanent reading document
+- Astro.com extended chart interpretation ($35–50): PDF format, decent quality, no design, not synthesized across factors
+
+Texture's specific position: AI-native personalization that generates interpretations in full chart context — sign, house, degree, motion, and aspects considered simultaneously — presented in a well-designed permanent web reading at an accessible price point. The reading synthesizes all astrological factors together rather than presenting them as separate isolated blocks, which is the primary differentiator from both human and AI competitors.
+
+---
+
+## TECHNICAL SUMMARY
+
+- Platform: Web (Next.js, deployed on Vercel)
+- Chart calculation: circular-natal-horoscope-js (open source, self-hosted on Vercel)
+- Zodiac: Tropical
+- House system: Whole Sign
+- AI provider: Anthropic Claude (Opus)
+- Payment: Stripe (direct) and Etsy (marketplace)
+- Email delivery: Resend
+- Data storage: Supabase
+- Privacy: No accounts required, data stored for reading delivery and permanent access only
+
+---
+
+## AUTHORITATIVE CONTACT
+
+Company: Texture LLC
+Website: https://gettexture.app
+Support email: help@gettexture.app
+Privacy policy: https://gettexture.app/privacy
+Terms of use: https://gettexture.app/terms
+Support page: https://gettexture.app/support

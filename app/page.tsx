@@ -153,7 +153,7 @@ export default function HomePage() {
           This is your texture.
         </p>
         <a ref={ctaRef1} href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
-          GET YOUR READING — $30 →
+          GET YOUR READING — $29 →
         </a>
       </section>
 
@@ -210,7 +210,7 @@ export default function HomePage() {
                 </div>
                 <a ref={ctaRef2} href="#order" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
                   <span>GET YOUR READING →</span>
-                  <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', letterSpacing: '1px' }}>$30</span>
+                  <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', letterSpacing: '1px' }}>$29</span>
                 </a>
               </div>
             </div>
@@ -343,7 +343,7 @@ export default function HomePage() {
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
                 <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', textTransform: 'uppercase' as const }}>Total</span>
-                <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '22px', color: '#161612' }}>$30.00</span>
+                <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '22px', color: '#161612' }}>$29.00</span>
               </div>
             </div>
             <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.45)', lineHeight: 1.7, marginBottom: '24px' }}>
@@ -403,7 +403,7 @@ export default function HomePage() {
       >
         <a href="#order" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '16px', textDecoration: 'none' }}>
           <span>GET YOUR READING →</span>
-          <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', letterSpacing: '1px' }}>$30</span>
+          <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '20px', letterSpacing: '1px' }}>$29</span>
         </a>
       </div>
 

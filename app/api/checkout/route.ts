@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
             name: 'Texture — Personalized Birth Chart Reading',
             description: '14 placements interpreted in full context. Delivered as a permanent URL.',
           },
-          unit_amount: 3000, // $30.00
+          unit_amount: 2900, // $30.00
         },
         quantity: 1,
       }],

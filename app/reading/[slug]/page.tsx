@@ -133,6 +133,11 @@ function PlanetCard({
   const [openSection, setOpenSection] = useState<SectionKey>('synthesis');
   const contentRef = useRef<HTMLDivElement>(null);
 
+  function handleSectionToggle(section: SectionKey) {
+    setOpenSection(section);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }
+
   const meta = reading ? getPlanetMeta(reading.chart_data, planet.id) : { sign: '', house: '', degree: '', retrograde: false };
   const synthesisText = reading ? (reading[planet.contentKey] as string | null) : null;
   const metaParts = [meta.sign, meta.house, meta.degree, meta.retrograde ? 'Retrograde' : null].filter(Boolean);
@@ -149,7 +154,7 @@ function PlanetCard({
         </div>
 
         <div className="card-content" ref={contentRef}>
-          <div className="section-row" onClick={() => setOpenSection('synthesis')}>
+          <div className="section-row" onClick={() => handleSectionToggle('synthesis')}>
             <span className="section-row-label">Your {planet.name}</span>
             <span className="section-row-chevron">{openSection === 'synthesis' ? '−' : '+'}</span>
           </div>
@@ -162,7 +167,7 @@ function PlanetCard({
 
           <div className="section-divider" />
 
-          <div className="section-row" onClick={() => setOpenSection('reference')}>
+          <div className="section-row" onClick={() => handleSectionToggle('reference')}>
             <span className="section-row-label">Reference</span>
             <span className="section-row-chevron">{openSection === 'reference' ? '−' : '+'}</span>
           </div>
