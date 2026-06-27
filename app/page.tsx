@@ -150,7 +150,7 @@ export default function HomePage() {
           Your chart is a map of one specific moment in the sky. Thousands of years of observation went into understanding what that moment means.
         </p>
         <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(18px, 4vw, 24px)', color: 'rgba(185,18,18,0.75)', lineHeight: 1.6, marginBottom: '48px' }}>
-          This is your texture.
+          Discover what it means to you.
         </p>
         <a ref={ctaRef1} href="#order" style={{ display: 'inline-block', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', padding: '14px 36px', textDecoration: 'none' }}>
           GET YOUR READING — $29 →
