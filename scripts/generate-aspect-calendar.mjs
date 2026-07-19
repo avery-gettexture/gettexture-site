@@ -1,0 +1,320 @@
+// Fills aspect_calendar from sky_positions: one row per exact perfection of a
+// major aspect (conjunction, sextile, square, trine, opposition) between each
+// of the 36 canonical pairs among the 9 non-Moon tracked bodies, plus one row
+// for any orb window a pair enters and leaves without perfecting ("no exact").
+//
+// DATA MODEL LAW (see also the aspect_calendar table comment in
+// scripts/create_transit_and_aspect_calendars.sql): rows are events, content
+// units are windows. Multiple exact rows sharing one continuous orb window
+// (identical window_start and window_end) are ONE story for any
+// content-generation or grouping consumer -- "in orb X to Y, exacting m
+// times" is one block, never m blocks. There is no static limit on exacts
+// per window. Any future consumer must group by the shared window, never by
+// row count.
+//
+// Usage:
+//   node --env-file=.env.local scripts/generate-aspect-calendar.mjs
+//   node --env-file=.env.local scripts/generate-aspect-calendar.mjs --start=2026-01-01 --end=2026-12-31
+//
+// IMPORTANT: --start/--end only filter which rows get WRITTEN and PRINTED.
+// Every pair's *entire* sky_positions history (2023-01-01 to 2046-07-31) is
+// always fetched and walked, because a window's true start/end can fall
+// outside the requested slice. A row is included if its exact_date (or, for
+// a "no exact" row, its window_start) falls inside the requested slice.
+//
+// DATING CONVENTION: a sky_positions row for date D records the sky at D's
+// 00:00 UTC. When a crossing is detected between day D's snapshot and day
+// D+1's snapshot, the true crossing happened sometime during day D itself
+// (D's snapshot, taken before the crossing, doesn't show it yet; D+1's,
+// taken after, already does) -- so the crossing is ALWAYS dated D, the
+// earlier of the two bracketing days, regardless of what fraction of day D
+// it actually fell in. There is no rounding between the two days. The
+// fractional position within day D is still used to interpolate
+// exact_degree (a continuous value), and every other point-in-time field on
+// an exact row (each body's sign and motion state) is read from day D's own
+// snapshot, matching the day the row is dated to.
+//
+// EDGE-WINDOW RULE (ratified; see also the aspect_calendar table comment in
+// scripts/create_transit_and_aspect_calendars.sql): if a pair is already
+// inside an orb window on 2023-01-01 (the data's first day), the window's
+// true start is unknown -- it began before the data. The same applies if a
+// window is still open on 2046-07-31 (the data's last day): whether/when it
+// perfects is unknown. In both cases this script DROPS the window entirely
+// rather than emit a window_start or pass count it can't actually verify --
+// consistent with the "no fabricated events, no silent guessing" rule
+// applied to transit_calendar's own range-boundary NULLs. This is rare (only
+// matters for pairs whose window genuinely straddles 2023-01-01 or
+// 2046-07-31) and does not affect the 2026 trial slice.
+//
+// Deterministic and idempotent: identical sky_positions data always produces
+// identical rows and identical IDs. Re-running upserts on id.
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+const PAGE_SIZE = 1000;
+
+// Canonical speed order: faster bodies first. Pair generation (i < j) over
+// this array yields all 36 pairs already in canonical order.
+const SPEED_ORDER = [
+  'Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter',
+  'Saturn', 'Uranus', 'Neptune', 'Pluto',
+];
+
+const SIGNS = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+];
+
+const ASPECT_ANGLES = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
+const SIGN_DIST_TO_ASPECT = { 0: 'conjunction', 2: 'sextile', 3: 'square', 4: 'trine', 6: 'opposition' };
+const ACTIVE_ORB = 3;
+
+function parseArgs() {
+  const args = Object.fromEntries(
+    process.argv.slice(2).map((a) => {
+      const [k, v] = a.replace(/^--/, '').split('=');
+      return [k, v];
+    }),
+  );
+  return {
+    start: args.start ?? '2023-01-01',
+    end: args.end ?? '2046-07-31',
+  };
+}
+
+async function fetchFullSeries(body) {
+  const rows = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from('sky_positions')
+      .select('date, sign, sign_degree, longitude, retrograde')
+      .eq('body', body)
+      .order('date', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw new Error(`Supabase read failed for ${body}: ${error.message}`);
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return rows;
+}
+
+function angularSeparation(lon1, lon2) {
+  const diff = Math.abs(lon1 - lon2) % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+
+function signDistance(sign1, sign2) {
+  const i1 = SIGNS.indexOf(sign1);
+  const i2 = SIGNS.indexOf(sign2);
+  const diff = Math.abs(i1 - i2);
+  return Math.min(diff, 12 - diff);
+}
+
+// Interpolated degree-within-sign at a crossing, guarding against the rare
+// case where the crossing falls on a day the body also changes sign (the
+// raw sign_degree would otherwise appear to jump instead of continuing).
+function interpolateDegree(degA, degB, f) {
+  let adjB = degB;
+  if (Math.abs(degB - degA) > 15) {
+    adjB = degB > degA ? degB - 30 : degB + 30;
+  }
+  const result = degA + f * (adjB - degA);
+  return ((result % 30) + 30) % 30;
+}
+
+function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows) {
+  if (window.truncatedStart) return; // true start unknown -- dropped, see header comment
+  const diffs = window.diffs;
+  const windowStartIdx = diffs[0].idx;
+  const windowEndIdx = diffs[diffs.length - 1].idx;
+  const windowStart = series1[windowStartIdx].date;
+  const windowEnd = series1[windowEndIdx].date;
+
+  const crossings = [];
+  for (let a = 0; a < diffs.length - 1; a++) {
+    const d1 = diffs[a].signedDiff;
+    const d2 = diffs[a + 1].signedDiff;
+    if (d1 * d2 < 0) {
+      const idxA = diffs[a].idx;
+      const idxB = diffs[a + 1].idx;
+      const f = Math.abs(d1) / (Math.abs(d1) + Math.abs(d2));
+      // The crossing always falls on idxA's calendar day (see the DATING
+      // CONVENTION note above) -- f only locates it fractionally within that
+      // day, for interpolating the continuous degree value below.
+      const exactDegree = interpolateDegree(series1[idxA].sign_degree, series1[idxB].sign_degree, f);
+      crossings.push({
+        exactDate: series1[idxA].date,
+        exactDegree,
+        body1AtExact: series1[idxA],
+        body2AtExact: series2[idxA],
+      });
+    }
+  }
+
+  if (crossings.length === 0) {
+    const b1 = series1[windowStartIdx];
+    const b2 = series2[windowStartIdx];
+    outRows.push({
+      id: `${body1.toLowerCase()}-${aspect}-${body2.toLowerCase()}-${windowStart}-noexact`,
+      event: aspect,
+      body_1: body1,
+      body_2: body2,
+      body_1_sign: b1.sign,
+      body_2_sign: b2.sign,
+      window_start: windowStart,
+      window_end: windowEnd,
+      exact_date: null,
+      pass_n: null,
+      pass_m: null,
+      body_1_retrograde: null,
+      body_2_retrograde: null,
+      exact_degree: null,
+    });
+    return;
+  }
+
+  const passM = crossings.length;
+  crossings.forEach((c, i) => {
+    outRows.push({
+      id: `${body1.toLowerCase()}-${aspect}-${body2.toLowerCase()}-${c.exactDate}-p${i + 1}of${passM}`,
+      event: aspect,
+      body_1: body1,
+      body_2: body2,
+      body_1_sign: c.body1AtExact.sign,
+      body_2_sign: c.body2AtExact.sign,
+      window_start: windowStart,
+      window_end: windowEnd,
+      exact_date: c.exactDate,
+      pass_n: i + 1,
+      pass_m: passM,
+      body_1_retrograde: c.body1AtExact.retrograde,
+      body_2_retrograde: c.body2AtExact.retrograde,
+      exact_degree: c.exactDegree,
+    });
+  });
+}
+
+function processPair(body1, body2, series1, series2) {
+  const rows = [];
+  let window = null;
+  let droppedTruncated = 0;
+  const N = series1.length;
+
+  for (let k = 0; k < N; k++) {
+    const s1 = series1[k];
+    const s2 = series2[k];
+    const sep = angularSeparation(s1.longitude, s2.longitude);
+    const dist = signDistance(s1.sign, s2.sign);
+    const aspect = SIGN_DIST_TO_ASPECT[dist] ?? null;
+    const signedDiff = aspect !== null ? sep - ASPECT_ANGLES[aspect] : null;
+    const inOrb = aspect !== null && Math.abs(signedDiff) <= ACTIVE_ORB;
+
+    if (window && (!inOrb || aspect !== window.aspect)) {
+      if (window.truncatedStart) {
+        droppedTruncated++;
+      } else {
+        finalizeWindow(window, series1, series2, body1, body2, window.aspect, rows);
+      }
+      window = null;
+    }
+
+    if (inOrb) {
+      if (!window) window = { aspect, diffs: [], truncatedStart: k === 0 };
+      window.diffs.push({ idx: k, signedDiff });
+    }
+  }
+
+  if (window) droppedTruncated++; // still open at the data's last day -- see header comment
+
+  return { rows, droppedTruncated };
+}
+
+function printGrouped(rows) {
+  if (rows.length === 0) {
+    console.log('(no rows in the requested slice)');
+    return;
+  }
+  const sorted = [...rows].sort((a, b) => {
+    const key = (r) => `${r.body_1}|${r.body_2}|${r.window_start}|${r.window_end}|${r.pass_n ?? 0}`;
+    return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0;
+  });
+  let lastWindowKey = null;
+  for (const r of sorted) {
+    const windowKey = `${r.body_1}-${r.body_2}-${r.window_start}-${r.window_end}`;
+    if (windowKey !== lastWindowKey) {
+      console.log(`\n[window ${r.window_start} -> ${r.window_end}] ${r.body_1} ${r.event} ${r.body_2}`);
+      lastWindowKey = windowKey;
+    }
+    if (r.exact_date) {
+      console.log(
+        `    exact ${r.exact_date}  p${r.pass_n}of${r.pass_m}  ${r.body_1_sign}/${r.body_2_sign} @ ${r.exact_degree.toFixed(2)}°` +
+        `  (${r.body_1} ${r.body_1_retrograde ? 'Rx' : 'direct'}, ${r.body_2} ${r.body_2_retrograde ? 'Rx' : 'direct'})  id=${r.id}`,
+      );
+    } else {
+      console.log(`    no exact  ${r.body_1_sign}/${r.body_2_sign}  id=${r.id}`);
+    }
+  }
+}
+
+async function main() {
+  const { start, end } = parseArgs();
+  console.log(`aspect_calendar generation. Output slice: ${start} -> ${end}. (Computation always uses the full 2023-2046 sky_positions history.)`);
+
+  const seriesByBody = {};
+  for (const body of SPEED_ORDER) {
+    seriesByBody[body] = await fetchFullSeries(body);
+    console.log(`${body}: ${seriesByBody[body].length} days fetched`);
+  }
+
+  const lengths = new Set(Object.values(seriesByBody).map((s) => s.length));
+  if (lengths.size !== 1) {
+    throw new Error(`Body series have mismatched lengths: ${JSON.stringify(Object.fromEntries(Object.entries(seriesByBody).map(([b, s]) => [b, s.length])))}`);
+  }
+  const firstDates = new Set(Object.values(seriesByBody).map((s) => s[0].date));
+  const lastDates = new Set(Object.values(seriesByBody).map((s) => s[s.length - 1].date));
+  if (firstDates.size !== 1 || lastDates.size !== 1) {
+    throw new Error('Body series do not all span the same date range.');
+  }
+
+  const allRows = [];
+  let totalDropped = 0;
+  for (let i = 0; i < SPEED_ORDER.length; i++) {
+    for (let j = i + 1; j < SPEED_ORDER.length; j++) {
+      const body1 = SPEED_ORDER[i];
+      const body2 = SPEED_ORDER[j];
+      const { rows, droppedTruncated } = processPair(body1, body2, seriesByBody[body1], seriesByBody[body2]);
+      allRows.push(...rows);
+      totalDropped += droppedTruncated;
+    }
+  }
+
+  console.log(`\nTotal rows across full range: ${allRows.length}.`);
+  if (totalDropped > 0) {
+    console.log(`Dropped ${totalDropped} window(s) truncated by the data's start/end boundary (see header comment) -- flagged for review, not written.`);
+  }
+
+  const inSlice = allRows.filter((r) => (r.exact_date ?? r.window_start) >= start && (r.exact_date ?? r.window_start) <= end);
+  console.log(`Rows in requested slice (${start} -> ${end}): ${inSlice.length}.\n`);
+
+  if (inSlice.length > 0) {
+    const { error } = await supabase
+      .from('aspect_calendar')
+      .upsert(inSlice, { onConflict: 'id' });
+    if (error) throw new Error(`Supabase write failed: ${error.message}`);
+  }
+
+  console.log('Rows written (grouped by shared window):');
+  printGrouped(inSlice);
+}
+
+main().catch((err) => {
+  console.error(err.message ?? err);
+  process.exit(1);
+});
