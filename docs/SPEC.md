@@ -247,7 +247,7 @@ Methodology page, product-spec posture. **Disclose:**
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
 - `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. (Interpretation columns become 13 with the nodes consolidation — migration note, §9.)
-- `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **Adaptation needed:** stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.
+- `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
 - App UI patterns: transits list screen, detail screen — translate to web, don't reinvent.
@@ -328,7 +328,7 @@ When the itinerary contains a contact carrying a traditional name, the content n
 
 ## 11. ENGINE SPEC
 
-### 11.1 `sky_positions` — the stored ephemeris (CREATED)
+### 11.1 `sky_positions` — the stored ephemeris (CREATED; BUILT & VALIDATED — see §11A.1)
 Actual schema in Supabase:
 ```
 body        text        -- Sun, Moon, Mercury..Pluto, North Node, South Node
@@ -349,12 +349,219 @@ PK (body, date); index on date; RLS on, server-only reads.
 - **Mean vs. true node: OPEN (§12.6).** Founder leans **mean**. Required finding **before the fill**: which node the proxy library computes for natal charts, and whether both are available — `sky_positions` MUST match the natal-side computation. If the proxy computes true node, founder discussion on updating the proxy for consistency happens **before any rows are written**.
 
 ### 11.2 Computations the engine owes
-- **Transit side:** sign-consonant pre-filter (in Whole Sign, sign-to-sign relationships are fixed, so a planet's candidate receiving points are known before any degree math); contact windows (3° applying → exact → separating) via threshold crossings + interpolation; pass n-of-m (free — `ORDER BY date` on the crossings); natal copresence (points where sign = transited sign); sky copresence with spans; sky-sky aspects (chart-independent, computed once, shared by all subscribers); natal intersections; **configuration merge** (a sky aspect absorbs a natal contact when the natal point appears in its intersection set AND the windows overlap in time — never merge across non-overlapping windows; never merge two independent natal contacts that merely coincide, which is [THROUGHLINE]'s job, not the timeline's); stable **entry IDs**; the `PASSAGE_CONTACTS` undated summaries; eclipse dataset with per-eclipse configurations and natal points caught; phase detection (ingress/station boundaries) and the regeneration schedule.
+- **Transit side:** sign-consonant pre-filter (in Whole Sign, sign-to-sign relationships are fixed, so a planet's candidate receiving points are known before any degree math); contact windows (3° applying → exact → separating) via threshold crossings + interpolation; pass n-of-m (free — `ORDER BY date` on the crossings); natal copresence (points where sign = transited sign); sky copresence with spans; sky-sky aspects (chart-independent, computed once, shared by all subscribers); natal intersections; **configuration merge** (a sky aspect absorbs a natal contact when the natal point appears in its intersection set AND the windows overlap in time — never merge across non-overlapping windows; never merge two independent natal contacts that merely coincide, which is [THROUGHLINE]'s job, not the timeline's); stable **entry IDs**; the `PASSAGE_CONTACTS` undated summaries; eclipse dataset (base data loaded — §11A.5; per-eclipse configurations and natal points caught remain downstream per-user work); phase detection (ingress/station boundaries) and the regeneration schedule.
 - **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7.
 - **Shared:** the sky event stream (normalized ingresses, stations, eclipses) feeding triggers, calendar, notifications, and Today's Texture.
 
 ### 11.3 Data-integrity posture
 Everything AI-generated sits downstream of everything deterministic. The math is validated against a professional ephemeris before the generative layer scales — wrong prose is a taste problem; wrong math is a legitimacy problem.
+
+---
+
+## 11A. ENGINE BUILD RECORD — SKY DATA LAYER (BUILT & VALIDATED JULY 2026)
+
+The deterministic sky-data foundation (build sequence stage C, first
+half) is BUILT and VALIDATED. Three tables in Supabase, all derived
+conventions recorded here. Nothing downstream reads these tables yet.
+
+### 11A.1 `sky_positions` (built July 14–15, 2026)
+
+- One row per body per day: body, date, longitude (float8, 0–360), sign,
+  sign_degree, retrograde, created_at (timestamptz ledger). PK (body,
+  date). Body allow-list constraint (12 bodies; was missing Moon at
+  creation — corrected before fill).
+- Bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
+  Neptune, Pluto, North Node, South Node. Chiron, Lilith EXCLUDED
+  (DECIDED: no current product use; Lilith would force an unneeded
+  variant choice; additive later — resumable fill keyed on (date, body)
+  means adding a body is a pure append).
+- Range: 2023-01-01 → 2046-07-31, uniform for all bodies (DECIDED:
+  single range because sky-sky math needs every body on every date;
+  start predates Pluto's first Aquarius ingress (March 2023) so every
+  current passage's full history is in-range; end covers Pluto's final
+  Aquarius egress with ~3.4 years margin, verified from the data).
+- Time convention: every row = position at 00:00 UTC on its date
+  (DECIDED July 15, overriding an earlier 12:00 note; matches
+  astro.com/Astro-Seek 0h UT ephemeris convention for validation). The
+  proxy interprets input hour in the location's LOCAL time, so the fill
+  uses a fixed UTC+0 no-DST reference location (Accra) — verified
+  empirically (Greenwich July vs. January differed by exactly the DST
+  hour). No DST drift exists anywhere in the data.
+- NODES: MEAN node (CLOSES the open node ruling). Finding: the proxy's
+  library computes mean nodes; all delivered natal readings have always
+  been mean-node; sky_positions matches. Methodology page discloses
+  "mean node." Nodes are retrograde=true on every row (constant
+  backward motion) — consistent with mean-node behavior.
+- Validation (passed July 15): 103,356 rows, zero gaps; longitudes and
+  sign_degrees in range; sign/longitude consistency 103,356/103,356
+  after one correction (Pluto 2024-09-02: rounding artifact at exactly
+  300.000° stamped Capricorn; corrected to Aquarius 0° — longitude is
+  the authoritative field, sign always derives from it); 15 samples
+  verified against astro.com/Astro-Seek (Swiss Ephemeris) to
+  sub-arcminute agreement; ingress cross-check against the old
+  transit_calendar surfaced that table's defects (below).
+- Maintenance: fill script is resumable and append-only, keyed on
+  (date, body). Extending the range = re-run with later end date.
+
+### 11A.2 `transit_calendar` (rebuilt July 17–18, 2026 — replaces the app-era table)
+
+One row per CONTENT-GENERATION TRIGGER, derived purely from
+sky_positions. 1,618 rows (1,189 ingress-type + 429 station-type,
+cross-checked against a pre-code census of the raw data).
+
+- Event types (and ID slugs, identically worded — DECIDED, no
+  abbreviations): ingress, retro-ingress, station-retrograde,
+  station-direct. No Moon rows (ambient layer reads sky_positions
+  directly). ID format: {body}-{event}-{sign}-{date}, e.g.
+  saturn-ingress-aries-2026-02-14.
+- NODES: one row per axis change (one trigger = one content block);
+  body = "Nodes"; row carries north_sign and south_sign (ID:
+  nodes-ingress-{north_sign}-{south_sign}-{date}). No node station
+  rows ever (mean node). Houses are per-chart facts and are JOINED AT
+  GENERATION TIME, never stored in this global table.
+- Self-contained rows (DECIDED): each row carries phase_end_date (this
+  body's next trigger of any kind — defines the motion phase the row
+  begins) and sign_egress_date (when the body finally leaves the
+  sign). Both NULL when the answer falls outside the data range
+  (documented in-schema; trailing NULLs self-heal on range extension;
+  leading-edge gaps are permanent and harmless).
+- Station rows carry the station's sign and degree. Ingress rows store
+  no degree (direct ingress enters at 0°, retro-ingress at ~29°59' —
+  fixed by the boundary, redundant to store).
+- Defensive constraints: body never Moon; Nodes rows are ingress-only.
+
+### 11A.3 `aspect_calendar` (rebuilt July 17–18, 2026)
+
+All dated sky-sky events, derived purely from sky_positions. 4,585
+aspect rows across 4,507 distinct windows, plus 104 eclipse rows.
+
+- Aspects: the five majors only (conjunction, sextile, square, trine,
+  opposition) between the nine non-Moon bodies. Canonical pair order =
+  fixed speed order (Sun, Mercury, Venus, Mars, Jupiter, Saturn,
+  Uranus, Neptune, Pluto), faster body always body_1; each aspect
+  stored once.
+- Orbs (DECIDED — closes "execution tuning"): 3° active / 1° exact,
+  FLAT for all bodies and for BOTH contact types (sky-sky here and
+  transit-to-natal downstream). Sign-consonant only. Rationale
+  ratified: flat is cleaner; fast movers self-regulate (window length
+  = orb ÷ speed); tight transit orbs vs. wide natal orbs is the
+  traditional structure (natal = standing relationships, transits =
+  events; ~1° exactness zone per the Hand standard) — confirmed
+  against tradition, defensible on the methodology page. The natal
+  8/10/6 orb table governs natal-to-natal ONLY; the two regimes are
+  deliberate and distinct.
+- ROW STRUCTURE: one row per EXACT PERFECTION, carrying shared
+  window_start/window_end (identical verbatim across all rows of one
+  continuous orb window), exact_date, pass_n of pass_m (counted across
+  the window's full sequence), each body's motion state on the exact
+  date, and exact_degree (shared degree-within-sign — identical for
+  both bodies by construction for the five majors). A window entered
+  without perfecting = one row, exact_date NULL ("no exact" — valid,
+  factual; ID suffix -noexact).
+- DATA-MODEL LAW (documented in-schema and in the generation script;
+  binding on every future consumer): ROWS ARE EVENTS; CONTENT UNITS
+  ARE WINDOWS. All rows sharing one continuous window are ONE content
+  story ("in orb X→Y, exacting m times"), grouped by the shared
+  window dates. No static limit on exacts per window. Never group by
+  row count.
+- ID formats: {faster}-{aspect}-{slower}-{exactdate}-p{n}of{m};
+  no-exact: {faster}-{aspect}-{slower}-{windowstart}-noexact;
+  eclipses: solar-eclipse-{date} / lunar-eclipse-{date}. All IDs
+  deterministic: regeneration from identical data mints identical IDs.
+- EDGE-WINDOW RULE (DECIDED): windows already open on the range's
+  first day or still open on its last are OMITTED ENTIRELY, never
+  written with unknowable boundaries (partial windows would break the
+  grouping key). Leading-edge omissions are pre-product history;
+  trailing-edge windows appear complete when the range extends.
+  Boundary-adjacent rows are provisional until the range extends past
+  them (a still-open window can gain passes, changing pass_m and IDs —
+  designed behavior, not drift).
+- NO naming/label layer (DECIDED): no cazimi, combustion,
+  under-the-beams, or Great Conjunction labels. Combustion-type
+  standing CONDITIONS are out of calendar scope entirely (if ever
+  wanted, they enter as Call 1 brief context, not calendar rows —
+  deferred, additive). Declination-based events (out-of-bounds,
+  heliacal) are outside the data model — known boundary.
+- Defensive constraint: no Moon in either body column EXCEPT the two
+  eclipse event types (which are exactly Sun–Moon) — eclipses are the
+  only Sun–Moon rows.
+
+### 11A.4 Dating convention (ALL tables — DECIDED July 17 after trial-run bug)
+
+Every event is stamped with its ACTUAL UTC DATE: the calendar day
+containing the true crossing/station/exactness moment, i.e. the earlier
+of the two bracketing daily snapshots. Never "the first snapshot showing
+the new state." Interpolation between snapshots assigns DATES only,
+never times; the fractional position feeds continuous values
+(exact_degree) only. Lookahead columns and window bounds inherit this
+convention (they are lookups of already-corrected dates).
+
+Record of the bug this closes: the first trial stamped every event +1
+day (an off-by-one in dating detected changes). Caught ONLY by external
+verification against Astro-Seek UT listings — every internal
+consistency check passed on the uniformly-wrong data. Standing lesson,
+reaffirming the spec's validation law: internal consistency cannot
+detect being consistently wrong; deterministic tables validate against
+external ground truth before anything downstream depends on them.
+
+### 11A.5 Eclipses (loaded & validated July 18, 2026)
+
+- Source: NASA Five Millennium Canon (Espenak & Meeus). 104 events
+  in-range (51 solar, 53 lunar; the 2046-08-02 solar falls after the
+  range end — excluded until extension).
+- PENUMBRAL lunar eclipses INCLUDED (DECIDED): astrological practice
+  counts them (the significance is the lunation at the nodes, not
+  shadow depth); with no kind field they are simply Lunar Eclipse
+  rows; excluding them would break eclipse-season pairing.
+- NO kind/subtype field (DECIDED — founder override of the earlier
+  addendum line that listed "kind" in eclipse entries): that an
+  eclipse strikes is the significance; totality nuance is excluded;
+  re-derivable later if ever wanted.
+- DEGREE/SIGN CONVENTION (DECIDED — deliberate exception to "read each
+  body's own row," chosen for precision; documented in-schema so it is
+  never "fixed" back): both eclipse types read the SUN's snapshot
+  (Sun moves <1°/day → within ~½° of the eclipse-moment position; the
+  Moon's snapshot can be 6°+ off and land the wrong sign). Solar:
+  exact_degree = Sun's degree, both signs = Sun's sign. Lunar:
+  exact_degree = Sun's degree, body_1_sign = Sun's sign, body_2_sign =
+  the OPPOSITE sign, derived, never read from the Moon's row.
+- BOUNDARY VERIFICATION PROTOCOL (run July 18): any eclipse row with
+  sign_degree > 29.0 or < 1.0 is checked against NASA's published
+  greatest-eclipse time to determine which side of a same-day sign
+  crossing the eclipse moment falls on. Result: 9 flagged, 7 confirmed
+  correct, 2 CORRECTED (2031-05-21 → Gemini 0.07°; 2039-06-21 →
+  Cancer 0.21° — both had been stamped in the prior sign). The load
+  script carries a verified-correction table so regeneration
+  reproduces corrected values (confirmed by re-run).
+- Validation: three-way — (a) USNO independent computation matches
+  NASA exactly for its published window (2023–Aug 2026); (b) all 104
+  dates verified against sky_positions (solar = Sun–Moon
+  near-conjunction, lunar = near-opposition, all within one day's
+  lunar motion; all within ~18° of the nodal axis); (c) founder
+  spot-checks against Astro-Seek eclipse listings — 8-sample
+  degree/sign check (all within 1°) plus all 9 boundary-flagged rows
+  individually confirmed.
+
+### 11A.6 Old `transit_calendar` — RETIRED (July 17, 2026)
+
+Failed validation against sky_positions: node ingress dates carry
+true-node lineage (~19–24 day divergence from the product's mean-node
+convention); two corrupt rows (station date copied into ingress date,
+self-flagged cacheable:NO by the old engine); systematic snapshot
+drift. DECIDED: retired as a source with no fidelity owed; renamed
+transit_calendar_archive (confirmed unreferenced by any deployed code
+before rename); DELETED after the site relaunch is live. Nothing may
+read it.
+
+### 11A.7 Access & maintenance (all three tables)
+
+- RLS enabled, zero policies (default-deny); all reads/writes via the
+  service-role key server-side — the established pattern.
+- Maintenance model: DETERMINISTIC REGENERATION. Annual-ish extension:
+  extend sky_positions (pure append), regenerate both calendars in
+  full (identical inputs → identical rows and IDs; corrections carried
+  in-script). Trailing-edge NULLs and omitted trailing windows
+  self-heal on extension.
 
 ---
 
@@ -365,7 +572,7 @@ Everything AI-generated sits downstream of everything deterministic. The math is
 3. **Final prices** — LAST, after cost structure and offer are fully settled.
 4. **Refusals-in-methodology paragraph** — yes/no at page-writing time.
 5. **Transit surface URL form** — `/reading/[slug]/transits` vs. a tab. *Ruled before any UI build; discussion scheduled.*
-6. **Mean vs. true node** — founder leans mean; blocked on the proxy finding (§11.1). Also: the Nodes background-asset decision (two node images → one).
+6. ~~Mean vs. true node~~ — **CLOSED: mean** (details in §11A.1). Still open: the Nodes background-asset decision (two node images → one).
 7. **Shared-core maintenance** — build-time assembly of the universal block vs. discipline across four documents.
 
 ## 13. DEFERRED — DO NOT BUILD, DO NOT FORECLOSE
@@ -394,3 +601,9 @@ Education layer follows transits (founder-decided order) so they can be built to
 - **Standing instructions live in `AGENTS.md` at repo root** (`CLAUDE.md` imports it). Governing docs live in a `docs/` folder in the repo.
 - **Division of labor:** chats for thinking and specs; Claude Code for execution against this document. Prompt content is drafted in chat and approved by the founder — never edited by an execution session without explicit instruction.
 - Copy-review rule as ratified: user-facing copy is founder-approved before it ships.
+
+## 16. DECISION LOG
+
+**Display law (DECIDED July 16):** degrees display FLOORED/TRUNCATED (traditional ephemeris convention) wherever whole degrees are shown; data keeps full precision; a planet displays 29° exactly when anaretic — display and DEGREE_FLAG can never disagree.
+
+**July 14–18, 2026:** uniform sky_positions range and 00:00 UTC convention; Chiron/Lilith excluded; mean node closed; Pluto boundary row corrected; floor display rounding; old transit_calendar retired/renamed; two-table calendar architecture with self-contained rows; flat 3°/1° transit orbs both contact types; five majors; ID system; actual-UTC-date convention; rows-vs-windows law; edge-window drop rule; no naming vocabulary; nodes as one axis row; penumbral included; no eclipse kind field; Sun-derived eclipse degrees; two eclipse sign corrections; spec authorship moves to the primary work chat (repo copy canonical; other chat stands down unless prompt work returns there).
