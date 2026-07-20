@@ -34,7 +34,7 @@ import {
   mintContactId, mintAxisContactId, labelAxisContact, houseOfSign,
   isSlowPair, mintActivationId, mintEclipseTransitActivationId,
   assertSignConsonant, filterAndGroupForPassage, findActivationAnchor,
-  findTruePassageRows,
+  computeShape,
 } from './contact-engine.mjs';
 
 const supabase = createClient(
@@ -87,21 +87,26 @@ async function fetchCurrentPhaseRow(body) {
   return data[0];
 }
 
-// STEP 5: sign_egress_date is stored per-leg, not per true passage (see
-// findTruePassageRows's header comment in contact-engine.mjs), so an
-// equality filter on it silently stops at a retrograde re-ingress. Fetch
-// the body's full row history instead and walk it by adjacency. Nodes
-// rows have no `sign` field (they carry north_sign/south_sign) and never
-// fragment -- no stations, ever, so one axis occupancy is structurally
-// always exactly one row -- so the walk is skipped for Nodes.
-async function fetchPassageRows(body, currentRow) {
-  if (body === 'Nodes') return [currentRow];
+// Used only to label what closes a phase (line label, falls back to a
+// generic "egress" when nothing is found -- e.g. the trailing-edge case
+// where phaseEnd itself is NULL).
+async function fetchBodyRowAtDate(body, date) {
   const { data, error } = await supabase
     .from('transit_calendar')
-    .select('*').eq('body', body)
+    .select('event_type, degree').eq('body', body).eq('date', date).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function fetchBodyStationRows(body) {
+  const { data, error } = await supabase
+    .from('transit_calendar')
+    .select('date, event_type, sign')
+    .eq('body', body)
+    .in('event_type', ['station_retrograde', 'station_direct'])
     .order('date', { ascending: true });
   if (error) throw new Error(error.message);
-  return findTruePassageRows(data, currentRow);
+  return data;
 }
 
 async function fetchAspectCalendarForBody(body, start, end) {
@@ -121,21 +126,40 @@ async function fetchEclipsesInRange(start, end) {
 }
 
 // ── Passage description ───────────────────────────────────────────────
+//
+// Passage identity and bounds are now stored directly on every transit_
+// calendar row (passage_id, passage_first_ingress_date, sign_egress_date
+// -- the STEP 5 data fix), so currentRow alone answers "whose passage is
+// this and what are its bounds." SHAPE is the one thing that still needs
+// its own query, and deliberately does NOT use passage-membership rows:
+// membership answers "whose passage is this row," shape answers "what
+// happened during this span" -- an episode that occurs during two
+// interleaved passages' shared overlap window (e.g. Saturn's one 2025
+// retrograde loop between Aries and Pisces) is a true fact about BOTH of
+// them, so it must be countable from each side even though the episode's
+// own rows are stamped with only one of the two passage_ids.
+//
+// A passage's TRUE first ingress can only ever be a forward crossing
+// (retrograde motion can only re-enter a sign the body has already
+// forward-crossed into earlier -- it can never arrive first), so
+// ingressDirect is always true when the first ingress is known at all. It
+// is unknown (not false) for the rare case where currentRow's own passage
+// is a pre-range one still open today (its true first ingress predates
+// 2023-01-01) -- not currently true of Saturn, Mercury, or Nodes, but
+// handled rather than left to crash if it ever is.
 
-function describePassage(rows) {
-  const ingressRow = rows.find(r => r.event_type === 'ingress' || r.event_type === 'retro_ingress');
-  const stationCount = rows.filter(r => r.event_type === 'station_retrograde' || r.event_type === 'station_direct').length;
-  const shape = stationCount === 0 ? 'clean forward passage'
-    : stationCount === 2 ? 'one retrograde loop'
-    : `${stationCount} reversals across this passage`;
+async function describePassage(currentRow) {
+  const firstIngress = currentRow.passage_first_ingress_date;
+  const finalEgress = currentRow.sign_egress_date;
+  // Nodes never station (mean node, constant retrograde motion) -- no
+  // episodes are possible, so skip the query entirely.
+  const shape = currentRow.body === 'Nodes'
+    ? 'single phase -- the axis does not station'
+    : computeShape(await fetchBodyStationRows(currentRow.body), firstIngress, finalEgress);
   return {
-    ingressDate: ingressRow?.date ?? rows[0].date,
-    ingressDirect: ingressRow ? ingressRow.event_type === 'ingress' : true,
-    // Read from the LAST row, not the first (STEP 5 fix): sign_egress_date
-    // is stored per-leg, and only the final leg's own value can correctly
-    // reflect the true final egress -- an earlier leg's value is scoped to
-    // when THAT leg's dip happened, not the true passage end.
-    egressDate: rows[rows.length - 1].sign_egress_date,
+    ingressDate: firstIngress,
+    ingressDirect: firstIngress !== null ? true : null,
+    egressDate: finalEgress,
     shape,
   };
 }
@@ -296,10 +320,15 @@ async function assembleBrief(focusBody) {
   const risingKnown = reading.birth_time_known ?? true;
 
   const currentRow = await fetchCurrentPhaseRow(focusBody);
-  const passageRows = await fetchPassageRows(focusBody, currentRow);
-  const passage = describePassage(passageRows);
+  const passage = await describePassage(currentRow);
   const phaseStart = currentRow.date;
   const phaseEnd = currentRow.phase_end_date ?? passage.egressDate;
+  // Edge case (not currently true of Saturn/Mercury/Nodes): if currentRow's
+  // own passage is still a pre-range one, its true first ingress predates
+  // the data and passage.ingressDate is NULL. Bound date-range filtering at
+  // the data's own start rather than passing NULL through -- "we have no
+  // evidence of anything before this" is the honest boundary substitute.
+  const passageIngressForFiltering = passage.ingressDate ?? '2023-01-01';
 
   const seriesBody = focusBody === 'Nodes' ? 'North Node' : focusBody;
   const series = await fetchFullSeries(seriesBody);
@@ -316,7 +345,7 @@ async function assembleBrief(focusBody) {
   const byAspectKey = new Map(); // "PointName|aspectKey" -> enriched rows, this passage only
   const passageContactsFlat = [];
   for (const [pointName, rows] of rawContactsByPoint) {
-    const enriched = filterAndGroupForPassage(rows, passageSign, passage.ingressDate, passage.egressDate);
+    const enriched = filterAndGroupForPassage(rows, passageSign, passageIngressForFiltering, passage.egressDate);
     for (const c of enriched) {
       const aspectKey = `${pointName}|${c.axisInvolved ? `axis-dist${c.dist}` : c.aspect}`;
       if (!byAspectKey.has(aspectKey)) byAspectKey.set(aspectKey, []);
@@ -540,7 +569,10 @@ async function assembleBrief(focusBody) {
     lines.push(`RISING_SIGN_KNOWN: ${risingKnown}`);
     lines.push('');
     lines.push('PASSAGE:');
-    lines.push(`  INGRESS: ${passage.ingressDate}, entering ${passage.ingressDirect ? 'direct' : 'retrograde'}`);
+    const ingressPhrase = passage.ingressDate !== null
+      ? `${passage.ingressDate}, entering direct`
+      : 'predates tracked data (before 2023-01-01), direction unknown';
+    lines.push(`  INGRESS: ${ingressPhrase}`);
     lines.push(`  EGRESS: ${passage.egressDate}`);
     lines.push(`  SHAPE: ${passage.shape}`);
     lines.push('');
@@ -548,7 +580,7 @@ async function assembleBrief(focusBody) {
     const motion = currentRow.event_type === 'station_retrograde' || currentRow.event_type === 'retro_ingress' ? 'RETROGRADE' : 'FORWARD';
     lines.push(`  MOTION: ${motion}`);
     lines.push(`  OPENED_BY: ${eventLabel(currentRow.event_type, currentRow.degree)} on ${currentRow.date}`);
-    const closesRow = passageRows.find(r => r.date === phaseEnd) ?? null;
+    const closesRow = phaseEnd ? await fetchBodyRowAtDate(focusBody, phaseEnd) : null;
     const closesLabel = closesRow ? eventLabel(closesRow.event_type, closesRow.degree) : 'egress';
     lines.push(`  CLOSES: ${closesLabel} on ${phaseEnd}`);
     lines.push('');

@@ -277,92 +277,42 @@ export function windowOverlaps(row, startDate, endDate) {
   return s <= endDate && e >= startDate;
 }
 
-// ── True passage-boundary walk (STEP 5) ─────────────────────────────────
+// ── Passage SHAPE (STEP 5 fix) ──────────────────────────────────────────
 //
-// transit_calendar.sign_egress_date is currently computed per-leg ("next
-// time THIS row's own sign changes"), not per true passage -- confirmed
-// via Pluto's real 2023 Aquarius -> Capricorn (retrograde dip) -> 2024
-// Aquarius return, and independently via Saturn's own current Aries
-// passage (genuine ingress 2025-05-25, retro-ingress to Pisces
-// 2025-09-01, re-ingress 2026-02-14). A naive equality filter on
-// sign_egress_date silently stops at a re-ingress rather than reaching
-// the passage's true original ingress. This is a data-generation bug in
-// generate-transit-calendar.mjs (deferred -- see SPEC.md), fixed HERE at
-// the query layer only: walk the body's own row history by adjacency
-// instead of trusting the stored field.
+// A passage's shape is what happened during its own time span (first
+// ingress -> true final egress), independent of which passage's rows a
+// given station is stamped with -- membership answers "whose passage is
+// this row," shape answers "what happened during this span." An episode
+// (a station_retrograde paired with its immediately-following
+// station_direct) counts toward a passage's shape iff the episode's FULL
+// span falls within [firstIngress, finalEgress] (a NULL bound is
+// unbounded on that side). Because adjacent passages interleave, one
+// physical episode can legitimately fall inside BOTH of two passages'
+// bounds -- e.g. Saturn's one 2025 retrograde loop between Aries and
+// Pisces counts toward both signs' shapes, honestly, since it is a true
+// fact about both stories.
 //
-// A passage is one home-sign ingress, plus zero or more (retro_ingress-
-// out, ingress-back) EXCURSION PAIRS chained immediately after it, ending
-// at the last such return (or the original ingress itself, if there was
-// no excursion). Sign identity alone cannot bound this walk: the sign
-// bordering a passage's home sign is fixed (Aries can only be bordered by
-// Pisces), so a naive "keep walking while the sign matches the one
-// excursion sign seen so far" test cannot tell a genuine bracketing
-// excursion of THIS passage apart from an entirely different, much older
-// PRIOR passage that happens to sit in that same neighboring sign --
-// confirmed the hard way: an early version of this walk chained all the
-// way from Saturn's 2026 Aries passage back through its 2025 excursion
-// AND into its real, separate 2023 Pisces passage, because both dips are
-// necessarily in Pisces. The fix is structural, not sign-based: an
-// excursion's departure leg is always a `retro_ingress` (retrograde
-// crossing) and its return leg is always a plain `ingress` (forward
-// crossing) back into the home sign -- a genuinely prior, unrelated
-// passage's own final approach is a plain `ingress` INTO its own sign,
-// never a `retro_ingress` OUT of the current home sign. So the walk only
-// ever absorbs a matched (retro_ingress-other, ingress-home) PAIR, one
-// hop at a time, and stops the instant that pattern doesn't hold.
-//
-// allBodyRowsSorted: every transit_calendar row for ONE body, date
-// ascending. currentRow: must be present in that array (by id), and its
-// own event must already be a home-sign ingress-type row. Returns the
-// full slice of rows (including station rows) spanning the true passage,
-// in date order.
-export function findTruePassageRows(allBodyRowsSorted, currentRow) {
-  const homeSign = currentRow.sign;
-  const ingressTypes = new Set(['ingress', 'retro_ingress']);
-  const ingressRows = allBodyRowsSorted.filter(r => ingressTypes.has(r.event_type));
-  // currentRow may itself be a station row (its own leg's ingress-type
-  // row is whichever one most recently opened that leg), so anchor on
-  // the latest ingress-type row at or before currentRow's date rather
-  // than requiring an exact id match.
-  let curIdx = -1;
-  for (let i = 0; i < ingressRows.length; i++) {
-    if (ingressRows[i].date <= currentRow.date) curIdx = i; else break;
+// stationRows: every station_retrograde/station_direct row for ONE body,
+// date ascending (any sign -- not membership-filtered).
+export function computeShape(stationRows, firstIngress, finalEgress) {
+  const episodes = [];
+  let pendingRetro = null;
+  for (const r of stationRows) {
+    if (r.event_type === 'station_retrograde') pendingRetro = r;
+    else if (r.event_type === 'station_direct' && pendingRetro) {
+      episodes.push({ retroDate: pendingRetro.date, directDate: r.date, crossesSign: pendingRetro.sign !== r.sign });
+      pendingRetro = null;
+    }
   }
-  if (curIdx === -1) throw new Error(`findTruePassageRows: no ingress-type row at or before currentRow ${currentRow.id}`);
-
-  let startIdx = curIdx;
-  for (let i = curIdx; i > 1; ) {
-    const prev = ingressRows[i - 1];
-    const prevPrev = ingressRows[i - 2];
-    if (prev.sign !== homeSign && prev.event_type === 'retro_ingress' && prevPrev.sign === homeSign) {
-      startIdx = i - 2;
-      i -= 2;
-    } else break;
-  }
-
-  let lastIngressIdx = curIdx;
-  for (let i = curIdx; i < ingressRows.length - 2; ) {
-    const next = ingressRows[i + 1];
-    const nextNext = ingressRows[i + 2];
-    if (next.sign !== homeSign && next.event_type === 'retro_ingress' && nextNext.sign === homeSign) {
-      lastIngressIdx = i + 2;
-      i += 2;
-    } else break;
-  }
-
-  const startPos = allBodyRowsSorted.findIndex(r => r.id === ingressRows[startIdx].id);
-  const lastIngressPos = allBodyRowsSorted.findIndex(r => r.id === ingressRows[lastIngressIdx].id);
-
-  // Extend forward through any trailing station rows up to (but never
-  // past) the next ingress-type row that would start a new passage.
-  let endPos = lastIngressPos;
-  for (let i = lastIngressPos + 1; i < allBodyRowsSorted.length; i++) {
-    if (ingressTypes.has(allBodyRowsSorted[i].event_type)) break;
-    endPos = i;
-  }
-
-  return allBodyRowsSorted.slice(startPos, endPos + 1);
+  const inBounds = episodes.filter(e =>
+    (firstIngress === null || e.retroDate >= firstIngress) &&
+    (finalEgress === null || e.directDate <= finalEgress));
+  const n = inBounds.length;
+  const m = inBounds.filter(e => e.crossesSign).length;
+  if (n === 0) return 'clean forward passage';
+  if (n === 1 && m === 0) return 'one retrograde loop within the sign';
+  if (n === 1 && m === 1) return 'one retrograde loop, carrying the body out of the sign and back';
+  return `${n} retrograde episodes across this passage, ${m === 0 ? 'none of which' : `${m} of which`} carried the body out of the sign and back`;
 }
 
 // ── Standing structural guards (STEP 3) ───────────────────────────────

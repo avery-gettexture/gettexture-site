@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   SIGNS, extractNatalPoints, computeContactWindows, contactAnchorDate,
   windowOverlaps, natalCopresence, skyCopresenceSpans, eclipseCatches,
-  mintContactId, mintAxisContactId, labelAxisContact, findTruePassageRows,
+  mintContactId, mintAxisContactId, labelAxisContact, computeShape,
 } from './contact-engine.mjs';
 
 const supabase = createClient(
@@ -69,19 +69,30 @@ async function fetchCurrentPhaseRow(body) {
   return data[0];
 }
 
-// Passage = the body's true continuous residency in its home sign,
-// walked by adjacency rather than trusted from the (per-leg-scoped)
-// stored sign_egress_date field -- see findTruePassageRows in
-// contact-engine.mjs.
-async function fetchPassageRows(body, currentRow) {
-  if (body === 'Nodes') return [currentRow]; // no `sign` field, never fragments -- see assemble-brief.mjs
+// Passage identity and bounds live directly on currentRow now (passage_id,
+// passage_first_ingress_date, sign_egress_date -- the STEP 5 data fix).
+// This fetch is only for the print listing of every row sharing this
+// passage_id (a nicety for eyeballing, not needed for any computation).
+async function fetchPassageMemberRows(body, passageId) {
   const { data, error } = await supabase
     .from('transit_calendar')
     .select('*')
     .eq('body', body)
+    .eq('passage_id', passageId)
     .order('date', { ascending: true });
-  if (error) throw new Error(`transit_calendar passage read failed for ${body}: ${error.message}`);
-  return findTruePassageRows(data, currentRow);
+  if (error) throw new Error(`transit_calendar passage-member read failed for ${body}: ${error.message}`);
+  return data;
+}
+
+async function fetchBodyStationRows(body) {
+  const { data, error } = await supabase
+    .from('transit_calendar')
+    .select('date, event_type, sign')
+    .eq('body', body)
+    .in('event_type', ['station_retrograde', 'station_direct'])
+    .order('date', { ascending: true });
+  if (error) throw new Error(`transit_calendar station read failed for ${body}: ${error.message}`);
+  return data;
 }
 
 async function fetchAspectCalendarForBody(body, start, end) {
@@ -116,16 +127,17 @@ async function fetchEclipses(start, end) {
 
 // ── Passage / phase description ───────────────────────────────────────
 
-function describePassage(body, rows) {
-  const ingressRow = rows.find(r => r.event_type === 'ingress' || r.event_type === 'retro_ingress');
-  const stationCount = rows.filter(r => r.event_type === 'station_retrograde' || r.event_type === 'station_direct').length;
-  const shape = stationCount === 0 ? 'clean forward passage'
-    : stationCount === 2 ? 'one retrograde loop'
-    : `${stationCount} reversals across this passage`;
+async function describePassage(currentRow) {
+  const firstIngress = currentRow.passage_first_ingress_date;
+  const finalEgress = currentRow.sign_egress_date;
+  const shape = currentRow.body === 'Nodes'
+    ? 'single phase -- the axis does not station'
+    : computeShape(await fetchBodyStationRows(currentRow.body), firstIngress, finalEgress);
+  const rows = await fetchPassageMemberRows(currentRow.body, currentRow.passage_id);
   return {
-    ingressDate: ingressRow?.date ?? rows[0].date,
-    ingressDirect: ingressRow ? ingressRow.event_type === 'ingress' : true,
-    egressDate: rows[rows.length - 1].sign_egress_date,
+    ingressDate: firstIngress,
+    ingressDirect: firstIngress !== null ? true : null,
+    egressDate: finalEgress,
     shape,
     rows,
   };
@@ -211,12 +223,16 @@ async function reportBody(focusBody, natalPoints, seriesFull) {
   console.log(`\n${'='.repeat(78)}\n${focusBody.toUpperCase()}\n${'='.repeat(78)}`);
 
   const currentRow = await fetchCurrentPhaseRow(focusBody);
-  const passageRows = await fetchPassageRows(focusBody, currentRow);
-  const passage = describePassage(focusBody, passageRows);
+  const passage = await describePassage(currentRow);
   const phaseEnd = currentRow.phase_end_date ?? passage.egressDate;
   const transitedSign = focusBody === 'Nodes' ? null : currentRow.sign;
+  // Edge case (not currently true of Saturn/Mercury/Nodes): if currentRow's
+  // own passage is still a pre-range one, its true first ingress predates
+  // the data and passage.ingressDate is NULL -- bound at the data's own
+  // start rather than passing NULL through.
+  const passageIngressForFiltering = passage.ingressDate ?? '2023-01-01';
 
-  console.log(`\nPASSAGE: ingress ${passage.ingressDate} (${passage.ingressDirect ? 'direct' : 'retrograde re-ingress'}) -> egress ${passage.egressDate}. Shape: ${passage.shape}.`);
+  console.log(`\nPASSAGE: ingress ${passage.ingressDate ?? 'predates tracked data (before 2023-01-01)'} (${passage.ingressDirect ? 'direct' : 'unknown'}) -> egress ${passage.egressDate}. Shape: ${passage.shape}.`);
   console.log(`Passage rows: ${passage.rows.map(r => `${r.event_type}@${r.date}`).join(' | ')}`);
   console.log(`\nCURRENT PHASE: opened by ${currentRow.event_type} on ${currentRow.date}, closes ${phaseEnd}. Motion: ${focusBody === 'Nodes' ? 'N/A (single phase, no stations)' : currentMotion(currentRow)}.`);
   if (transitedSign) console.log(`Sign: ${transitedSign}`);
@@ -257,7 +273,7 @@ async function reportBody(focusBody, natalPoints, seriesFull) {
   const timeline = allContacts.filter(c => windowOverlaps(c, currentRow.date, phaseEnd) && contactAnchorDate(c) >= currentRow.date && contactAnchorDate(c) <= phaseEnd)
     .sort((a, b) => contactAnchorDate(a) < contactAnchorDate(b) ? -1 : 1);
   const passageOnly = allContacts.filter(c =>
-    windowOverlaps(c, passage.ingressDate, passage.egressDate) && c.transitingSign === passageHomeSign && !timeline.includes(c))
+    windowOverlaps(c, passageIngressForFiltering, passage.egressDate) && c.transitingSign === passageHomeSign && !timeline.includes(c))
     .sort((a, b) => contactAnchorDate(a) < contactAnchorDate(b) ? -1 : 1);
 
   console.log(`\nTIMELINE -- ${focusBody}'s current phase (${timeline.length} event${timeline.length === 1 ? '' : 's'}):`);

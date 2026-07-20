@@ -441,73 +441,155 @@ conventions recorded here. Nothing downstream reads these tables yet.
 
 One row per CONTENT-GENERATION TRIGGER, derived purely from
 sky_positions. 1,618 rows (1,189 ingress-type + 429 station-type,
-cross-checked against a pre-code census of the raw data).
+cross-checked against a pre-code census of the raw data; the
+ingress-type figure splits further into 1,121 ingress/retro-ingress +
+68 re-ingress after the passage-fragmentation fix below — same 1,189
+total, some retyped).
 
 - Event types (and ID slugs, identically worded — DECIDED, no
-  abbreviations): ingress, retro-ingress, station-retrograde,
-  station-direct. No Moon rows (ambient layer reads sky_positions
-  directly). ID format: {body}-{event}-{sign}-{date}, e.g.
-  saturn-ingress-aries-2026-02-14.
+  abbreviations): ingress, retro-ingress, re-ingress,
+  station-retrograde, station-direct. No Moon rows (ambient layer
+  reads sky_positions directly). ID format: {body}-{event}-{sign}-
+  {date}, e.g. saturn-ingress-aries-2025-05-25 and its return leg
+  saturn-re-ingress-aries-2026-02-14.
 - NODES: one row per axis change (one trigger = one content block);
   body = "Nodes"; row carries north_sign and south_sign (ID:
   nodes-ingress-{north_sign}-{south_sign}-{date}). No node station
-  rows ever (mean node). Houses are per-chart facts and are JOINED AT
-  GENERATION TIME, never stored in this global table.
+  rows ever (mean node); Nodes never dip or re-enter (constant
+  backward motion), so every Nodes passage has exactly one entry.
+  Houses are per-chart facts and are JOINED AT GENERATION TIME, never
+  stored in this global table.
 - Self-contained rows (DECIDED): each row carries phase_end_date (this
   body's next trigger of any kind — defines the motion phase the row
-  begins) and sign_egress_date (when the body finally leaves the
-  sign). Both NULL when the answer falls outside the data range
-  (documented in-schema; trailing NULLs self-heal on range extension;
-  leading-edge gaps are permanent and harmless).
+  begins), sign_egress_date (this PASSAGE's true final egress — see
+  the passage model below), passage_id, passage_first_ingress_date,
+  entry_number, and entry_count. NULL where the answer falls outside
+  the data range (documented in-schema; trailing NULLs self-heal on
+  range extension) or where the passage's true first ingress predates
+  the range (every body has exactly one such passage — see below).
 - Station rows carry the station's sign and degree. Ingress rows store
   no degree (direct ingress enters at 0°, retro-ingress at ~29°59' —
   fixed by the boundary, redundant to store).
 - Defensive constraints: body never Moon; Nodes rows are ingress-only.
 
-KNOWN BUG — `sign_egress_date` IS PER-LEG, NOT PER TRUE PASSAGE (found
-July 19, 2026; BLOCKING PREREQUISITE for generating content for any
+PASSAGE-FRAGMENTATION BUG — RESOLVED July 20, 2026 (found July 19,
+2026; was the blocking prerequisite for generating content for any
 body beyond the Saturn/Mercury/Nodes dogfood three — founder ruling,
-not a someday note). PASSAGE (per this section's own definition) is a
-body's entire association with a sign, including any interval where it
-retrogrades out and re-enters — an exit-and-return does not start a
-new passage. But `sign_egress_date` as currently generated
-(scripts/generate-transit-calendar.mjs) computes "the next date THIS
-ROW's own sign changes," not the true passage's final egress — so each
-leg of a re-entering passage carries a different value, and any
-consumer that groups rows by equality on this field (as the transit
-engine originally did) silently stops at the first re-ingress instead
-of reaching the passage's true original ingress.
+not a someday note). Full record of the finding is preserved below;
+this paragraph records the fix and closes the bug.
 
-Confirmed with two independent real cases: (1) Pluto's actual 2023
-Aquarius → Capricorn (retrograde dip) → 2024 Aquarius return carries
+THE PASSAGE MODEL (ratified, replaces the informal definition above): a
+passage is a body's entire association with one sign, first ingress to
+TRUE FINAL egress, any retrograde dips included. Four rulings govern
+it:
+- **(A) Event types.** Three symmetric ingress-type events: ingress
+  (first-ever arrival), retro-ingress (backing retrograde into the
+  previous sign — always a dip's departure leg, never a first
+  arrival), re-ingress (a direct crossing back into a sign already
+  entered earlier in the same passage — a dip's return leg). A plain
+  ingress is retyped to re-ingress whenever it is not that passage's
+  first entry; IDs regenerate accordingly.
+- **(B) Passage identity.** Every row carries passage_id
+  ({body}-{sign}-{first ingress date}, e.g. saturn-aries-2025-05-25 —
+  the event-type word is omitted, unlike this table's own `id`
+  column).
+- **(C) Passage bounds on every row.** passage_first_ingress_date and
+  sign_egress_date (repurposed to mean the passage's TRUE final
+  egress, replacing the old per-leg meaning) are identical on every
+  row sharing a passage_id, so any consumer knows a passage's full
+  bounds from a single row.
+- **(D) Entry counting.** Every ingress-type row (ingress,
+  retro-ingress, re-ingress) carries entry_number and entry_count,
+  independent counters in the same spirit as aspect_calendar's
+  windows/passes. A retro-ingress counts as an entry into the sign it
+  backs into.
+
+MEMBERSHIP IS SIGN-CONSONANT, not shape-based (founder correction
+during planning): every row belongs to the passage of the sign it is
+actually IN. A dip's own rows (its retro-ingress landing in the
+previous sign, any stations while dipped, and its return leg) belong
+to the DIPPED-INTO sign's passage, not the sign dipped out of — e.g.
+Pluto's 2023/2024 Capricorn dip rows carry a Capricorn passage_id
+(passage_first_ingress_date NULL — see the leading-edge case below),
+not pluto-aquarius.
+
+ADJACENT PASSAGES INTERLEAVE IN TIME (explicit, load-bearing
+consequence): because a passage stays open through any dip and only
+closes at its true final egress, a body oscillating between two signs
+keeps both signs' passages open simultaneously, and their date ranges
+legitimately overlap. Confirmed on Saturn's real current passages:
+Pisces (first ingress 2023-03-07, final egress 2026-02-14 — its own
+2025 dip-return, per (D), is entry 2 of that Pisces passage) and Aries
+(first ingress 2025-05-25, final egress 2028-04-13, entry 2 of 2 is
+the 2026-02-14 return) overlap by the ~9 months Saturn spends
+wobbling across that one boundary. Not a conflict; the model is
+symmetric by design, and this SAME symmetric rule also extends Pluto's
+current Aquarius passage's final egress to 2044-01-19 (its far-future
+Pisces passage's own dip back into Aquarius) and gives that Aquarius
+passage 4 entries, not 3 — a consequence outside the originally-cited
+case, surfaced and founder-approved during planning, not silently
+absorbed.
+
+LEADING-EDGE (PRE-RANGE) PASSAGES: every body's data-start sign
+(2023-01-01) is itself a passage whose true first ingress predates the
+tracked range — confirmed to exist for all nine bodies once membership
+went sign-consonant (Pluto's Capricorn passage among them). Handled
+like any other passage except: passage_id uses the anchor-less
+convention {body}-{sign}-pre-range; passage_first_ingress_date is
+NULL; and — because the true total number of entries into that
+passage is itself unknowable when its beginning is outside the data —
+entry_number and entry_count are NULL on every row belonging to it,
+not just the unrecorded first entry (a visible row cannot state an
+ordinal against an unknowable total). Most bodies' pre-range passage
+never gains a real row at all, if the body never dips back into its
+data-start sign.
+
+SHAPE (a Call 1 brief field, not a stored column) describes every
+retrograde episode (a station-retrograde paired with its
+immediately-following station-direct) whose full span falls inside a
+passage's own [first ingress, final egress] bounds, regardless of
+which passage's rows a given station is stamped with — membership
+answers "whose passage is this row," shape answers "what happened
+during this span," and an episode sitting in an interleave overlap
+honestly counts toward both passages (Saturn's one 2025 loop is
+"3 retrograde episodes, 1 of which carried the body out of the sign
+and back" from BOTH its Aries and its Pisces passage's own point of
+view). Implemented as `computeShape` in
+scripts/engine/contact-engine.mjs.
+
+Fixed in `scripts/generate-transit-calendar.mjs` (full regeneration,
+July 20, 2026): 1,618 rows before and after (nothing added or removed
+— retyping and passage identity relabel existing rows, they don't
+create or destroy any); 375 rows touched across 8 bodies (68 retyped
+to re-ingress with new ids, 307 more corrected to their true final
+egress date on their existing id; Sun and Nodes unaffected — no dips
+possible for either). The query-layer workaround
+(`findTruePassageRows` in scripts/engine/contact-engine.mjs, and its
+call sites in assemble-brief.mjs / print-itinerary.mjs) has been
+removed; both engines now read passage identity and bounds directly
+off clean data, verified by running both against Saturn, Mercury, and
+Nodes post-fix. `scripts/validate-calendars.mjs` (pre-existing,
+untouched — outside this fix's file scope) still encodes the OLD
+per-leg sign_egress_date definition and will report mismatches on the
+375 touched rows plus an ingress-type undercount of 68 (its filter
+doesn't yet know about re-ingress) until it or its successor is
+updated — expected, not a regression; superseded by the standing
+certification script this build also adds.
+
+Original finding, preserved for the record: confirmed with two
+independent real cases before the fix — (1) Pluto's actual 2023
+Aquarius → Capricorn (retrograde dip) → 2024 Aquarius return carried
 sign_egress_date = 2023-06-11 on the pre-dip leg and 2024-09-02 on the
-post-dip leg — two values for one passage. (2) Saturn's OWN current
-Aries passage: genuine ingress 2025-05-25, retro-ingress to Pisces
-2025-09-01, re-ingress 2026-02-14 (the date the transit engine had
-been treating as the whole passage's start) — three different stored
+post-dip leg — two values for one passage. (2) Saturn's own Aries
+passage: genuine ingress 2025-05-25, retro-ingress to Pisces
+2025-09-01, re-ingress 2026-02-14 — three different stored
 sign_egress_date values across one passage. Confirmed NOT to affect
-Mercury's or the Nodes' current passages (checked directly against
-sky_positions; neither has a mid-passage re-entry right now), so
-today's three dogfood bodies are unaffected once the query-layer
-workaround below is applied — but Venus/Mars retrograde dips back
-across a sign boundary are common, not rare, so this WILL bite the
-first time either is generated.
-
-Deferred (per founder ruling, scope kept to the engine/assemble-brief/
-aspect_calendar files for this build): the correct fix is regenerating
-`generate-transit-calendar.mjs`'s sign_egress_date computation so every
-row in a re-entering passage shares the true final egress, then
-regenerating transit_calendar. Scheduled as the next engine task after
-this one, and a blocking prerequisite before the ten-body rollout
-proceeds past Saturn/Mercury/Nodes.
-
-Workaround applied in this build (query-layer only, stored data
-untouched): `findTruePassageRows` in scripts/engine/contact-engine.mjs
-walks a body's own transit_calendar row history by adjacency —
-chaining matched (retro-ingress-out, ingress-back) pairs — instead of
-trusting the stored field, used by both assemble-brief.mjs and
-print-itinerary.mjs. This is a correct, complete fix for CONSUMERS of
-the table; it does not correct the stored column itself.
+Mercury's or the Nodes' passages active at the time (neither had a
+mid-passage re-entry then), so the three dogfood bodies were
+unaffected under the query-layer workaround — but Venus/Mars
+retrograde dips back across a sign boundary are common, not rare,
+which is why this was a blocking prerequisite for the ten-body
+rollout, not a someday note.
 
 ### 11A.3 `aspect_calendar` (rebuilt July 17–18, 2026; IDs regenerated
 July 19, 2026 for passage-scoped pass numbering — see below)
@@ -737,3 +819,46 @@ three-way "both bodies touch the same natal point" test; the
 CONFIGURATION entry type (§3) is superseded by this ACTIVATION model.
 Boundary dates are now always stated in the brief format, even when
 they precede phase open or extend past phase close.
+
+**July 20, 2026 (passage-fragmentation fix — closes the July 19 KNOWN
+BUG, §11A.2):** `generate-transit-calendar.mjs` rewritten around the
+ratified passage model — sign-consonant membership (a dip's own rows
+belong to the dipped-into sign's passage, not the sign dipped out of,
+a founder correction during planning over an initial shape-based
+draft), a new `re_ingress` event type (Ruling A), `passage_id` /
+`passage_first_ingress_date` on every row (Ruling B/C), and
+`entry_number` / `entry_count` on every ingress-type row including
+retro-ingress (Ruling D). `sign_egress_date` repurposed in place to
+mean the passage's TRUE final egress. ADJACENT PASSAGES INTERLEAVE IN
+TIME is now explicit and verified (Saturn's Pisces/Aries passages
+overlap ~9 months; the same symmetric rule also extends Pluto's
+current Aquarius passage to 4 entries and a 2044-01-19 final egress —
+a consequence outside the originally-cited case, surfaced and
+approved before implementation, not silently absorbed). Every body has
+exactly one pre-range (anchor-less) passage at the data's leading edge
+under the corrected membership — confirmed to exist for all nine,
+where the founder's initial read expected none; handled via the
+`{body}-{sign}-pre-range` passage_id convention and a strengthened
+NULL rule (entry_number AND entry_count NULL throughout a pre-range
+passage, not just its unrecorded first entry, since the true total is
+itself unknowable). Full regeneration: 1,618 rows before and after (68
+retyped to re-ingress under new ids, 307 more corrected to their true
+final egress on their existing id — 375 rows touched, 8 bodies; Sun
+and Nodes unaffected). Schema migration
+(`scripts/fix_transit_calendar_passages.sql`, run by the founder in
+the Supabase SQL editor) added the four new columns and widened the
+event_type CHECK constraint before regeneration. The query-layer
+workaround (`findTruePassageRows`) is removed from
+`contact-engine.mjs`; `assemble-brief.mjs` and `print-itinerary.mjs`
+now read passage identity and bounds directly off clean data. SHAPE
+(a brief field, not a stored column) is now computed from the body's
+full station timeline within a passage's own bounds regardless of row
+membership — a founder correction over an initial draft that used
+`entry_count - 1` and lost real information (Saturn's Aries passage
+has 3 retrograde episodes, only 1 of which is a dip; `entry_count - 1`
+reported "1," erasing the two later in-sign loops) —
+`computeShape` in `contact-engine.mjs`, shared by both engines.
+`scripts/validate-calendars.mjs` (pre-existing, outside this fix's
+file scope, not modified) still encodes the old per-leg
+sign_egress_date definition and will report expected mismatches until
+superseded by the new standing certification script.
