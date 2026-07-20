@@ -89,7 +89,13 @@ Two relationship categories:
 Three contact-event types:
 - **NATAL_CONTACT** — the planet in focus aspects one natal point.
 - **SKY_CONTACT** — the planet in focus aspects another transiting planet. (Moon and ordinary lunations excluded; eclipses are homed in the Nodes piece.)
-- **CONFIGURATION** — a sky aspect that also catches a natal point both transiting bodies contact in overlapping windows. **The engine merges these into one entry** with each component's dates as fields. The model never splits a configuration back into contacts and never merges what the input did not merge. Composite weight is greater than either component alone.
+- **CONFIGURATION** — SUPERSEDED by the ACTIVATION restructure (founder
+  ruling; see the ENTRY/ACTIVATION MODEL comment in
+  scripts/engine/assemble-brief.mjs and the qualification rule at
+  §11.2 below). Entries are only NATAL_CONTACT and SKY_CONTACT; a
+  qualifying sky aspect attaches as a dated ACTIVATION fact on the
+  relevant NATAL_CONTACT rather than merging into a third entry type.
+  Left here for history; do not build against this line.
 
 Event standard:
 - A contact appears on the timeline whenever its **orb window intersects the phase**, dated by what actually happens in-phase (orb open, exact, separate — whichever fall inside).
@@ -353,6 +359,27 @@ PK (body, date); index on date; RLS on, server-only reads.
 - **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7.
 - **Shared:** the sky event stream (normalized ingresses, stations, eclipses) feeding triggers, calendar, notifications, and Today's Texture.
 
+**ACTIVATION QUALIFICATION RULE (DECIDED July 19, 2026 — replaces the
+"configuration merge" window-overlap test above; supersedes the
+CONFIGURATION entry type at §3's contact-event list):** an activation
+is a sky aspect that was effectively exact (within the 1° band) while
+the host contact was in orb — a deterministic form of the
+practitioner's trigger-transit judgment. No third-point contact on the
+other body's side is required (the older rule's "both bodies contact
+the same natal point in overlapping windows" test is dropped
+entirely). Anchor date = the day of closest approach to exactness
+within the shared span between the sky pair's 1°-band interval and the
+host contact's own orb window; ties resolve to the earlier day (the
+standing dating convention). When the sky aspect's own literal
+perfection (exact_date) falls outside the host contact's orb window,
+the fact states that explicitly ("perfects {date}, after this contact
+separates"). A sky aspect that never reaches the 1° band while any
+host contact is in orb is not an activation, but still appears
+wherever the SKY_CONTACT placement rules already put it (slow-pair own
+entry, or atmospheric entry for a fast pair touching no natal point).
+Implemented in findActivationAnchor (contact-engine.mjs), wired in
+assemble-brief.mjs.
+
 ### 11.3 Data-integrity posture
 Everything AI-generated sits downstream of everything deterministic. The math is validated against a professional ephemeris before the generative layer scales — wrong prose is a taste problem; wrong math is a legitimacy problem.
 
@@ -430,10 +457,78 @@ cross-checked against a pre-code census of the raw data).
   fixed by the boundary, redundant to store).
 - Defensive constraints: body never Moon; Nodes rows are ingress-only.
 
-### 11A.3 `aspect_calendar` (rebuilt July 17–18, 2026)
+KNOWN BUG — `sign_egress_date` IS PER-LEG, NOT PER TRUE PASSAGE (found
+July 19, 2026; BLOCKING PREREQUISITE for generating content for any
+body beyond the Saturn/Mercury/Nodes dogfood three — founder ruling,
+not a someday note). PASSAGE (per this section's own definition) is a
+body's entire association with a sign, including any interval where it
+retrogrades out and re-enters — an exit-and-return does not start a
+new passage. But `sign_egress_date` as currently generated
+(scripts/generate-transit-calendar.mjs) computes "the next date THIS
+ROW's own sign changes," not the true passage's final egress — so each
+leg of a re-entering passage carries a different value, and any
+consumer that groups rows by equality on this field (as the transit
+engine originally did) silently stops at the first re-ingress instead
+of reaching the passage's true original ingress.
 
-All dated sky-sky events, derived purely from sky_positions. 4,585
-aspect rows across 4,507 distinct windows, plus 104 eclipse rows.
+Confirmed with two independent real cases: (1) Pluto's actual 2023
+Aquarius → Capricorn (retrograde dip) → 2024 Aquarius return carries
+sign_egress_date = 2023-06-11 on the pre-dip leg and 2024-09-02 on the
+post-dip leg — two values for one passage. (2) Saturn's OWN current
+Aries passage: genuine ingress 2025-05-25, retro-ingress to Pisces
+2025-09-01, re-ingress 2026-02-14 (the date the transit engine had
+been treating as the whole passage's start) — three different stored
+sign_egress_date values across one passage. Confirmed NOT to affect
+Mercury's or the Nodes' current passages (checked directly against
+sky_positions; neither has a mid-passage re-entry right now), so
+today's three dogfood bodies are unaffected once the query-layer
+workaround below is applied — but Venus/Mars retrograde dips back
+across a sign boundary are common, not rare, so this WILL bite the
+first time either is generated.
+
+Deferred (per founder ruling, scope kept to the engine/assemble-brief/
+aspect_calendar files for this build): the correct fix is regenerating
+`generate-transit-calendar.mjs`'s sign_egress_date computation so every
+row in a re-entering passage shares the true final egress, then
+regenerating transit_calendar. Scheduled as the next engine task after
+this one, and a blocking prerequisite before the ten-body rollout
+proceeds past Saturn/Mercury/Nodes.
+
+Workaround applied in this build (query-layer only, stored data
+untouched): `findTruePassageRows` in scripts/engine/contact-engine.mjs
+walks a body's own transit_calendar row history by adjacency —
+chaining matched (retro-ingress-out, ingress-back) pairs — instead of
+trusting the stored field, used by both assemble-brief.mjs and
+print-itinerary.mjs. This is a correct, complete fix for CONSUMERS of
+the table; it does not correct the stored column itself.
+
+### 11A.3 `aspect_calendar` (rebuilt July 17–18, 2026; IDs regenerated
+July 19, 2026 for passage-scoped pass numbering — see below)
+
+All dated sky-sky events, derived purely from sky_positions. 4,607
+aspect rows across 4,507 distinct windows, plus 104 eclipse rows. (The
+row count moved from the originally-documented 4,585 to 4,607 when the
+conjunction/opposition exact-crossing fix — see the Phase 2 commit —
+was regenerated; window count is unchanged and independently
+verified. That row-count note was never updated at the time; corrected
+here.)
+
+PASSAGE-SCOPED PASS NUMBERING (DECIDED July 19, 2026 — replaces the
+window-scoped p{n}of{m} originally described below): an ASPECT PASSAGE
+is a run of consecutive windows of the SAME aspect between the SAME
+pair, chained as long as neither body's sign changes in between — the
+sign-consonance principle applied temporally, an aspect's story lasts
+exactly as long as the sign pairing that licenses it. An actual sign
+change by either body breaks the aspect passage, by rule, even if the
+same aspect re-forms shortly after. WINDOW and PASS are independent
+counters over the aspect passage: a pair that separates and
+reapproaches without ever leaving orb can perfect twice in one window;
+a pair that perfects, drops out of the sign pairing, and reforms the
+same aspect later is two passes across two separate windows — neither
+count is derivable from the other. pass_n/pass_m (and the -p{n}of{m}
+ID suffix) now count across the whole aspect passage, never within one
+window alone. Implemented in
+scripts/generate-aspect-calendar.mjs (assignAspectPassages).
 
 - Aspects: the five majors only (conjunction, sextile, square, trine,
   opposition) between the nine non-Moon bodies. Canonical pair order =
@@ -453,11 +548,11 @@ aspect rows across 4,507 distinct windows, plus 104 eclipse rows.
 - ROW STRUCTURE: one row per EXACT PERFECTION, carrying shared
   window_start/window_end (identical verbatim across all rows of one
   continuous orb window), exact_date, pass_n of pass_m (counted across
-  the window's full sequence), each body's motion state on the exact
-  date, and exact_degree (shared degree-within-sign — identical for
-  both bodies by construction for the five majors). A window entered
-  without perfecting = one row, exact_date NULL ("no exact" — valid,
-  factual; ID suffix -noexact).
+  the row's whole ASPECT PASSAGE — see above, not the window alone),
+  each body's motion state on the exact date, and exact_degree (shared
+  degree-within-sign — identical for both bodies by construction for
+  the five majors). A window entered without perfecting = one row,
+  exact_date NULL ("no exact" — valid, factual; ID suffix -noexact).
 - DATA-MODEL LAW (documented in-schema and in the generation script;
   binding on every future consumer): ROWS ARE EVENTS; CONTENT UNITS
   ARE WINDOWS. All rows sharing one continuous window are ONE content
@@ -607,3 +702,31 @@ Education layer follows transits (founder-decided order) so they can be built to
 **Display law (DECIDED July 16):** degrees display FLOORED/TRUNCATED (traditional ephemeris convention) wherever whole degrees are shown; data keeps full precision; a planet displays 29° exactly when anaretic — display and DEGREE_FLAG can never disagree.
 
 **July 14–18, 2026:** uniform sky_positions range and 00:00 UTC convention; Chiron/Lilith excluded; mean node closed; Pluto boundary row corrected; floor display rounding; old transit_calendar retired/renamed; two-table calendar architecture with self-contained rows; flat 3°/1° transit orbs both contact types; five majors; ID system; actual-UTC-date convention; rows-vs-windows law; edge-window drop rule; no naming vocabulary; nodes as one axis row; penumbral included; no eclipse kind field; Sun-derived eclipse degrees; two eclipse sign corrections; spec authorship moves to the primary work chat (repo copy canonical; other chat stands down unless prompt work returns there).
+
+**July 19, 2026 (Phase 3 brief-assembly fixes):** Saturn's
+PASSAGE_CONTACTS bug traced to two stacked causes — a one-day dating-
+boundary coincidence letting a prior-passage window leak in, and a
+grouping key that merged different aspects to the same natal point —
+both fixed; passage membership now requires date-range overlap AND
+sign match, and grouping is keyed by (point, aspect). Two standing
+structural guards added (sign-consonance, passage-consonance),
+hard-failing rather than filtering. Windows and passes redefined as
+independent, PASSAGE-scoped counters (never window-scoped) for both
+the natal-contact engine and aspect_calendar; aspect_calendar IDs
+regenerated accordingly (row count corrected from a stale 4,585 to
+4,607 — window count unchanged and verified). New "aspect passage"
+concept for aspect_calendar: consecutive same-aspect, same-pair
+windows stay one passage unless either body's sign changes between
+them. sign_egress_date confirmed to be stored per-leg rather than per
+true passage (found via Pluto's real 2023–2024 case AND Saturn's own
+current passage); fixed at the query layer only (findTruePassageRows)
+for this build, with the data-layer fix and transit_calendar
+regeneration scheduled as the next engine task and a blocking
+prerequisite before generating content for any body beyond Saturn/
+Mercury/Nodes. Activation qualification rule replaced: a sky aspect
+now activates a host natal contact whenever it reaches the 1° exact
+band during that contact's own orb window, dropping the older
+three-way "both bodies touch the same natal point" test; the
+CONFIGURATION entry type (§3) is superseded by this ACTIVATION model.
+Boundary dates are now always stated in the brief format, even when
+they precede phase open or extend past phase close.

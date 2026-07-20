@@ -12,6 +12,18 @@
 // per window. Any future consumer must group by the shared window, never by
 // row count.
 //
+// PASS NUMBERING IS PASSAGE-SCOPED, NOT WINDOW-SCOPED (changed -- see
+// assignAspectPassages below and SPEC.md's Engine Build Record for the
+// ratification). pass_n/pass_m on an exact row, and the -p{n}of{m} suffix
+// on its id, count across the row's whole ASPECT PASSAGE -- every window of
+// the SAME aspect between the SAME pair, chained as long as neither body's
+// sign changes in between -- never within one window alone. A pair that
+// separates and reapproaches without leaving orb still perfects twice in
+// one window; a pair that perfects, drops out of the sign pairing, and
+// reforms the same aspect later is two passes across two SEPARATE windows,
+// same passage. WINDOW membership (window_start/window_end) and PASS
+// numbering are independent: neither can be derived from the other.
+//
 // Usage:
 //   node --env-file=.env.local scripts/generate-aspect-calendar.mjs
 //   node --env-file=.env.local scripts/generate-aspect-calendar.mjs --start=2026-01-01 --end=2026-12-31
@@ -194,11 +206,14 @@ function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows)
     }
   }
 
+  // id and pass_n/pass_m are NOT minted here: pass numbering is PASSAGE-
+  // scoped (STEP 4), which requires seeing every window for this pair+
+  // aspect first. assignAspectPassages (below) fills those in as a
+  // second pass over this pair's complete row set.
   if (crossings.length === 0) {
     const b1 = series1[windowStartIdx];
     const b2 = series2[windowStartIdx];
     outRows.push({
-      id: `${body1.toLowerCase()}-${aspect}-${body2.toLowerCase()}-${windowStart}-noexact`,
       event: aspect,
       body_1: body1,
       body_2: body2,
@@ -207,8 +222,6 @@ function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows)
       window_start: windowStart,
       window_end: windowEnd,
       exact_date: null,
-      pass_n: null,
-      pass_m: null,
       body_1_retrograde: null,
       body_2_retrograde: null,
       exact_degree: null,
@@ -216,10 +229,8 @@ function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows)
     return;
   }
 
-  const passM = crossings.length;
-  crossings.forEach((c, i) => {
+  crossings.forEach((c) => {
     outRows.push({
-      id: `${body1.toLowerCase()}-${aspect}-${body2.toLowerCase()}-${c.exactDate}-p${i + 1}of${passM}`,
       event: aspect,
       body_1: body1,
       body_2: body2,
@@ -228,13 +239,83 @@ function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows)
       window_start: windowStart,
       window_end: windowEnd,
       exact_date: c.exactDate,
-      pass_n: i + 1,
-      pass_m: passM,
       body_1_retrograde: c.body1AtExact.retrograde,
       body_2_retrograde: c.body2AtExact.retrograde,
       exact_degree: c.exactDegree,
     });
   });
+}
+
+// ── Passage-scoped window/pass assignment (STEP 4) ──────────────────────
+//
+// An "aspect passage" -- a new concept, specific to this table, distinct
+// from a transit_calendar PASSAGE -- is a run of consecutive windows of
+// the SAME aspect between the SAME pair, unbroken by a sign change in
+// EITHER body. A bare retrograde separate-and-reapproach that never
+// leaves the same sign pairing stays one aspect passage (its windows
+// still split at the orb boundary, same as always -- windows are still
+// per continuous orb engagement -- but they now share passage-scoped
+// pass numbering). An actual sign change by either body breaks the
+// aspect passage, by rule, even if the same aspect re-forms shortly
+// after -- this is the sign-consonance principle applied temporally: an
+// aspect's story lasts exactly as long as the sign pairing that licenses
+// it. WINDOW and PASS are independent counters over the aspect passage:
+// a pair that reverses inside orb without leaving it can perfect twice
+// in one window; perfect / leave the sign pairing / return / perfect is
+// two passes across two separate windows.
+function bodySignConstantAcrossGap(series, dateA, dateB) {
+  let sign = null;
+  for (const r of series) {
+    if (r.date < dateA || r.date > dateB) continue;
+    if (sign === null) sign = r.sign;
+    else if (r.sign !== sign) return false;
+  }
+  return true;
+}
+
+function assignAspectPassages(rowsForPair, series1, series2) {
+  const byAspect = new Map();
+  for (const r of rowsForPair) {
+    if (!byAspect.has(r.event)) byAspect.set(r.event, []);
+    byAspect.get(r.event).push(r);
+  }
+
+  for (const aspectRows of byAspect.values()) {
+    const windowsMap = new Map();
+    for (const r of aspectRows) {
+      const wk = `${r.window_start}|${r.window_end}`;
+      if (!windowsMap.has(wk)) windowsMap.set(wk, []);
+      windowsMap.get(wk).push(r);
+    }
+    const windowKeys = [...windowsMap.keys()].sort((a, b) => (a < b ? -1 : 1));
+
+    const passageGroups = [[windowKeys[0]]];
+    for (let i = 1; i < windowKeys.length; i++) {
+      const prevEnd = windowsMap.get(windowKeys[i - 1])[0].window_end;
+      const curStart = windowsMap.get(windowKeys[i])[0].window_start;
+      const unbroken = bodySignConstantAcrossGap(series1, prevEnd, curStart)
+        && bodySignConstantAcrossGap(series2, prevEnd, curStart);
+      if (unbroken) passageGroups[passageGroups.length - 1].push(windowKeys[i]);
+      else passageGroups.push([windowKeys[i]]);
+    }
+
+    for (const group of passageGroups) {
+      const exactRows = group
+        .flatMap(wk => windowsMap.get(wk))
+        .filter(r => r.exact_date)
+        .sort((a, b) => (a.exact_date < b.exact_date ? -1 : 1));
+      const passCount = exactRows.length;
+      exactRows.forEach((r, i) => { r.pass_n = i + 1; r.pass_m = passCount; });
+    }
+  }
+
+  for (const r of rowsForPair) {
+    r.id = r.exact_date
+      ? `${r.body_1.toLowerCase()}-${r.event}-${r.body_2.toLowerCase()}-${r.exact_date}-p${r.pass_n}of${r.pass_m}`
+      : `${r.body_1.toLowerCase()}-${r.event}-${r.body_2.toLowerCase()}-${r.window_start}-noexact`;
+    if (!r.exact_date) { r.pass_n = null; r.pass_m = null; }
+  }
+  return rowsForPair;
 }
 
 function processPair(body1, body2, series1, series2) {
@@ -269,6 +350,7 @@ function processPair(body1, body2, series1, series2) {
 
   if (window) droppedTruncated++; // still open at the data's last day -- see header comment
 
+  assignAspectPassages(rows, series1, series2);
   return { rows, droppedTruncated };
 }
 
