@@ -344,17 +344,28 @@ async function assembleBrief(focusBody) {
     const skyEnd = sky.window_end ?? sky.exact_date;
     const slowPair = isSlowPair(focusBody, otherBody);
 
-    // STEP 6: an activation qualifies iff the sky pair (focus body vs
-    // otherBody -- no third natal-point contact required on otherBody's
-    // side) comes within the 1-degree exact band at some point during a
-    // host natal contact's own orb window.
+    // STEP 6, corrected: an activation still requires BOTH legs -- (A)
+    // otherBody has its own contact to the SAME natal point, overlapping
+    // the host contact's window (unchanged from the old CONFIGURATION
+    // rule); AND (B) the sky pair reaches the 1-degree exact band at some
+    // point during the host contact's own orb window (this is what STEP 6
+    // actually replaces -- the old blunt "sky window overlaps host window"
+    // date-range test, upgraded to real exactness). An earlier version of
+    // this code dropped leg A entirely (sky-proximity alone); that was a
+    // mistake, caught in review, fixed here.
     const facts = [];
     const focusOverlaps = timelineNatal.filter(c => windowOverlaps(c, skyStart, skyEnd));
     for (const fc of focusOverlaps) {
       const otherSeries = await fetchSeriesRange(otherBody, fc.windowStart, fc.windowEnd);
+      const otherRows = computeContactWindows(otherSeries, fc.point, fc.point.isAxis);
+      const otherHasOwnContact = otherRows.some(oc =>
+        windowOverlaps(oc, skyStart, skyEnd) && windowOverlaps(oc, fc.windowStart, fc.windowEnd));
+      if (!otherHasOwnContact) continue; // leg A
+
       const focusSlice = series.filter(r => r.date >= fc.windowStart && r.date <= fc.windowEnd);
       const anchorDate = findActivationAnchor(focusSlice, otherSeries, sky.event, fc.windowStart, fc.windowEnd);
-      if (!anchorDate) continue;
+      if (!anchorDate) continue; // leg B
+
       const perfectsOutsideHostOrb = !!sky.exact_date && (sky.exact_date < fc.windowStart || sky.exact_date > fc.windowEnd);
       const id = mintActivationId(sky.id, fc.point.name);
       facts.push({ natalContact: fc, fact: { id, otherBody, sky, anchorDate, perfectsOutsideHostOrb } });

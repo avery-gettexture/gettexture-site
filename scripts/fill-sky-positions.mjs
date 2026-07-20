@@ -202,4 +202,9 @@ async function main() {
   if (failed > 0) console.log(`See ${FAILURE_LOG} for details.`);
 }
 
-main();
+// Guard against running on import: this script writes to a live table.
+// Only run when invoked directly, never on import (see the note in
+// generate-aspect-calendar.mjs for why this matters).
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}

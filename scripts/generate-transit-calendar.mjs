@@ -254,7 +254,12 @@ async function main() {
   printTable(inSlice);
 }
 
-main().catch((err) => {
-  console.error(err.message ?? err);
-  process.exit(1);
-});
+// Guard against running on import: this script writes to a live table.
+// Only run when invoked directly, never on import (see the note in
+// generate-aspect-calendar.mjs for why this matters).
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error(err.message ?? err);
+    process.exit(1);
+  });
+}

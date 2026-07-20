@@ -432,7 +432,15 @@ async function main() {
   printGrouped(inSlice);
 }
 
-main().catch((err) => {
-  console.error(err.message ?? err);
-  process.exit(1);
-});
+// Guard against running on import: this script writes to a live table.
+// A prior session imported it via a dynamic import() while inspecting its
+// internals and it silently executed the full regeneration against
+// Supabase with no confirmation -- 479 stray rows had to be cleaned up
+// as a result. Only run when invoked directly (node generate-aspect-
+// calendar.mjs / --start=... / --end=...), never on import.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error(err.message ?? err);
+    process.exit(1);
+  });
+}

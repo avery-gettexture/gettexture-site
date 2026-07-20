@@ -360,21 +360,28 @@ PK (body, date); index on date; RLS on, server-only reads.
 - **Shared:** the sky event stream (normalized ingresses, stations, eclipses) feeding triggers, calendar, notifications, and Today's Texture.
 
 **ACTIVATION QUALIFICATION RULE (DECIDED July 19, 2026 — replaces the
-"configuration merge" window-overlap test above; supersedes the
-CONFIGURATION entry type at §3's contact-event list):** an activation
-is a sky aspect that was effectively exact (within the 1° band) while
-the host contact was in orb — a deterministic form of the
-practitioner's trigger-transit judgment. No third-point contact on the
-other body's side is required (the older rule's "both bodies contact
-the same natal point in overlapping windows" test is dropped
-entirely). Anchor date = the day of closest approach to exactness
-within the shared span between the sky pair's 1°-band interval and the
-host contact's own orb window; ties resolve to the earlier day (the
-standing dating convention). When the sky aspect's own literal
-perfection (exact_date) falls outside the host contact's orb window,
-the fact states that explicitly ("perfects {date}, after this contact
-separates"). A sky aspect that never reaches the 1° band while any
-host contact is in orb is not an activation, but still appears
+"configuration merge" window-overlap test above; does NOT supersede
+the two-leg CONFIGURATION structure at §3's contact-event list, only
+the precision of its qualifying test):** an activation still requires
+BOTH legs of the older rule — (A) the OTHER body has its own contact to
+the SAME natal point, overlapping the host contact's window (unchanged)
+— PLUS the new precision requirement: (B) the sky pair (focus body vs
+the other body) was effectively exact (within the 1° band) at some
+point during the host contact's own orb window — a deterministic form
+of the practitioner's trigger-transit judgment. What Step 6 actually
+replaces is leg B's old test (a blunt "sky window merely overlaps the
+host window in date range") with real exactness. (An earlier draft of
+this build wrongly dropped leg A entirely — sky-proximity alone,
+no third-point contact required — that was caught in review and
+corrected; recorded here so it isn't reintroduced.) Anchor date = the
+day of closest approach to exactness within the shared span between
+the sky pair's 1°-band interval and the host contact's own orb window;
+ties resolve to the earlier day (the standing dating convention). When
+the sky aspect's own literal perfection (exact_date) falls outside the
+host contact's orb window, the fact states that explicitly ("perfects
+{date}, after this contact separates"). A sky aspect that never
+reaches the 1° band while any host contact (with the other body's own
+matching contact) is in orb is not an activation, but still appears
 wherever the SKY_CONTACT placement rules already put it (slow-pair own
 entry, or atmospheric entry for a fast pair touching no natal point).
 Implemented in findActivationAnchor (contact-engine.mjs), wired in
