@@ -312,7 +312,7 @@ function formatEclipseTransitFact(fact) {
 
 // ── Main assembly ──────────────────────────────────────────────────────
 
-async function assembleBrief(focusBody) {
+export async function assembleBrief(focusBody) {
   const { data: reading, error } = await supabase.from('readings').select('chart_data, birth_time_known, name').eq('slug', DOGFOOD_READING_SLUG).single();
   if (error || !reading) throw new Error(`Could not load reading: ${error?.message}`);
   const natalPoints = extractNatalPoints(reading.chart_data);
@@ -621,7 +621,13 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error(err.stack ?? err);
-  process.exit(1);
-});
+// Guard against running on import: certify-calendars.mjs imports
+// assembleBrief() as a library function, and without this guard the mere
+// act of importing this module would also print a full brief to stdout
+// (main() ran unconditionally). Only run when invoked directly.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(err => {
+    console.error(err.stack ?? err);
+    process.exit(1);
+  });
+}

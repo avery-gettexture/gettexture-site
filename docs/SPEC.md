@@ -568,13 +568,20 @@ possible for either). The query-layer workaround
 call sites in assemble-brief.mjs / print-itinerary.mjs) has been
 removed; both engines now read passage identity and bounds directly
 off clean data, verified by running both against Saturn, Mercury, and
-Nodes post-fix. `scripts/validate-calendars.mjs` (pre-existing,
-untouched — outside this fix's file scope) still encodes the OLD
-per-leg sign_egress_date definition and will report mismatches on the
-375 touched rows plus an ingress-type undercount of 68 (its filter
-doesn't yet know about re-ingress) until it or its successor is
-updated — expected, not a regression; superseded by the standing
-certification script this build also adds.
+Nodes post-fix. `scripts/validate-calendars.mjs` — which still
+encoded the OLD per-leg sign_egress_date definition and the OLD
+window-scoped aspect_calendar pass-numbering (predating the July 19
+ruling too) — is RETIRED and DELETED (Step 4, July 20, 2026),
+superseded by `scripts/certify-calendars.mjs`. The new script
+re-expresses every check the old one performed against the ratified
+passage definitions, adds passage-integrity checks (shared bounds
+across a passage_id, entry_number/entry_count sequencing, pre-range
+NULL rules), named spot-checks on the known dip cases (Pluto's
+4-entry Aquarius passage, Saturn's interleaved Aries/Pisces passages,
+Pluto's pre-range Capricorn passage), re-runs both standing structural
+guards over a live recompute (not just stored rows), and re-assembles
+all three current briefs as a completion check. Full report: 28
+checks run, 28 passed, ALL CLEAR.
 
 VALIDATED (Step 3, July 20, 2026): Pluto's Aquarius passage (one
 passage_id, one shared first-ingress/final-egress pair across all 43
@@ -880,6 +887,37 @@ has 3 retrograde episodes, only 1 of which is a dip; `entry_count - 1`
 reported "1," erasing the two later in-sign loops) —
 `computeShape` in `contact-engine.mjs`, shared by both engines.
 `scripts/validate-calendars.mjs` (pre-existing, outside this fix's
-file scope, not modified) still encodes the old per-leg
-sign_egress_date definition and will report expected mismatches until
-superseded by the new standing certification script.
+file scope, not modified at the time) encoded the old per-leg
+sign_egress_date definition and reported expected mismatches until
+Step 4 (below) retired and deleted it.
+
+**July 20, 2026 (Step 4 — standing certification script, retires
+validate-calendars.mjs):** `scripts/certify-calendars.mjs` added,
+`scripts/validate-calendars.mjs` deleted in the same commit. The new
+script is read-only (no writes, no AI/API calls) and covers all four
+tables (sky_positions, transit_calendar, aspect_calendar,
+transit_pieces): sky_positions row counts, date-sequence gaps, and
+sign/longitude self-consistency; transit_calendar's row-count
+derivation (1,189 pre-fix ingress-type = 1,121 ingress/retro-ingress +
+68 retyped re-ingress, plus 429 station-type = 1,618), phase_end_date
+chain integrity, and the passage model itself (shared
+passage_first_ingress_date/sign_egress_date across every passage_id,
+entry_number/entry_count sequencing, the pre-range NULL rule), plus
+named spot-checks on Pluto's 4-entry Aquarius passage, Saturn's
+interleaved Aries/Pisces passages, and Pluto's pre-range Capricorn
+passage; aspect_calendar's window/pass integrity re-expressed against
+the July 19 passage-scoped pass-numbering ruling (independently
+re-derived from sky_positions sign data, not trusted from
+generate-aspect-calendar.mjs's own logic), sign-consonance, a
+motion-state cross-check, and the fast-mover daily-resolution proof;
+transit_pieces' existence/row-count as a status fact (0, as expected
+pre-generation); and both standing structural guards
+(assertSignConsonant, assertPassageConsonant) re-run over a live
+recompute via assembleBrief() for Saturn, Mercury, and Nodes, which
+doubles as the brief-assembly completion check. Found and fixed one
+real bug in passing: assemble-brief.mjs's main() ran unconditionally
+on module load, so importing assembleBrief() as a library function
+(needed for the live-recompute check) also printed a full brief as a
+side effect; added the same "only run when invoked directly" guard
+already used elsewhere, with no change to its behavior when run
+directly. First full run: 28 checks, 28 passed, ALL CLEAR.
