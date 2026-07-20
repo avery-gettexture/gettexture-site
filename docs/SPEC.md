@@ -576,6 +576,27 @@ doesn't yet know about re-ingress) until it or its successor is
 updated — expected, not a regression; superseded by the standing
 certification script this build also adds.
 
+VALIDATED (Step 3, July 20, 2026): Pluto's Aquarius passage (one
+passage_id, one shared first-ingress/final-egress pair across all 43
+member rows, entries 1–4 correctly numbered); Saturn's Aries passage
+(2025-05-25 → 2028-04-13 on all 7 rows, the 2026-02-14 row confirmed
+re_ingress, entry 2/2) and Pisces passage (final egress confirmed
+2026-02-14 by direct id lookup — the interleaving case); one clean
+(no-dip) passage independently re-verified for Sun, Venus, Mars,
+Jupiter, and Saturn. FINDING: no clean passage exists anywhere in the
+2023–2046 range for Uranus, Neptune, or Pluto — every passage either
+has, for all three bodies, at least one dip; a structural fact about
+outer-planet speed vs. a 23-year window, not a fix defect.
+phase_end_date chain integrity re-checked across all 1,618 rows, all
+10 bodies (9 planets + Nodes) — zero errors. Brief re-assembly:
+reconstructed the pre-fix query-layer workaround in memory (old
+algorithm against live, unchanged sky_positions) and confirmed its
+passage bounds match the new fixed data exactly for Saturn, Mercury,
+and Nodes' current phases. SHAPE's displayed text differs from the old
+workaround's raw station count by design (that redesign is this
+build's own work, not something the comparison needed to reproduce) —
+not a discrepancy.
+
 Original finding, preserved for the record: confirmed with two
 independent real cases before the fix — (1) Pluto's actual 2023
 Aquarius → Capricorn (retrograde dip) → 2024 Aquarius return carried
