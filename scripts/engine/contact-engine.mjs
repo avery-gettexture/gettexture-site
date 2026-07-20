@@ -47,6 +47,18 @@ const ASPECT_ANGLES = { conjunction: 0, sextile: 60, square: 90, trine: 120, opp
 const SIGN_DIST_TO_ASPECT = { 0: 'conjunction', 2: 'sextile', 3: 'square', 4: 'trine', 6: 'opposition' };
 const ACTIVE_ORB = 3;
 
+const HOUSE_NAMES = [
+  '1st House', '2nd House', '3rd House', '4th House', '5th House', '6th House',
+  '7th House', '8th House', '9th House', '10th House', '11th House', '12th House',
+];
+
+// Whole Sign house of a given sign, counted from the natal Ascendant's sign
+// (the ASC establishes the 1st house; each subsequent sign is the next house).
+export function houseOfSign(sign, ascSign) {
+  const idx = (SIGNS.indexOf(sign) - SIGNS.indexOf(ascSign) + 12) % 12;
+  return HOUSE_NAMES[idx];
+}
+
 export function signDistance(sign1, sign2) {
   const i1 = SIGNS.indexOf(sign1);
   const i2 = SIGNS.indexOf(sign2);
@@ -265,6 +277,252 @@ export function windowOverlaps(row, startDate, endDate) {
   return s <= endDate && e >= startDate;
 }
 
+// ── True passage-boundary walk (STEP 5) ─────────────────────────────────
+//
+// transit_calendar.sign_egress_date is currently computed per-leg ("next
+// time THIS row's own sign changes"), not per true passage -- confirmed
+// via Pluto's real 2023 Aquarius -> Capricorn (retrograde dip) -> 2024
+// Aquarius return, and independently via Saturn's own current Aries
+// passage (genuine ingress 2025-05-25, retro-ingress to Pisces
+// 2025-09-01, re-ingress 2026-02-14). A naive equality filter on
+// sign_egress_date silently stops at a re-ingress rather than reaching
+// the passage's true original ingress. This is a data-generation bug in
+// generate-transit-calendar.mjs (deferred -- see SPEC.md), fixed HERE at
+// the query layer only: walk the body's own row history by adjacency
+// instead of trusting the stored field.
+//
+// A passage is one home-sign ingress, plus zero or more (retro_ingress-
+// out, ingress-back) EXCURSION PAIRS chained immediately after it, ending
+// at the last such return (or the original ingress itself, if there was
+// no excursion). Sign identity alone cannot bound this walk: the sign
+// bordering a passage's home sign is fixed (Aries can only be bordered by
+// Pisces), so a naive "keep walking while the sign matches the one
+// excursion sign seen so far" test cannot tell a genuine bracketing
+// excursion of THIS passage apart from an entirely different, much older
+// PRIOR passage that happens to sit in that same neighboring sign --
+// confirmed the hard way: an early version of this walk chained all the
+// way from Saturn's 2026 Aries passage back through its 2025 excursion
+// AND into its real, separate 2023 Pisces passage, because both dips are
+// necessarily in Pisces. The fix is structural, not sign-based: an
+// excursion's departure leg is always a `retro_ingress` (retrograde
+// crossing) and its return leg is always a plain `ingress` (forward
+// crossing) back into the home sign -- a genuinely prior, unrelated
+// passage's own final approach is a plain `ingress` INTO its own sign,
+// never a `retro_ingress` OUT of the current home sign. So the walk only
+// ever absorbs a matched (retro_ingress-other, ingress-home) PAIR, one
+// hop at a time, and stops the instant that pattern doesn't hold.
+//
+// allBodyRowsSorted: every transit_calendar row for ONE body, date
+// ascending. currentRow: must be present in that array (by id), and its
+// own event must already be a home-sign ingress-type row. Returns the
+// full slice of rows (including station rows) spanning the true passage,
+// in date order.
+export function findTruePassageRows(allBodyRowsSorted, currentRow) {
+  const homeSign = currentRow.sign;
+  const ingressTypes = new Set(['ingress', 'retro_ingress']);
+  const ingressRows = allBodyRowsSorted.filter(r => ingressTypes.has(r.event_type));
+  // currentRow may itself be a station row (its own leg's ingress-type
+  // row is whichever one most recently opened that leg), so anchor on
+  // the latest ingress-type row at or before currentRow's date rather
+  // than requiring an exact id match.
+  let curIdx = -1;
+  for (let i = 0; i < ingressRows.length; i++) {
+    if (ingressRows[i].date <= currentRow.date) curIdx = i; else break;
+  }
+  if (curIdx === -1) throw new Error(`findTruePassageRows: no ingress-type row at or before currentRow ${currentRow.id}`);
+
+  let startIdx = curIdx;
+  for (let i = curIdx; i > 1; ) {
+    const prev = ingressRows[i - 1];
+    const prevPrev = ingressRows[i - 2];
+    if (prev.sign !== homeSign && prev.event_type === 'retro_ingress' && prevPrev.sign === homeSign) {
+      startIdx = i - 2;
+      i -= 2;
+    } else break;
+  }
+
+  let lastIngressIdx = curIdx;
+  for (let i = curIdx; i < ingressRows.length - 2; ) {
+    const next = ingressRows[i + 1];
+    const nextNext = ingressRows[i + 2];
+    if (next.sign !== homeSign && next.event_type === 'retro_ingress' && nextNext.sign === homeSign) {
+      lastIngressIdx = i + 2;
+      i += 2;
+    } else break;
+  }
+
+  const startPos = allBodyRowsSorted.findIndex(r => r.id === ingressRows[startIdx].id);
+  const lastIngressPos = allBodyRowsSorted.findIndex(r => r.id === ingressRows[lastIngressIdx].id);
+
+  // Extend forward through any trailing station rows up to (but never
+  // past) the next ingress-type row that would start a new passage.
+  let endPos = lastIngressPos;
+  for (let i = lastIngressPos + 1; i < allBodyRowsSorted.length; i++) {
+    if (ingressTypes.has(allBodyRowsSorted[i].event_type)) break;
+    endPos = i;
+  }
+
+  return allBodyRowsSorted.slice(startPos, endPos + 1);
+}
+
+// ── Standing structural guards (STEP 3) ───────────────────────────────
+//
+// Both guards below are verification, not filters: they hard-throw if a
+// row that has already been accepted somewhere turns out to be wrong,
+// rather than silently excluding it. Two distinct failure modes, found
+// while tracing the Saturn PASSAGE_CONTACTS bug (see SPEC.md and the
+// build plan):
+//
+// SIGN-CONSONANCE: does this row's own claimed aspect match its own
+// recorded sign, independent of the code path that computed it? Since
+// `aspect` is *derived from* sign-distance at window-open time, this is
+// a self-consistency canary -- it should never actually fire, and its
+// value is catching a future algorithmic mistake, not this bug.
+//
+// PASSAGE-CONSONANCE (this build's addition -- flagged for review,
+// not literally requested but follows directly from the bug found):
+// does this row's recorded sign match the sign of the passage it was
+// admitted into? THIS is the guard that would have caught the actual
+// historical bug -- a Pisces-sign sextile-to-natal-Neptune window was
+// admitted into Saturn's Aries passage's PASSAGE_CONTACTS because its
+// windowEnd (2026-02-14, the day dated by the "earlier bracketing
+// snapshot" convention -- see SPEC.md 11A.4) numerically coincided with
+// the Aries passage's own ingress date, even though the row's own
+// recorded sign was never Aries. Passage membership must be decided by
+// sign match (see filterAndGroupForPassage below), never by date-range
+// overlap -- this assertion is the independent double-check on that.
+
+export function assertSignConsonant(row, referenceSign) {
+  const expectedDist = signDistance(row.transitingSign, referenceSign);
+  const expectedAspect = SIGN_DIST_TO_ASPECT[expectedDist] ?? null;
+  if (row.aspect !== expectedAspect) {
+    throw new Error(
+      `SIGN-CONSONANCE VIOLATION: row claims aspect '${row.aspect}' to a point in `
+      + `${referenceSign}, but its recorded transiting sign (${row.transitingSign}) has `
+      + `sign-distance ${expectedDist} from ${referenceSign}, which is `
+      + `'${expectedAspect ?? 'no aspect'}', not '${row.aspect}'. Refusing to proceed.`,
+    );
+  }
+}
+
+export function assertPassageConsonant(row, passageSign) {
+  if (row.transitingSign !== passageSign) {
+    throw new Error(
+      `PASSAGE-CONSONANCE VIOLATION: a contact row recorded in sign ${row.transitingSign} `
+      + `was admitted into the ${passageSign} passage's contact set. This is exactly the `
+      + `bug class found in Saturn's PASSAGE_CONTACTS (a prior-passage window leaking in via `
+      + `a dating-boundary coincidence, see SPEC.md) -- refusing to proceed.`,
+    );
+  }
+}
+
+// ── Passage-scoped windows and passes (STEP 4, and the STEP 2 Bug A/B fix) ──
+//
+// WINDOW = one continuous orb engagement. PASS = one exact perfection.
+// Both are counted ACROSS THE PASSAGE -- the transiting body's entire
+// residency in its home sign, per the PASSAGE definition in SPEC.md 11A.2
+// (first ingress to FINAL egress, including any interval where it
+// retrogrades out of the sign and back) -- never within a single window.
+// The two counters are fully independent: a body that wobbles inside orb
+// without ever leaving it can produce 2 passes in 1 window; a body that
+// perfects, exits the sign, re-enters, and perfects twice more produces
+// passes 1, 2, 3 of 3 across however many windows that took -- never 1 of
+// 1 then 1 of 2.
+//
+// PASSAGE MEMBERSHIP (the actual STEP 2 Bug A/B fix): a row belongs to
+// "this passage" iff it (a) overlaps the passage's date range AND (b) its
+// own recorded sign (row.transitingSign) equals the passage's home sign
+// -- BOTH conditions, not sign alone. Date range alone is what let a
+// closed-out Pisces window bleed into the Aries passage's summary (its
+// windowEnd numerically coincided with the Aries ingress date -- see the
+// note above assertPassageConsonant); sign alone is wrong in the other
+// direction for a fast body, which revisits the same sign many times
+// across the tracked 2023-2046 range (Mercury returns to Cancer roughly
+// yearly) -- sign-only filtering would merge every one of those unrelated
+// passages' windows into "this passage." Date range narrows to roughly
+// the right era; the sign check then independently verifies the narrowed
+// set didn't pick up a boundary-adjacent neighbor. Within the admitted
+// rows, grouping for both WINDOW and PASS counts is keyed by aspect
+// identity (row.aspect, or row.dist for axis-involved contacts) -- not by
+// natal point alone, which is the second half of the historical bug: it
+// merged a real sextile and a real square to the same point into one
+// falsely-summed, mislabeled line.
+export function filterAndGroupForPassage(allRowsForPoint, passageSign, passageStart, passageEnd) {
+  const dateFiltered = allRowsForPoint.filter(r => windowOverlaps(r, passageStart, passageEnd));
+  const inPassage = dateFiltered.filter(r => r.transitingSign === passageSign);
+  for (const row of inPassage) assertPassageConsonant(row, passageSign);
+
+  const byAspectKey = new Map();
+  for (const row of inPassage) {
+    const aspectKey = row.axisInvolved ? `axis-dist${row.dist}` : row.aspect;
+    if (!byAspectKey.has(aspectKey)) byAspectKey.set(aspectKey, []);
+    byAspectKey.get(aspectKey).push(row);
+  }
+
+  const enriched = [];
+  for (const rows of byAspectKey.values()) {
+    const windowKeys = [];
+    const seenWindows = new Set();
+    for (const r of rows) {
+      const wk = `${r.windowStart}|${r.windowEnd}`;
+      if (!seenWindows.has(wk)) { seenWindows.add(wk); windowKeys.push(wk); }
+    }
+    const windowIndexOf = new Map(windowKeys.map((wk, i) => [wk, i + 1]));
+    const windowCount = windowKeys.length;
+
+    const exactRows = rows.filter(r => r.exactDate).sort((a, b) => (a.exactDate < b.exactDate ? -1 : 1));
+    const passIndexOf = new Map(exactRows.map((r, i) => [r, i + 1]));
+    const passCount = exactRows.length;
+
+    for (const r of rows) {
+      const wk = `${r.windowStart}|${r.windowEnd}`;
+      enriched.push({
+        ...r,
+        passageWindowIndex: windowIndexOf.get(wk),
+        passageWindowCount: windowCount,
+        passagePassIndex: r.exactDate ? passIndexOf.get(r) : null,
+        // Group-level total -- visible on every row in the group (exact or
+        // not), so a no-exact row picked as PASSAGE_CONTACTS' representative
+        // sample still reports the group's real total, never a false zero.
+        passagePassCount: passCount,
+      });
+    }
+  }
+  return enriched;
+}
+
+// ── Activation qualification (STEP 6) ───────────────────────────────────
+//
+// An activation is a sky aspect that was effectively exact (within the 1
+// degree band) while the host contact was in orb -- a deterministic form
+// of the practitioner's trigger-transit judgment. Replaces the old
+// window-overlap qualification test entirely; no third natal-point
+// contact is required on the other body's side.
+const EXACT_BAND = 1;
+
+// focusSeries/otherSeries: sky_positions rows (date, longitude) already
+// covering at least [hostWindowStart, hostWindowEnd]. aspectName: one of
+// the five majors. Returns the anchor date (closest approach within the
+// shared span; ties resolve to the earlier day) or null if the pair is
+// never within the exact band while the host contact is in orb.
+export function findActivationAnchor(focusSeries, otherSeries, aspectName, hostWindowStart, hostWindowEnd) {
+  const angle = ASPECT_ANGLES[aspectName];
+  const otherByDate = new Map(otherSeries.map(r => [r.date, r]));
+  let best = null;
+  for (const f of focusSeries) {
+    if (f.date < hostWindowStart || f.date > hostWindowEnd) continue;
+    const o = otherByDate.get(f.date);
+    if (!o) continue;
+    const sep = angularSeparation(f.longitude, o.longitude);
+    const diff = Math.abs(sep - angle);
+    if (diff > EXACT_BAND) continue;
+    if (!best || diff < best.diff || (diff === best.diff && f.date < best.date)) {
+      best = { date: f.date, diff };
+    }
+  }
+  return best ? best.date : null;
+}
+
 // ── Copresence ─────────────────────────────────────────────────────────
 
 export function natalCopresence(transitedSign, natalPoints) {
@@ -326,17 +584,43 @@ export function eclipseCatches(eclipseRow, natalPoints, orb = 3) {
   return catches;
 }
 
+// ── Speed classification (for SKY_CONTACT placement -- see assemble-brief.mjs) ──
+
+export const SLOW_BODIES = new Set(['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']);
+export const FAST_BODIES = new Set(['Sun', 'Mercury', 'Venus', 'Mars']);
+export function isSlowPair(bodyA, bodyB) {
+  return SLOW_BODIES.has(bodyA) && SLOW_BODIES.has(bodyB);
+}
+
 // ── ID minting (deterministic; regeneration from identical data reproduces identical IDs) ──
 
 function slug(s) {
   return s.toLowerCase().replace(/\s+/g, '-');
 }
 
-export function mintContactId(transitingBody, aspect, natalPointName, row) {
+// Activation fact ID: canonical regardless of which body's brief renders it
+// (the RULING requires identical facts attached in both directions), so it
+// is keyed off the underlying aspect_calendar row's own ID plus the natal
+// point caught -- never off the "focus body," which would produce two
+// different IDs for what is structurally one fact.
+export function mintActivationId(skyId, natalPointName) {
+  return `${skyId}-activates-natal-${slug(natalPointName)}`;
+}
+
+// Eclipse-to-transit activation fact ID (RULING 4).
+export function mintEclipseTransitActivationId(eclipseId, transitingBody) {
+  return `${eclipseId}-activates-transiting-${slug(transitingBody)}`;
+}
+
+// passageCounts: { n, m } -- the PASSAGE-scoped pass index/count (see
+// filterAndGroupForPassage above), NOT the row's own within-window
+// crossing index. This is the STEP 4 semantic change: p{n}of{m} in the
+// ID now counts passes across the whole passage, never within one window.
+export function mintContactId(transitingBody, aspect, natalPointName, row, passageCounts) {
   const body = slug(transitingBody);
   const point = slug(natalPointName);
   const suffix = row.exactDate
-    ? `${row.exactDate}-p${row.passN}of${row.passM}`
+    ? `${row.exactDate}-p${passageCounts.n}of${passageCounts.m}`
     : `${row.windowStart}-noexact`;
   return `${body}-${aspect}-natal-${point}-${suffix}`;
 }
@@ -347,11 +631,11 @@ export function mintContactId(transitingBody, aspect, natalPointName, row) {
 // never ambiguous between "Nodes square the natal axis" and "Nodes square
 // natal Moon," which land on the same dist value (3) but are different
 // events to different points.
-export function mintAxisContactId(transitingBody, kind, natalPointName, row) {
+export function mintAxisContactId(transitingBody, kind, natalPointName, row, passageCounts) {
   const body = slug(transitingBody);
   const point = slug(natalPointName);
   const suffix = row.exactDate
-    ? `${row.exactDate}-p${row.passN}of${row.passM}`
+    ? `${row.exactDate}-p${passageCounts.n}of${passageCounts.m}`
     : `${row.windowStart}-noexact`;
   return `${body}-${kind}-${point}-${suffix}`;
 }

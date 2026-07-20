@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   SIGNS, extractNatalPoints, computeContactWindows, contactAnchorDate,
   windowOverlaps, natalCopresence, skyCopresenceSpans, eclipseCatches,
-  mintContactId, mintAxisContactId, labelAxisContact,
+  mintContactId, mintAxisContactId, labelAxisContact, findTruePassageRows,
 } from './contact-engine.mjs';
 
 const supabase = createClient(
@@ -69,17 +69,19 @@ async function fetchCurrentPhaseRow(body) {
   return data[0];
 }
 
-// Passage = every transit_calendar row sharing the current row's
-// sign_egress_date (the date this body finally leaves the sign/axis-pair).
+// Passage = the body's true continuous residency in its home sign,
+// walked by adjacency rather than trusted from the (per-leg-scoped)
+// stored sign_egress_date field -- see findTruePassageRows in
+// contact-engine.mjs.
 async function fetchPassageRows(body, currentRow) {
+  if (body === 'Nodes') return [currentRow]; // no `sign` field, never fragments -- see assemble-brief.mjs
   const { data, error } = await supabase
     .from('transit_calendar')
     .select('*')
     .eq('body', body)
-    .eq('sign_egress_date', currentRow.sign_egress_date)
     .order('date', { ascending: true });
   if (error) throw new Error(`transit_calendar passage read failed for ${body}: ${error.message}`);
-  return data;
+  return findTruePassageRows(data, currentRow);
 }
 
 async function fetchAspectCalendarForBody(body, start, end) {
@@ -123,7 +125,7 @@ function describePassage(body, rows) {
   return {
     ingressDate: ingressRow?.date ?? rows[0].date,
     ingressDirect: ingressRow ? ingressRow.event_type === 'ingress' : true,
-    egressDate: rows[0].sign_egress_date,
+    egressDate: rows[rows.length - 1].sign_egress_date,
     shape,
     rows,
   };
@@ -151,13 +153,20 @@ function computeAllContacts(focusBody, series, natalPoints) {
 
 function formatContact(focusBody, c) {
   const anchor = contactAnchorDate(c);
+  // This validation script does not compute passage-scoped window/pass
+  // grouping (that lives in assemble-brief.mjs, the production path) --
+  // IDs printed here use the row's own WITHIN-WINDOW pass numbers, so
+  // they will not match assemble-brief.mjs's passage-scoped IDs for a
+  // multi-window contact. Fine for this script's job (verifying degrees,
+  // dates, and copresence against Astro-Seek), not authoritative for IDs.
+  const windowScopedCounts = { n: c.passN, m: c.passM };
   let idLine, descLine;
   if (c.axisInvolved) {
     const { kind, label } = labelAxisContact(c.dist, focusBody === 'Nodes', c.point);
-    idLine = mintAxisContactId(focusBody, kind, c.point.name, c);
+    idLine = mintAxisContactId(focusBody, kind, c.point.name, c, windowScopedCounts);
     descLine = label;
   } else {
-    idLine = mintContactId(focusBody, c.aspect, c.point.name, c);
+    idLine = mintContactId(focusBody, c.aspect, c.point.name, c, windowScopedCounts);
     descLine = `${c.aspect} natal ${c.point.name} (${c.point.sign} ${c.point.degree.toFixed(2)}°, ${c.point.house ?? 'house unknown'})`;
   }
   const dates = c.exactDate
@@ -237,11 +246,18 @@ async function reportBody(focusBody, natalPoints, seriesFull) {
     }
   }
 
-  // Natal contacts
+  // Natal contacts. Passage membership requires BOTH date-range overlap
+  // AND sign match (STEP 2 Bug A fix -- see filterAndGroupForPassage's
+  // header comment in contact-engine.mjs): date alone let a closed-out
+  // prior-sign window bleed in at a boundary coincidence; sign alone
+  // over-admits for fast bodies that revisit the same sign many times
+  // across the tracked range.
+  const passageHomeSign = focusBody === 'Nodes' ? currentRow.north_sign : currentRow.sign;
   const allContacts = computeAllContacts(focusBody, seriesFull, natalPoints);
   const timeline = allContacts.filter(c => windowOverlaps(c, currentRow.date, phaseEnd) && contactAnchorDate(c) >= currentRow.date && contactAnchorDate(c) <= phaseEnd)
     .sort((a, b) => contactAnchorDate(a) < contactAnchorDate(b) ? -1 : 1);
-  const passageOnly = allContacts.filter(c => windowOverlaps(c, passage.ingressDate, passage.egressDate) && !timeline.includes(c))
+  const passageOnly = allContacts.filter(c =>
+    windowOverlaps(c, passage.ingressDate, passage.egressDate) && c.transitingSign === passageHomeSign && !timeline.includes(c))
     .sort((a, b) => contactAnchorDate(a) < contactAnchorDate(b) ? -1 : 1);
 
   console.log(`\nTIMELINE -- ${focusBody}'s current phase (${timeline.length} event${timeline.length === 1 ? '' : 's'}):`);
