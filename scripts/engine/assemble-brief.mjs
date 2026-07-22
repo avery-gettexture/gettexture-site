@@ -341,11 +341,32 @@ function formatContactDates(row, phaseStart, phaseEnd) {
   return formatBoundaryDates(row.windowStart, row.windowEnd, row.exactDate, phaseStart, phaseEnd);
 }
 
-function computeStatus(row, phaseStart, phaseEnd, siblingRows) {
+// GUARD (added after the cusp-seam crossing-detection fix, SPEC.md's
+// July 21, 2026 entry): a COMPLETE passage -- one with a known ingress AND
+// a known egress, both within tracked sky_positions data -- traverses
+// every degree 0-30 of its sign, so any natal point within orb during it
+// MUST perfect at the matching degree, now that crossing detection
+// actually catches it. "No exact this passage" is therefore proven
+// structurally impossible for a complete passage; the only honest way
+// this branch can still fire is a genuinely RANGE-TRUNCATED passage (a
+// pre-range passage whose true start predates 2023-01-01, or one whose
+// true egress falls beyond the tracked data's end) -- in those cases the
+// text is a real "we don't know," not a bug. If a complete passage ever
+// reaches this branch, that is a real bug wearing plausible output, not a
+// value this function can safely render -- throw loudly rather than
+// silently emit undocumented behavior.
+function computeStatus(row, phaseStart, phaseEnd, siblingRows, passageIsComplete) {
   const exactInPhase = exactBelongsToPhase(row.exactDate, phaseStart, phaseEnd);
   if (exactInPhase) return 'perfects this phase';
   const hasLaterExact = siblingRows.some(r => r !== row && r.exactDate);
-  return hasLaterExact ? 'no exact this phase -- perfects on a later pass' : 'no exact this passage';
+  if (hasLaterExact) return 'no exact this phase -- perfects on a later pass';
+  if (passageIsComplete) {
+    throw new Error(
+      `computeStatus: "no exact this passage" reached for a COMPLETE passage (${row.point?.name ?? '?'} ${row.aspect ?? ''}) -- `
+      + 'proven structurally impossible; a complete passage traverses every degree of its sign, so this natal point must perfect. Investigate before rendering.',
+    );
+  }
+  return 'no exact this passage';
 }
 
 // SKY_CONTACT STATUS must derive from the same phase-boundary check DATES
@@ -778,6 +799,10 @@ export async function assembleBrief(focusBody, options = {}) {
 
   // ── Render TIMELINE blocks ──
   const timelineBlocks = [];
+  // Complete = known ingress AND known egress, both within tracked data --
+  // same convention already used elsewhere (ingressDirect, the "predates
+  // tracked data" PASSAGE phrasing). Threaded into computeStatus's guard.
+  const passageIsComplete = passage.ingressDate !== null && passage.egressDate !== null;
 
   for (const c of timelineNatal) {
     const aspectKey = `${c.key}|${c.axisInvolved ? `axis-dist${c.dist}` : c.aspect}`;
@@ -795,7 +820,7 @@ export async function assembleBrief(focusBody, options = {}) {
     TYPE: NATAL_CONTACT
     ASPECT: ${c.axisInvolved ? aspectLabelFor(c, focusBody) : `${c.aspect} natal ${c.point.name} (${c.point.degree.toFixed(1)}° ${c.point.sign}${houseText})`}
     DATES: ${formatContactDates(c, phaseStart, phaseEnd)}${windowLine}${passLine}
-    STATUS: ${computeStatus(c, phaseStart, phaseEnd, siblings)}`;
+    STATUS: ${computeStatus(c, phaseStart, phaseEnd, siblings, passageIsComplete)}`;
     if (activations.length) {
       block += `\n    ACTIVATIONS:\n${activations.map(formatActivationFact).join('\n')}`;
     }
