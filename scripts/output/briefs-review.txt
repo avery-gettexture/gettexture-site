@@ -31,11 +31,6 @@ COPRESENT_NATAL: Saturn 16.2° (4th House)
 COPRESENT_SKY: Neptune (all phase)
 
 TIMELINE:
-  - ID: saturn-sextile-uranus-2026-01-20-p1of1
-    TYPE: SKY_CONTACT
-    ASPECT: sextile transiting Uranus
-    DATES: in orb at phase open (since 2025-12-17), separates 2026-02-14
-    STATUS: no exact this phase
   - ID: saturn-conjunction-neptune-2026-02-20-p1of1
     TYPE: SKY_CONTACT
     ASPECT: conjunct transiting Neptune
@@ -305,7 +300,7 @@ TIMELINE:
     STATUS: no exact this phase
     TETHER: atmospheric -- no natal point caught
 
-[counts] entries: 13 (8 NATAL_CONTACT, 5 SKY_CONTACT); activation facts: 36; eclipse-to-transit facts: 0
+[counts] entries: 12 (8 NATAL_CONTACT, 4 SKY_CONTACT); activation facts: 36; eclipse-to-transit facts: 0
 
 ==============================================================================
 End of assembled brief for Saturn. No API call made.
@@ -334,7 +329,7 @@ PHASE:
   CLOSES: station direct at 16.4° on 2026-07-23
 
 COPRESENT_NATAL: none
-COPRESENT_SKY: Jupiter (Jun 29, 2026 – Jun 30, 2026)
+COPRESENT_SKY: Jupiter (2026-06-29 – 2026-06-30)
 
 TIMELINE:
   - ID: mercury-square-natal-sun-2026-07-04-p2of3
@@ -363,14 +358,8 @@ TIMELINE:
     DATES: orb opens 2026-07-19, no exact this phase -- phase closes mid-window, remains in orb at phase close
     STATUS: no exact this phase
     TETHER: atmospheric -- no natal point caught
-  - ID: mercury-sextile-venus-2026-07-24-p1of1
-    TYPE: SKY_CONTACT
-    ASPECT: sextile transiting Venus
-    DATES: orb opens 2026-07-23, no exact this phase -- phase closes mid-window, remains in orb at phase close
-    STATUS: no exact this phase
-    TETHER: atmospheric -- no natal point caught
 
-[counts] entries: 5 (2 NATAL_CONTACT, 3 SKY_CONTACT); activation facts: 0; eclipse-to-transit facts: 0
+[counts] entries: 4 (2 NATAL_CONTACT, 2 SKY_CONTACT); activation facts: 0; eclipse-to-transit facts: 0
 
 ==============================================================================
 End of assembled brief for Mercury. No API call made.
@@ -395,7 +384,7 @@ PHASE:
   INGRESS: 2025-01-29
   EGRESS: 2026-08-18
 
-COPRESENT_SKY: Saturn (Jan 29, 2025 – May 25, 2025), Saturn (Sep 2, 2025 – Feb 14, 2026), Neptune (Jan 29, 2025 – Mar 30, 2025), Neptune (Oct 23, 2025 – Jan 26, 2026)
+COPRESENT_SKY: Saturn (2025-01-29 – 2025-05-25), Saturn (2025-09-02 – 2026-02-14), Neptune (2025-01-29 – 2025-03-30), Neptune (2025-10-23 – 2026-01-26)
 
 TIMELINE:
   - ID: nodes-conjunct-node-south-axis-2025-09-19-p1of1
@@ -473,7 +462,7 @@ TIMELINE:
     CONFIGURATION: none
     NATAL_CAUGHT: none
 
-[counts] entries: 5 (5 NATAL_CONTACT, 0 SKY_CONTACT); activation facts: 0; eclipse-to-transit facts: 0
+[counts] entries: 12 (5 NATAL_CONTACT, 0 SKY_CONTACT, 7 ECLIPSE); activation facts: 0; eclipse-to-transit facts: 0
 
 ==============================================================================
 End of assembled brief for Nodes. No API call made.
