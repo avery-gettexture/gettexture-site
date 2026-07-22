@@ -174,6 +174,17 @@ function signedCircularDiff(a, b) {
   return d;
 }
 
+// CUSP-SEAM FIX (mirrors scripts/engine/contact-engine.mjs's
+// finalizeContactWindow -- see its header comment for the full mechanism).
+// For a sky-sky pair the collision isn't tied to a fixed chart feature the
+// way it is for a natal point; it's a coincidence of whether the exact
+// moment happens to land on the same day either body crosses into a new
+// sign. Audited before this fix: of 381 non-eclipse "no exact" rows in the
+// live table, 178 (47%) had a real crossing sitting in this blind spot --
+// concentrated in fast-slow pairs (159 of 242, 66%) where the slow body's
+// sign barely moves while the fast body sweeps through many of its own
+// signs, making the coincidence structural rather than rare; slow-slow
+// pairs were unaffected (0 of 42).
 function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows) {
   if (window.truncatedStart) return; // true start unknown -- dropped, see header comment
   const diffs = window.diffs;
@@ -202,6 +213,49 @@ function finalizeWindow(window, series1, series2, body1, body2, aspect, outRows)
         exactDegree,
         body1AtExact: series1[idxA],
         body2AtExact: series2[idxA],
+      });
+    }
+  }
+
+  // Opening-edge check: the sample immediately before this window, which
+  // sign-consonance excluded from view. DATE-CREDITING RULE: a crossing
+  // found this way is recorded on the window's OWN first day (windowStart)
+  // -- never the excluded day, which was never truly in orb.
+  if (windowStartIdx > 0) {
+    const preA = series1[windowStartIdx - 1];
+    const preB = series2[windowStartIdx - 1];
+    const preTarget = nearestTargetLongitude(preA.longitude, preB.longitude, angle);
+    const preSigned = signedCircularDiff(preA.longitude, preTarget);
+    const firstTarget = nearestTargetLongitude(series1[windowStartIdx].longitude, series2[windowStartIdx].longitude, angle);
+    const firstSigned = signedCircularDiff(series1[windowStartIdx].longitude, firstTarget);
+    if (preSigned * firstSigned < 0) {
+      const f = Math.abs(preSigned) / (Math.abs(preSigned) + Math.abs(firstSigned));
+      const exactDegree = interpolateDegree(preA.sign_degree, series1[windowStartIdx].sign_degree, f);
+      crossings.unshift({
+        exactDate: windowStart, // DATE-CREDITING RULE
+        exactDegree,
+        body1AtExact: series1[windowStartIdx],
+        body2AtExact: series2[windowStartIdx],
+      });
+    }
+  }
+
+  // Closing-edge check: mirrors the opening edge at the end of the window.
+  if (windowEndIdx < series1.length - 1) {
+    const postA = series1[windowEndIdx + 1];
+    const postB = series2[windowEndIdx + 1];
+    const postTarget = nearestTargetLongitude(postA.longitude, postB.longitude, angle);
+    const postSigned = signedCircularDiff(postA.longitude, postTarget);
+    const lastTarget = nearestTargetLongitude(series1[windowEndIdx].longitude, series2[windowEndIdx].longitude, angle);
+    const lastSigned = signedCircularDiff(series1[windowEndIdx].longitude, lastTarget);
+    if (lastSigned * postSigned < 0) {
+      const f = Math.abs(lastSigned) / (Math.abs(lastSigned) + Math.abs(postSigned));
+      const exactDegree = interpolateDegree(series1[windowEndIdx].sign_degree, postA.sign_degree, f);
+      crossings.push({
+        exactDate: windowEnd, // DATE-CREDITING RULE
+        exactDegree,
+        body1AtExact: series1[windowEndIdx],
+        body2AtExact: series2[windowEndIdx],
       });
     }
   }
@@ -420,6 +474,40 @@ async function main() {
 
   const inSlice = allRows.filter((r) => (r.exact_date ?? r.window_start) >= start && (r.exact_date ?? r.window_start) <= end);
   console.log(`Rows in requested slice (${start} -> ${end}): ${inSlice.length}.\n`);
+
+  // STALE-ID CLEANUP: this script is deterministic and idempotent only
+  // when the GENERATION LOGIC never changes -- upsert-by-id alone cannot
+  // remove a row whose id changed (e.g. a "-noexact" row that gains a
+  // detected exact under a logic fix gets a brand new id; the old one
+  // would otherwise sit orphaned forever). Added after the cusp-seam fix
+  // regeneration (see SPEC.md's build record) changed 189 ids across the
+  // full table. Scoped to the same date-relevant window as inSlice, so a
+  // partial --start/--end run only cleans up within its own slice.
+  const newIds = new Set(inSlice.map((r) => r.id));
+  const existing = [];
+  {
+    let offset = 0;
+    for (;;) {
+      const { data, error: fetchErr } = await supabase
+        .from('aspect_calendar')
+        .select('id, exact_date, window_start')
+        .in('event', Object.keys(ASPECT_ANGLES))
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (fetchErr) throw new Error(`Supabase read failed: ${fetchErr.message}`);
+      existing.push(...data);
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+  }
+  const staleIds = existing
+    .filter((r) => (r.exact_date ?? r.window_start) >= start && (r.exact_date ?? r.window_start) <= end)
+    .map((r) => r.id)
+    .filter((id) => !newIds.has(id));
+  if (staleIds.length > 0) {
+    console.log(`Deleting ${staleIds.length} stale row(s) whose id changed under the current logic.`);
+    const { error: delErr } = await supabase.from('aspect_calendar').delete().in('id', staleIds);
+    if (delErr) throw new Error(`Supabase delete failed: ${delErr.message}`);
+  }
 
   if (inSlice.length > 0) {
     const { error } = await supabase

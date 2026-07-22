@@ -211,6 +211,33 @@ export function computeContactWindows(transitingSeries, natalPoint, axisInvolved
   return rows;
 }
 
+// CUSP-SEAM FIX: a natal point sitting near 0deg or 30deg of its own sign
+// has its aspect target ALSO on a sign boundary for the transiting body, so
+// the exact crossing coincides with the transiting body's own sign-
+// ingress. The day just before that ingress is sign-consonant with the
+// OTHER sign, so the in-orb prefilter in computeContactWindows (correctly,
+// per sign-consonance) excludes it from this window -- meaning the two
+// days needed to SEE the crossing (one on each side of exact) end up split
+// across two different, non-adjacent windows, and neither one alone
+// contains the flip. A real perfection was therefore silently reported as
+// "no exact." Confirmed by direct testing: a point at Aries 0.0deg missed
+// 22 of 22 real trine crossings across the full tracked history before
+// this fix; a mid-sign control point (Aries 15.0deg) was unaffected (still
+// 22 of 22 after the fix, byte-identical to before).
+//
+// FIX: look one sample PAST each edge of the window -- a day the prefilter
+// excluded -- purely to test whether the true crossing falls in the gap
+// between it and the window's own boundary day.
+//
+// DATE-CREDITING RULE: when a crossing is found this way, it is always
+// recorded on the window's OWN boundary day (windowStart for an opening-
+// edge find, windowEnd for a closing-edge find) -- NEVER on the excluded
+// day itself, which sign-consonance says was never truly in orb. This
+// keeps every recorded exact_date honestly inside a day the aspect was
+// actually in orb; sign-consonance's own definition of orb membership does
+// not change, and a window with no adjacent sample available (the very
+// first or last day of tracked data) is left exactly as before -- an
+// honest data-range limit, not a bug this fix is meant to paper over.
 function finalizeContactWindow(window, series, natalPoint, outRows) {
   const idxs = window.idxs;
   const windowStart = series[idxs[0]].date;
@@ -241,6 +268,44 @@ function finalizeContactWindow(window, series, natalPoint, outRows) {
         exactDegree,
         transitingSignAtExact: series[idxA].sign,
         transitingRetrogradeAtExact: series[idxA].retrograde,
+      });
+    }
+  }
+
+  // Opening-edge check: the sample immediately before this window (see
+  // CUSP-SEAM FIX above).
+  const preIdx = idxs[0] - 1;
+  if (preIdx >= 0) {
+    const pre = series[preIdx];
+    const preTarget = nearestTargetLongitude(pre.longitude, natalPoint.longitude, window.angle);
+    const preSigned = signedCircularDiff(pre.longitude, preTarget);
+    if (preSigned * signed[0] < 0) {
+      const f = Math.abs(preSigned) / (Math.abs(preSigned) + Math.abs(signed[0]));
+      const exactDegree = interpolateDegree(pre.sign_degree, series[idxs[0]].sign_degree, f);
+      crossings.unshift({
+        exactDate: windowStart, // DATE-CREDITING RULE
+        exactDegree,
+        transitingSignAtExact: series[idxs[0]].sign,
+        transitingRetrogradeAtExact: series[idxs[0]].retrograde,
+      });
+    }
+  }
+
+  // Closing-edge check: mirrors the opening edge at the end of the window.
+  const postIdx = idxs[idxs.length - 1] + 1;
+  if (postIdx < series.length) {
+    const post = series[postIdx];
+    const postTarget = nearestTargetLongitude(post.longitude, natalPoint.longitude, window.angle);
+    const postSigned = signedCircularDiff(post.longitude, postTarget);
+    const lastSigned = signed[signed.length - 1];
+    if (lastSigned * postSigned < 0) {
+      const f = Math.abs(lastSigned) / (Math.abs(lastSigned) + Math.abs(postSigned));
+      const exactDegree = interpolateDegree(series[idxs[idxs.length - 1]].sign_degree, post.sign_degree, f);
+      crossings.push({
+        exactDate: windowEnd, // DATE-CREDITING RULE
+        exactDegree,
+        transitingSignAtExact: series[idxs[idxs.length - 1]].sign,
+        transitingRetrogradeAtExact: series[idxs[idxs.length - 1]].retrograde,
       });
     }
   }
