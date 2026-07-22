@@ -675,8 +675,16 @@ export function labelAxisContact(dist, transitingIsAxis, natalPoint) {
     if (transitingIsAxis) return { kind: 'conjunct-node-north', label: `transiting North Node conjunct ${pointName} (South Node opposite)` };
     return { kind: 'conjunct-node-north', label: `conjunct natal North Node, opposite natal South Node` };
   }
-  // dist === 6
-  if (transitingIsAxis && natalIsAxis) return { kind: 'conjunct-node-south', label: 'transiting North Node opposite natal North Node = conjunct natal South Node (one event)' };
-  if (transitingIsAxis) return { kind: 'conjunct-node-south', label: `transiting South Node conjunct ${pointName} (North Node opposite)` };
-  return { kind: 'conjunct-node-south', label: `conjunct natal South Node, opposite natal North Node` };
+  if (dist === 6) {
+    if (transitingIsAxis && natalIsAxis) return { kind: 'conjunct-node-south', label: 'transiting North Node opposite natal North Node = conjunct natal South Node (one event)' };
+    if (transitingIsAxis) return { kind: 'conjunct-node-south', label: `transiting South Node conjunct ${pointName} (North Node opposite)` };
+    return { kind: 'conjunct-node-south', label: `conjunct natal South Node, opposite natal North Node` };
+  }
+  // STEP D: per the AXIS ASPECT RESTRICTION above, an axis-involved contact
+  // should only ever reach this function at dist 0, 3, or 6 -- sextile/
+  // trine (2/4) are meant to be excluded before any orb math runs. A dist
+  // outside {0,3,6} here means that exclusion failed upstream; silently
+  // falling through to the dist-6 phrasing (the previous behavior) would
+  // render a confidently wrong label instead of surfacing the bug.
+  throw new Error(`labelAxisContact: dist ${dist} is not 0, 3, or 6 -- AXIS ASPECT RESTRICTION was not enforced upstream`);
 }

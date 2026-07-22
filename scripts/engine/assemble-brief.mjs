@@ -85,13 +85,13 @@ async function fetchSeriesRange(body, start, end) {
   return data;
 }
 
-async function fetchCurrentPhaseRow(body) {
+async function fetchCurrentPhaseRow(body, referenceDate) {
   const { data, error } = await supabase
     .from('transit_calendar')
-    .select('*').eq('body', body).lte('date', TODAY)
+    .select('*').eq('body', body).lte('date', referenceDate)
     .order('date', { ascending: false }).limit(1);
   if (error) throw new Error(error.message);
-  if (!data.length) throw new Error(`No current transit_calendar row for ${body}`);
+  if (!data.length) throw new Error(`No transit_calendar row for ${body} at or before ${referenceDate}`);
   return data[0];
 }
 
@@ -209,6 +209,18 @@ async function describePassage(currentRow) {
   };
 }
 
+// MOTION: FORWARD for an ingress/re-ingress/station-direct opening (the
+// body is moving forward as this phase begins), RETROGRADE for a station-
+// retrograde/retro-ingress opening. Explicit lookup with a throwing
+// default (STEP D) rather than the previous "RETROGRADE if X or Y, else
+// FORWARD" ternary, which would have silently mis-called FORWARD for any
+// event_type it didn't recognize.
+function motionForOpeningEvent(eventType) {
+  if (eventType === 'station_retrograde' || eventType === 'retro_ingress') return 'RETROGRADE';
+  if (eventType === 'ingress' || eventType === 're_ingress' || eventType === 'station_direct') return 'FORWARD';
+  throw new Error(`motionForOpeningEvent: unrecognized event_type "${eventType}"`);
+}
+
 // OPENED_BY vocabulary: ingress | re-ingress | retro-ingress | station
 // retrograde | station direct -- whatever trigger row the piece's CURRENT
 // phase actually opened with (always this sign's own passage, so
@@ -219,7 +231,11 @@ function eventLabel(eventType, degree) {
   if (eventType === 'retro_ingress') return 'retro-ingress';
   if (eventType === 'station_retrograde') return `station retrograde at ${degree.toFixed(1)}°`;
   if (eventType === 'station_direct') return `station direct at ${degree.toFixed(1)}°`;
-  return eventType;
+  // STEP D: an OPENED_BY trigger outside the five known event types is a
+  // real data/schema problem, not a value this function can safely render
+  // -- printing the raw string would be a plausible-looking guess at
+  // vocabulary the template never defined.
+  throw new Error(`eventLabel: unrecognized event_type "${eventType}" -- not one of ingress | re_ingress | retro_ingress | station_retrograde | station_direct`);
 }
 
 // CLOSES: from the current phase's own sign, ANY departure -- a true
@@ -228,12 +244,22 @@ function eventLabel(eventType, degree) {
 // wording; "re-ingress" is an arrival word, and only ever names an
 // OPENED_BY trigger, never a CLOSES one). No sign change means an in-sign
 // station, named with degree as before.
-function closesLabelFor(currentRow, closesRow) {
-  if (!closesRow) return 'egress';
+function closesLabelFor(currentRow, phaseEnd, closesRow) {
+  // No known phase-end date at all (the rare open-ended pre-range/post-
+  // range edge case) is a legitimate "we don't know yet" state -- the
+  // plain 'egress' fallback is honest here, not a guess.
+  if (!phaseEnd) return 'egress';
+  // phaseEnd names a real date, so a missing row at that date is a data
+  // problem (this phase's own closing trigger should always exist in
+  // transit_calendar), not a legitimate unknown -- throw rather than
+  // silently reusing the same 'egress' text for a different situation.
+  if (!closesRow) {
+    throw new Error(`closesLabelFor: no transit_calendar row for ${currentRow.body} at phase-close date ${phaseEnd}`);
+  }
   if (closesRow.sign !== currentRow.sign) return `egress to ${closesRow.sign}`;
   if (closesRow.event_type === 'station_retrograde') return `station retrograde at ${closesRow.degree.toFixed(1)}°`;
   if (closesRow.event_type === 'station_direct') return `station direct at ${closesRow.degree.toFixed(1)}°`;
-  return closesRow.event_type;
+  throw new Error(`closesLabelFor: unrecognized in-sign event_type "${closesRow.event_type}" closing ${currentRow.body}'s phase`);
 }
 
 // ── Contact gathering ────────────────────────────────────────────────────
@@ -495,9 +521,22 @@ function formatEclipseActivationEntry(entry) {
 
 // ── Main assembly ──────────────────────────────────────────────────────
 
-export async function assembleBrief(focusBody) {
-  const { data: reading, error } = await supabase.from('readings').select('chart_data, birth_time_known, name').eq('slug', DOGFOOD_READING_SLUG).single();
-  if (error || !reading) throw new Error(`Could not load reading: ${error?.message}`);
+// options.reading: an in-memory { chart_data, birth_time_known, name }
+// override, bypassing the dogfood Supabase fetch entirely -- used ONLY by
+// the engine-scale exercise (scripts/exercise-engine.mjs) to run synthetic
+// charts without ever writing a row to the readings table. options.
+// referenceDate: which date counts as "today" for phase selection --
+// lets the same exercise walk a body's prior/current/future phases
+// without waiting for real time to pass. Both default to normal
+// production behavior (the dogfood reading, real today) when omitted.
+export async function assembleBrief(focusBody, options = {}) {
+  const { reading: readingOverride, referenceDate = TODAY } = options;
+  let reading = readingOverride;
+  if (!reading) {
+    const { data, error } = await supabase.from('readings').select('chart_data, birth_time_known, name').eq('slug', DOGFOOD_READING_SLUG).single();
+    if (error || !data) throw new Error(`Could not load reading: ${error?.message}`);
+    reading = data;
+  }
   const natalPoints = extractNatalPoints(reading.chart_data);
   const ascSign = natalPoints.find(p => p.name === 'Ascendant').sign;
   const risingKnown = reading.birth_time_known ?? true;
@@ -507,7 +546,7 @@ export async function assembleBrief(focusBody) {
   // no degree precision needed) is unaffected.
   const contactNatalPoints = risingKnown ? natalPoints : natalPoints.filter(p => p.name !== 'Moon');
 
-  const currentRow = await fetchCurrentPhaseRow(focusBody);
+  const currentRow = await fetchCurrentPhaseRow(focusBody, referenceDate);
   const passage = await describePassage(currentRow);
   const phaseStart = currentRow.date;
   const phaseEnd = currentRow.phase_end_date ?? passage.egressDate;
@@ -607,7 +646,15 @@ export async function assembleBrief(focusBody) {
       // (the only concrete reference point a no-exact contact has).
       const motionRefDate = otherOwnContact.exactDate ?? anchorDate;
       const motionRow = otherSeries.find(r => r.date === motionRefDate);
-      const motionState = motionRow ? (motionRow.retrograde ? 'retrograde' : 'direct') : 'unknown';
+      // otherSeries was fetched specifically to cover [fc.windowStart,
+      // fc.windowEnd], and motionRefDate is always inside that range by
+      // construction -- a missing row here is a genuine data gap, not a
+      // legitimate unknown (STEP D: was previously a silent 'unknown'
+      // fallback in the rendered brief text).
+      if (!motionRow) {
+        throw new Error(`motion state: no sky_positions row for ${otherBody} at ${motionRefDate} (expected within fetched range ${fc.windowStart}..${fc.windowEnd})`);
+      }
+      const motionState = motionRow.retrograde ? 'retrograde' : 'direct';
       facts.push({
         natalContact: fc,
         fact: {
@@ -836,11 +883,10 @@ export async function assembleBrief(focusBody) {
     }
     lines.push('');
     lines.push('PHASE:');
-    const motion = currentRow.event_type === 'station_retrograde' || currentRow.event_type === 'retro_ingress' ? 'RETROGRADE' : 'FORWARD';
-    lines.push(`  MOTION: ${motion}`);
+    lines.push(`  MOTION: ${motionForOpeningEvent(currentRow.event_type)}`);
     lines.push(`  OPENED_BY: ${eventLabel(currentRow.event_type, currentRow.degree)} on ${currentRow.date}`);
     const closesRow = phaseEnd ? await fetchBodyRowAtDate(focusBody, phaseEnd) : null;
-    lines.push(`  CLOSES: ${closesLabelFor(currentRow, closesRow)} on ${phaseEnd}`);
+    lines.push(`  CLOSES: ${closesLabelFor(currentRow, phaseEnd, closesRow)} on ${phaseEnd}`);
     lines.push('');
     lines.push(`COPRESENT_NATAL: ${natalCop}`);
     lines.push(`COPRESENT_SKY: ${skyCop}`);
