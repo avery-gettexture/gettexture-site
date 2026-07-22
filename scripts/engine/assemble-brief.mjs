@@ -149,9 +149,13 @@ async function fetchAspectCalendarBetween(bodyA, bodyB, start, end) {
   return data;
 }
 
+// RULING A companion clause applies here too: `end` is always a phase/
+// passage-close boundary (phaseEnd, or a Nodes passage's egressDate) --
+// an eclipse landing exactly on that date belongs to the next phase or
+// passage, which opens then, so `end` is exclusive.
 async function fetchEclipsesInRange(start, end) {
   const { data, error } = await supabase.from('aspect_calendar').select('*')
-    .in('event', ['Solar Eclipse', 'Lunar Eclipse']).gte('exact_date', start).lte('exact_date', end)
+    .in('event', ['Solar Eclipse', 'Lunar Eclipse']).gte('exact_date', start).lt('exact_date', end)
     .order('exact_date', { ascending: true });
   if (error) throw new Error(error.message);
   return data;
@@ -256,12 +260,25 @@ function computeRawContactsByPoint(focusBody, series, natalPoints) {
   return byPoint;
 }
 
+// RULING A (companion clause): an exact date landing exactly ON a phase
+// boundary belongs to the phase that OPENS on that date, never the phase
+// that closes on it -- consistent with the half-open current-phase lookup
+// elsewhere (date <= today < phase_end_date). So phaseEnd itself is
+// EXCLUSIVE here: a date equal to phaseEnd belongs to the next phase,
+// which opens then. phaseStart stays inclusive (this phase owns its own
+// opening date). Shared by every exact-date-based phase-membership check
+// in this file (natal contacts' STATUS/DATES, sky contacts' STATUS/DATES,
+// and the natal timeline membership filter) so all four agree.
+function exactBelongsToPhase(exactDate, phaseStart, phaseEnd) {
+  return !!exactDate && exactDate >= phaseStart && exactDate < phaseEnd;
+}
+
 // Boundary dates are always stated (STEP 7): a contact already in orb
 // when the phase opens states its true original open date even though
 // that date precedes phaseStart; a contact still in orb at phase close
 // states that explicitly, even when it also perfected in-phase.
 function formatBoundaryDates(windowStart, windowEnd, exactDate, phaseStart, phaseEnd) {
-  const exactInPhase = !!exactDate && exactDate >= phaseStart && exactDate <= phaseEnd;
+  const exactInPhase = exactBelongsToPhase(exactDate, phaseStart, phaseEnd);
   const openedBeforePhase = windowStart < phaseStart;
   const stillOpenAtPhaseClose = windowEnd > phaseEnd;
 
@@ -286,7 +303,7 @@ function formatContactDates(row, phaseStart, phaseEnd) {
 }
 
 function computeStatus(row, phaseStart, phaseEnd, siblingRows) {
-  const exactInPhase = !!row.exactDate && row.exactDate >= phaseStart && row.exactDate <= phaseEnd;
+  const exactInPhase = exactBelongsToPhase(row.exactDate, phaseStart, phaseEnd);
   if (exactInPhase) return 'perfects this phase';
   const hasLaterExact = siblingRows.some(r => r !== row && r.exactDate);
   return hasLaterExact ? 'no exact this phase -- perfects on a later pass' : 'no exact this passage';
@@ -301,7 +318,7 @@ function computeStatus(row, phaseStart, phaseEnd, siblingRows) {
 // semantics the way natal contacts do, so the wording stays the sky
 // contact's own ("no exact this phase"), not computeStatus's natal phrasing.
 function computeSkyStatus(sky, phaseStart, phaseEnd) {
-  const exactInPhase = !!sky.exact_date && sky.exact_date >= phaseStart && sky.exact_date <= phaseEnd;
+  const exactInPhase = exactBelongsToPhase(sky.exact_date, phaseStart, phaseEnd);
   return exactInPhase ? 'perfects this phase' : 'no exact this phase';
 }
 
@@ -526,7 +543,10 @@ export async function assembleBrief(focusBody) {
   }
 
   const timelineNatal = passageContactsFlat.filter(c =>
-    contactAnchorDate(c) >= phaseStart && contactAnchorDate(c) <= phaseEnd,
+    // RULING A companion clause: an anchor date landing exactly on phaseEnd
+    // belongs to the next phase (which opens then), not this one -- see
+    // exactBelongsToPhase's header comment.
+    contactAnchorDate(c) >= phaseStart && contactAnchorDate(c) < phaseEnd,
   );
 
   // ── Sky aspects: classify into SLOW-always-entries, FAST-activation-only,
@@ -542,6 +562,20 @@ export async function assembleBrief(focusBody) {
     const skyStart = sky.window_start ?? sky.exact_date;
     const skyEnd = sky.window_end ?? sky.exact_date;
     const slowPair = isSlowPair(focusBody, otherBody);
+
+    // RULING A -- phase membership requires real interior overlap: strictly
+    // skyStart < phaseEnd AND skyEnd > phaseStart. This excludes ONLY
+    // degenerate zero-duration touches (a window that separates exactly on
+    // this phase's own opening date, or opens exactly on its closing date)
+    // -- it can never drop a window with any real overlap, including one
+    // that spans a station and is correctly a member of BOTH phases it
+    // overlaps. Gates only whether this sky aspect becomes ITS OWN
+    // SKY_CONTACT timeline entry -- it still remains eligible as a natal-
+    // or pair-activation candidate below regardless (those qualify against
+    // the HOST's own window, not phase bounds, by original design: an
+    // activation may legitimately perfect before a phase opens or after it
+    // closes, per the existing before/after-host-orb phrasing).
+    const skyInPhase = skyStart < phaseEnd && skyEnd > phaseStart;
 
     // STEP 6, corrected: an activation still requires BOTH legs -- (A)
     // otherBody has its own contact to the SAME natal point, overlapping
@@ -583,7 +617,7 @@ export async function assembleBrief(focusBody) {
       });
     }
 
-    if (slowPair) {
+    if (slowPair && skyInPhase) {
       skyContactEntries.push({ sky, otherBody, atmospheric: false });
     }
     if (facts.length > 0) {
@@ -591,7 +625,7 @@ export async function assembleBrief(focusBody) {
         if (!activationsByNatalRow.has(f.natalContact)) activationsByNatalRow.set(f.natalContact, []);
         activationsByNatalRow.get(f.natalContact).push(f.fact);
       }
-    } else if (!slowPair) {
+    } else if (!slowPair && skyInPhase) {
       skyContactEntries.push({ sky, otherBody, atmospheric: true });
     }
   }

@@ -139,6 +139,18 @@ TIMELINE:
     #  may also carry ACTIVATIONS when a third body contacts both members —
     #  same fact structure as natal-contact activations.)
 
+  # (RULING — a SKY_CONTACT's ID is PROVENANCE, not a phase claim: it always
+  #  carries the underlying aspect's own passage-scoped exact date and pass
+  #  [e.g. "-2028-11-29-p2of5"], which may fall OUTSIDE the phase this entry
+  #  is rendered in — the entry is included because its WINDOW overlaps the
+  #  phase, per the phase-membership rule, even when its exact perfection
+  #  doesn't. When that happens, DATES states only what happens WITHIN this
+  #  phase [never adds the out-of-phase exact date] and STATUS reads "no
+  #  exact this phase" — explicit decision, keeping already date-heavy
+  #  briefs from repeating a date that belongs to a different phase's
+  #  story. The exact date is not lost: it lives in the ID and, if the pair
+  #  is a slow one, in that other phase's own SKY_CONTACT entry.)
+
   # --- SKY_CONTACT, atmospheric (fast-involving, no natal point touched) ---
   - ID: saturn-square-mars-2028-06-18-p1of1
     TYPE: SKY_CONTACT
