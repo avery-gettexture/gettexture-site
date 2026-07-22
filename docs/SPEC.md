@@ -921,3 +921,68 @@ on module load, so importing assembleBrief() as a library function
 side effect; added the same "only run when invoked directly" guard
 already used elsewhere, with no change to its behavior when run
 directly. First full run: 28 checks, 28 passed, ALL CLEAR.
+
+**July 21, 2026 (cusp-seam crossing-detection bug — found via a
+founder-directed investigation, not assumed):** a natal point (or, for
+sky-sky pairs, a coincidental alignment) sitting near 0° or 30° of a
+sign has its aspect target ALSO on a sign boundary for the transiting
+body, so the exact crossing coincides with the transiting body's own
+sign-ingress. The day just before that ingress is sign-consonant with
+the OTHER sign, so the in-orb prefilter (correctly, per sign-
+consonance) excludes it from the window — meaning the two days needed
+to see the crossing (one on each side of exact) end up split across
+two different, non-adjacent windows, and neither one alone contains
+the flip. A real perfection was therefore silently reported as "no
+exact." Surfaced by a live case (Ascendant/MC placed near a sign
+boundary in a synthetic test chart producing NATAL_CONTACT STATUS: "no
+exact this passage" for otherwise-complete, non-truncated passages —
+structurally impossible per the founder's own reasoning that a
+complete passage traverses every degree of its sign).
+
+Fixed in both `computeContactWindows`/`finalizeContactWindow`
+(`scripts/engine/contact-engine.mjs`) and `processPair`/`finalizeWindow`
+(`scripts/generate-aspect-calendar.mjs`): the crossing detector now also
+checks one sample immediately past each edge of a window — a day the
+sign-consonance prefilter excluded from view — purely to test whether
+the true crossing falls in the gap between it and the window's own
+boundary day. DATE-CREDITING RULE: a crossing found this way is always
+recorded on the window's OWN boundary day, never the excluded day
+itself (which sign-consonance says was never truly in orb) — sign-
+consonance's own definition of orb membership does not change.
+Verified against a concrete case (Sun trine a point at Aries 0.0°): 0
+of 22 real crossings detected before, 22 of 22 after, all at exactly
+0.000°; a mid-sign control point was unaffected (22 of 22, byte-
+identical before/after); the one genuine data-boundary case (day 1 of
+tracked history, no earlier sample to check) correctly still reports
+no exact.
+
+Scope audited before any regeneration, proven rather than assumed:
+`contact-engine.mjs` affected (fix site). `aspect_calendar` affected —
+of 381 non-eclipse "no exact" rows, 178 (47%) had a real crossing
+sitting in this blind spot, bigger than the founder's own prediction
+(expected sky-sky collisions to be coincidental; found instead that
+fast-slow pairs are structurally exposed — 159 of 242, 66% — because a
+slow body's sign barely moves while a fast body sweeps through many of
+its own signs during that stretch; fast-fast pairs 19 of 97; slow-slow
+pairs unaffected, 0 of 42, confirming the founder's own prediction
+there). `transit_calendar` confirmed NOT affected by reading (not
+assuming) `detectBodyEvents` in `generate-transit-calendar.mjs`: it
+finds ingresses via a direct day-over-day sign comparison and stations
+via a direct retrograde-flag comparison, with no aspect classification
+or sign-distance prefilter for any day to be excluded from — the bug's
+mechanism has no equivalent there.
+
+`aspect_calendar` regenerated with the fix: row count unchanged, 4,607
+(the fix changes WHICH rows have an exact_date and their ids, not the
+total window count). 189 ids changed (some are the 178 flips
+themselves; the rest are pass-number ripple effects within aspect
+passages where a sibling window's flip changed the passage's own total
+pass count). The remaining 4,418 shared ids were diffed field-for-field
+against the pre-fix table and reproduce identically — zero mismatches.
+`generate-aspect-calendar.mjs` also gained a permanent stale-ID cleanup
+step: its upsert-by-id could never remove a row whose id changed under
+a logic fix, which would otherwise leave orphaned rows behind on any
+future regeneration (caught during this same regeneration — a first
+draft of the cleanup query itself had an unpaginated Supabase read
+silently capped at the default 1,000-row limit, leaving 167 orphans
+behind briefly before being caught and corrected).
