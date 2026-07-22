@@ -1,7 +1,8 @@
 // Phase 3: assembles the Call 1 USER MESSAGE FORMAT block for one
-// (chart, transiting body) pair, exactly per docs/TRANSIT_C_CALL_1_v3.md
-// section 29 (including the NODES VARIANT), using engine-minted IDs from
-// contact-engine.mjs.
+// (chart, transiting body) pair, conformed field-for-field to the two
+// authored format templates -- docs/brief-template-planet.md and
+// docs/brief-template-nodes.md, the binding structural contract -- using
+// engine-minted IDs from contact-engine.mjs.
 //
 // ENTRY/ACTIVATION MODEL (per the founder's restructure ruling): a brief's
 // timeline has exactly two entry kinds -- NATAL_CONTACT and SKY_CONTACT.
@@ -29,12 +30,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 import {
-  extractNatalPoints, computeContactWindows, contactAnchorDate,
+  SIGNS, extractNatalPoints, computeContactWindows, contactAnchorDate,
   windowOverlaps, natalCopresence, skyCopresenceSpans, eclipseCatches,
   mintContactId, mintAxisContactId, labelAxisContact, houseOfSign,
-  isSlowPair, mintActivationId, mintEclipseTransitActivationId,
+  isSlowPair, SLOW_BODIES, mintActivationId, mintEclipseTransitActivationId,
   assertSignConsonant, filterAndGroupForPassage, findActivationAnchor,
-  computeShape,
+  computeShapeSegments,
 } from './contact-engine.mjs';
 
 const supabase = createClient(
@@ -93,18 +94,29 @@ async function fetchCurrentPhaseRow(body) {
 async function fetchBodyRowAtDate(body, date) {
   const { data, error } = await supabase
     .from('transit_calendar')
-    .select('event_type, degree').eq('body', body).eq('date', date).maybeSingle();
+    .select('event_type, degree, sign').eq('body', body).eq('date', date).maybeSingle();
   if (error) throw new Error(error.message);
   return data;
 }
 
-async function fetchBodyStationRows(body) {
+// Every transit_calendar row for a body across a passage's own bounds (any
+// sign), used to build SHAPE's per-segment timeline -- see computeShapeSegments.
+async function fetchBodyRowsInRange(body, start, end) {
   const { data, error } = await supabase
     .from('transit_calendar')
-    .select('date, event_type, sign')
-    .eq('body', body)
-    .in('event_type', ['station_retrograde', 'station_direct'])
+    .select('date, event_type, sign, degree')
+    .eq('body', body).gte('date', start).lte('date', end)
     .order('date', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Nodes row at a specific date, for SHAPE's single closing line (needs the
+// incoming axis' sign pair, not just a single body's sign).
+async function fetchNodesRowAtDate(date) {
+  const { data, error } = await supabase
+    .from('transit_calendar')
+    .select('north_sign, south_sign').eq('body', 'Nodes').eq('date', date).maybeSingle();
   if (error) throw new Error(error.message);
   return data;
 }
@@ -148,14 +160,23 @@ async function fetchEclipsesInRange(start, end) {
 // 2023-01-01) -- not currently true of Saturn, Mercury, or Nodes, but
 // handled rather than left to crash if it ever is.
 
+// SHAPE (planet variant): the structured per-segment timeline required by
+// docs/brief-template-planet.md -- see computeShapeSegments. Nodes never
+// station (mean node, constant retrograde motion) and is handled entirely
+// separately in assembleBrief() (its own single-line SHAPE needs the
+// incoming axis' sign pair, not a body-row sequence).
 async function describePassage(currentRow) {
   const firstIngress = currentRow.passage_first_ingress_date;
   const finalEgress = currentRow.sign_egress_date;
-  // Nodes never station (mean node, constant retrograde motion) -- no
-  // episodes are possible, so skip the query entirely.
-  const shape = currentRow.body === 'Nodes'
-    ? 'single phase -- the axis does not station'
-    : computeShape(await fetchBodyStationRows(currentRow.body), firstIngress, finalEgress);
+  // Nodes' SHAPE is a single axis-aware line built separately in
+  // assembleBrief() (it needs the incoming axis' sign pair, not a body-row
+  // sequence) -- no station/ingress rows to walk here.
+  if (currentRow.body === 'Nodes') {
+    return { ingressDate: firstIngress, ingressDirect: firstIngress !== null ? true : null, egressDate: finalEgress, shape: null };
+  }
+  const shapeRangeStart = firstIngress ?? '2023-01-01';
+  const shapeRows = await fetchBodyRowsInRange(currentRow.body, shapeRangeStart, finalEgress);
+  const shape = computeShapeSegments(shapeRows, currentRow.sign);
   return {
     ingressDate: firstIngress,
     ingressDirect: firstIngress !== null ? true : null,
@@ -164,11 +185,31 @@ async function describePassage(currentRow) {
   };
 }
 
+// OPENED_BY vocabulary: ingress | re-ingress | retro-ingress | station
+// retrograde | station direct -- whatever trigger row the piece's CURRENT
+// phase actually opened with (always this sign's own passage, so
+// retro-ingress is a real, expected case here, not just a SHAPE-only word).
 function eventLabel(eventType, degree) {
-  if (eventType === 'ingress' || eventType === 'retro_ingress') return 'ingress';
+  if (eventType === 'ingress') return 'ingress';
+  if (eventType === 're_ingress') return 're-ingress';
+  if (eventType === 'retro_ingress') return 'retro-ingress';
   if (eventType === 'station_retrograde') return `station retrograde at ${degree.toFixed(1)}°`;
   if (eventType === 'station_direct') return `station direct at ${degree.toFixed(1)}°`;
   return eventType;
+}
+
+// CLOSES: from the current phase's own sign, ANY departure -- a true
+// forward egress or a backward retro-ingress dip alike -- reads uniformly
+// as "egress to {sign}" (the template's own only CLOSES example uses this
+// wording; "re-ingress" is an arrival word, and only ever names an
+// OPENED_BY trigger, never a CLOSES one). No sign change means an in-sign
+// station, named with degree as before.
+function closesLabelFor(currentRow, closesRow) {
+  if (!closesRow) return 'egress';
+  if (closesRow.sign !== currentRow.sign) return `egress to ${closesRow.sign}`;
+  if (closesRow.event_type === 'station_retrograde') return `station retrograde at ${closesRow.degree.toFixed(1)}°`;
+  if (closesRow.event_type === 'station_direct') return `station direct at ${closesRow.degree.toFixed(1)}°`;
+  return closesRow.event_type;
 }
 
 // ── Contact gathering ────────────────────────────────────────────────────
@@ -231,6 +272,19 @@ function computeStatus(row, phaseStart, phaseEnd, siblingRows) {
   return hasLaterExact ? 'no exact this phase -- perfects on a later pass' : 'no exact this passage';
 }
 
+// SKY_CONTACT STATUS must derive from the same phase-boundary check DATES
+// already uses -- previously it only checked "does an exact date exist at
+// all," so a sky aspect whose exact date falls outside the phase (DATES
+// correctly says "no exact this phase") could still say STATUS: perfects
+// this phase, a real contradiction found in live output (a
+// mercury-sextile-venus entry). Sky-sky aspects don't have "passage"
+// semantics the way natal contacts do, so the wording stays the sky
+// contact's own ("no exact this phase"), not computeStatus's natal phrasing.
+function computeSkyStatus(sky, phaseStart, phaseEnd) {
+  const exactInPhase = !!sky.exact_date && sky.exact_date >= phaseStart && sky.exact_date <= phaseEnd;
+  return exactInPhase ? 'perfects this phase' : 'no exact this phase';
+}
+
 function aspectLabelFor(c, focusBody) {
   if (c.axisInvolved) return labelAxisContact(c.dist, focusBody === 'Nodes', c.point).label;
   return `${c.aspect} natal ${c.point.name}`;
@@ -259,20 +313,44 @@ function shortDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
-function formatCopresentNatal(matches) {
+function formatCopresentNatal(matches, risingKnown) {
   if (matches.length === 0) return 'none';
-  return matches.map(p => `${p.name} ${p.degree.toFixed(1)}° (${p.house ?? 'house unknown'})`).join(', ');
+  return matches.map(p => `${p.name} ${p.degree.toFixed(1)}°${risingKnown ? ` (${p.house ?? 'house unknown'})` : ''}`).join(', ');
 }
 
 function formatCopresentSky(spansByBody, phaseStart, phaseEnd) {
   const entries = [];
   for (const [body, spans] of spansByBody) {
     for (const sp of spans) {
+      const label = sp.label ?? body;
       const full = sp.start <= phaseStart && sp.end >= phaseEnd;
-      entries.push(full ? `${body} (all phase)` : `${body} (${shortDate(sp.start)} – ${shortDate(sp.end)})`);
+      entries.push(full ? `${label} (all phase)` : `${label} (${shortDate(sp.start)} – ${shortDate(sp.end)})`);
     }
   }
   return entries.length ? entries.join(', ') : 'none';
+}
+
+// The transiting Nodes never appear in ALL_BODIES (they're computed from
+// 'North Node' sky_positions rows, same as elsewhere in this file); South
+// Node's sign is always the opposite sign, derived, never queried directly.
+// Only used when focusBody itself isn't Nodes (checking the axis against
+// itself is meaningless).
+function nodesCopresenceSpans(northSeries, transitedSign) {
+  const spans = [];
+  let runStart = null, runEnd = null, runLabel = null;
+  for (const row of northSeries) {
+    const southSign = SIGNS[(SIGNS.indexOf(row.sign) + 6) % 12];
+    const label = row.sign === transitedSign ? 'North Node' : southSign === transitedSign ? 'South Node' : null;
+    if (label) {
+      if (!runStart) { runStart = row.date; runLabel = label; }
+      runEnd = row.date;
+    } else if (runStart) {
+      spans.push({ start: runStart, end: runEnd, label: runLabel });
+      runStart = null;
+    }
+  }
+  if (runStart) spans.push({ start: runStart, end: runEnd, label: runLabel });
+  return spans;
 }
 
 // ── Activation-fact rendering (STEP 6) ──────────────────────────────────
@@ -281,32 +359,63 @@ function formatCopresentSky(spansByBody, phaseStart, phaseEnd) {
 // degree band) while the host contact was in orb -- a deterministic form
 // of the practitioner's trigger-transit judgment. DATE is the anchor:
 // the day of closest approach within the shared span (ties resolve to
-// the earlier day). When the sky aspect's own literal perfection falls
-// outside the host contact's orb window, that's stated explicitly.
+// the earlier day). Every activation shows BOTH legs: SKY_ASPECT (the
+// third body vs. the piece's planet) and NATAL_ASPECT (that same third
+// body's own contact to the natal point being activated) -- per
+// docs/brief-template-planet.md. When the sky aspect's own literal
+// perfection falls outside the host contact's orb window, that's stated
+// explicitly, directionally: "before this contact begins" when perfection
+// precedes the host window opening, "after this contact separates" when
+// it follows the close.
 
 function formatActivationFact(fact) {
-  const { id, otherBody, sky, anchorDate, perfectsOutsideHostOrb } = fact;
+  const {
+    id, otherBody, sky, anchorDate, perfectsBeforeHostOrb, perfectsAfterHostOrb,
+    natalAspect, pointName, motionState,
+  } = fact;
   const motionLine = `(${sky.body_1} ${sky.body_1_retrograde ? 'retrograde' : 'direct'}, ${sky.body_2} ${sky.body_2_retrograde ? 'retrograde' : 'direct'})`;
   const perfectionNote = sky.exact_date
-    ? perfectsOutsideHostOrb
-      ? `; perfects ${sky.exact_date}, after this contact separates`
-      : `; perfects ${sky.exact_date}`
+    ? perfectsBeforeHostOrb
+      ? `; perfects ${sky.exact_date}, before this contact begins`
+      : perfectsAfterHostOrb
+        ? `; perfects ${sky.exact_date}, after this contact separates`
+        : `; perfects ${sky.exact_date}`
     : '; no exact in this window';
   const skyLine = `${otherBody} ${sky.event} the piece's planet, within 1° on ${anchorDate}${perfectionNote} ${motionLine}`;
+  const natalLine = `${otherBody} ${natalAspect.aspect} natal ${pointName}, ${natalAspect.exactDate ? `exact ${natalAspect.exactDate}` : 'no exact'} (${otherBody} ${motionState})`;
   return (
 `      - ID: ${id}
         BODY: ${otherBody}
         SKY_ASPECT: ${skyLine}
+        NATAL_ASPECT: ${natalLine}
         DATE: ${anchorDate}`
   );
 }
 
-function formatEclipseTransitFact(fact) {
+// Shared by both the Nodes piece's own ECLIPSE entries and the planet
+// variant's ECLIPSE_ACTIVATION entries: "conjunct"/"opposite the eclipse
+// degree" per which end of the lunation axis caught the point; an end with
+// nothing caught is omitted rather than stated as empty.
+function formatNatalCaughtField(catches, risingKnown) {
+  if (catches.length === 0) return 'none';
+  return catches
+    .map(c => `${c.name} (${c.degree.toFixed(1)}° ${c.sign}${risingKnown && c.house ? `, ${c.house}` : ''}) ${c.end === 'same sign as eclipse' ? 'conjunct' : 'opposite'} the eclipse degree`)
+    .join('; ');
+}
+
+// A standalone TIMELINE entry (TYPE: ECLIPSE_ACTIVATION) for a non-Nodes
+// piece: an eclipse landing within 3 deg of the piece's planet on eclipse
+// day. NATAL_CAUGHT here checks ALL 13 natal points (not just the focus
+// body) against the eclipse degree.
+function formatEclipseActivationEntry(entry) {
+  const { id, eclipse, catches, risingKnown, house } = entry;
+  const houseText = risingKnown ? `, ${house}` : '';
   return (
-`      - ID: ${fact.id}
-        ECLIPSE: ${fact.eclipse.event}, ${fact.eclipse.exact_date}, ${fact.eclipse.exact_degree.toFixed(1)}° ${fact.eclipse.body_1_sign}
-        TRANSITING_POSITION: ${fact.focusDegree.toFixed(1)}° ${fact.focusSign} (${fact.end})
-        DATE: ${fact.eclipse.exact_date}`
+`  - ID: ${id}
+    TYPE: ECLIPSE_ACTIVATION
+    ECLIPSE: ${eclipse.event}, ${eclipse.exact_date}, ${eclipse.exact_degree.toFixed(1)}° ${eclipse.body_1_sign}${houseText}
+    DATES: eclipse falls within 3° of the piece's planet on ${eclipse.exact_date}
+    NATAL_CAUGHT: ${formatNatalCaughtField(catches, risingKnown)}`
   );
 }
 
@@ -318,6 +427,11 @@ export async function assembleBrief(focusBody) {
   const natalPoints = extractNatalPoints(reading.chart_data);
   const ascSign = natalPoints.find(p => p.name === 'Ascendant').sign;
   const risingKnown = reading.birth_time_known ?? true;
+  // Unknown birth time: natal Moon CONTACTS are excluded entirely (its
+  // degree is uncertain by more than the active orb) -- SPEC.md 3.5. This
+  // scopes only the contact/timeline computation; copresence (sign-level,
+  // no degree precision needed) is unaffected.
+  const contactNatalPoints = risingKnown ? natalPoints : natalPoints.filter(p => p.name !== 'Moon');
 
   const currentRow = await fetchCurrentPhaseRow(focusBody);
   const passage = await describePassage(currentRow);
@@ -341,7 +455,7 @@ export async function assembleBrief(focusBody) {
   // and grouped by (point, aspect) for passage-scoped window/pass counts
   // (STEP 2 Bug A/B fix + STEP 4; STEP 3 guard 2 runs inside
   // filterAndGroupForPassage).
-  const rawContactsByPoint = computeRawContactsByPoint(focusBody, series, natalPoints);
+  const rawContactsByPoint = computeRawContactsByPoint(focusBody, series, contactNatalPoints);
   const byAspectKey = new Map(); // "PointName|aspectKey" -> enriched rows, this passage only
   const passageContactsFlat = [];
   for (const [pointName, rows] of rawContactsByPoint) {
@@ -357,7 +471,6 @@ export async function assembleBrief(focusBody) {
   const timelineNatal = passageContactsFlat.filter(c =>
     contactAnchorDate(c) >= phaseStart && contactAnchorDate(c) <= phaseEnd,
   );
-  const timelineNatalSet = new Set(timelineNatal);
 
   // ── Sky aspects: classify into SLOW-always-entries, FAST-activation-only,
   // FAST-atmospheric-entries. Also collect activation facts keyed by the
@@ -387,17 +500,30 @@ export async function assembleBrief(focusBody) {
     for (const fc of focusOverlaps) {
       const otherSeries = await fetchSeriesRange(otherBody, fc.windowStart, fc.windowEnd);
       const otherRows = computeContactWindows(otherSeries, fc.point, fc.point.isAxis);
-      const otherHasOwnContact = otherRows.some(oc =>
+      const otherOwnContact = otherRows.find(oc =>
         windowOverlaps(oc, skyStart, skyEnd) && windowOverlaps(oc, fc.windowStart, fc.windowEnd));
-      if (!otherHasOwnContact) continue; // leg A
+      if (!otherOwnContact) continue; // leg A
 
       const focusSlice = series.filter(r => r.date >= fc.windowStart && r.date <= fc.windowEnd);
       const anchorDate = findActivationAnchor(focusSlice, otherSeries, sky.event, fc.windowStart, fc.windowEnd);
       if (!anchorDate) continue; // leg B
 
-      const perfectsOutsideHostOrb = !!sky.exact_date && (sky.exact_date < fc.windowStart || sky.exact_date > fc.windowEnd);
+      const perfectsBeforeHostOrb = !!sky.exact_date && sky.exact_date < fc.windowStart;
+      const perfectsAfterHostOrb = !!sky.exact_date && sky.exact_date > fc.windowEnd;
       const id = mintActivationId(sky.id, fc.point.name);
-      facts.push({ natalContact: fc, fact: { id, otherBody, sky, anchorDate, perfectsOutsideHostOrb } });
+      // NATAL_ASPECT's motion state: otherBody's own state at ITS aspect's
+      // exact date when it perfects, else at the activation's anchor date
+      // (the only concrete reference point a no-exact contact has).
+      const motionRefDate = otherOwnContact.exactDate ?? anchorDate;
+      const motionRow = otherSeries.find(r => r.date === motionRefDate);
+      const motionState = motionRow ? (motionRow.retrograde ? 'retrograde' : 'direct') : 'unknown';
+      facts.push({
+        natalContact: fc,
+        fact: {
+          id, otherBody, sky, anchorDate, perfectsBeforeHostOrb, perfectsAfterHostOrb,
+          natalAspect: otherOwnContact, pointName: fc.point.name, motionState,
+        },
+      });
     }
 
     if (slowPair) {
@@ -413,58 +539,51 @@ export async function assembleBrief(focusBody) {
     }
   }
 
-  // ── Eclipse-to-transit activations (RULING 4): eclipses within the phase
+  // ── Eclipse-to-transit entries (RULING 4): eclipses within the phase
   // whose degree is sign-consonant + within 3 deg of the focus body's OWN
-  // position on eclipse day (either end of the lunation axis). Nodes piece
-  // keeps its own full eclipse itinerary unchanged (not this mechanism).
-  const eclipseFactsByEntry = new Map(); // entry (natal or sky row) -> [fact]
-  const eclipsePhaseLevelFacts = [];
+  // position on eclipse day (either end of the lunation axis) become their
+  // own standalone TIMELINE entries (TYPE: ECLIPSE_ACTIVATION), sorted into
+  // the timeline like anything else -- never nested inside another entry.
+  // Nodes piece keeps its own full eclipse itinerary unchanged (not this
+  // mechanism).
+  const eclipseActivationEntries = [];
   if (focusBody !== 'Nodes') {
     const eclipses = await fetchEclipsesInRange(phaseStart, phaseEnd);
     for (const ec of eclipses) {
       const dayRow = series.find(r => r.date === ec.exact_date);
       if (!dayRow) continue;
       const pseudoPoint = [{ name: focusBody, isAxis: false, sign: dayRow.sign, degree: dayRow.sign_degree, house: null }];
-      const catches = eclipseCatches(ec, pseudoPoint);
-      if (catches.length === 0) continue;
+      const focusCatches = eclipseCatches(ec, pseudoPoint);
+      if (focusCatches.length === 0) continue;
       const id = mintEclipseTransitActivationId(ec.id, focusBody);
-      const fact = { id, eclipse: ec, focusSign: dayRow.sign, focusDegree: dayRow.sign_degree, end: catches[0].end };
-      // attach to the live entry (natal or sky) whose window contains eclipse date, else phase-level
-      const liveNatal = timelineNatal.find(c => c.windowStart <= ec.exact_date && c.windowEnd >= ec.exact_date);
-      const liveSky = skyContactEntries.find(e => (e.sky.window_start ?? e.sky.exact_date) <= ec.exact_date && (e.sky.window_end ?? e.sky.exact_date) >= ec.exact_date);
-      if (liveNatal) {
-        if (!eclipseFactsByEntry.has(liveNatal)) eclipseFactsByEntry.set(liveNatal, []);
-        eclipseFactsByEntry.get(liveNatal).push(fact);
-      } else if (liveSky) {
-        if (!eclipseFactsByEntry.has(liveSky)) eclipseFactsByEntry.set(liveSky, []);
-        eclipseFactsByEntry.get(liveSky).push(fact);
-      } else {
-        eclipsePhaseLevelFacts.push(fact);
-      }
+      const catches = eclipseCatches(ec, natalPoints);
+      eclipseActivationEntries.push({
+        id, eclipse: ec, catches, risingKnown, house: houseOfSign(ec.body_1_sign, ascSign),
+      });
     }
   }
 
   // ── Render TIMELINE blocks ──
   const timelineBlocks = [];
+  const showWindowPass = focusBody !== 'Nodes'; // Nodes' single non-stationing passage makes every axis contact a single pass -- no WINDOW/PASS lines ever (per docs/brief-template-nodes.md)
 
   for (const c of timelineNatal) {
     const aspectKey = `${c.key}|${c.axisInvolved ? `axis-dist${c.dist}` : c.aspect}`;
     const siblings = byAspectKey.get(aspectKey);
     const activations = activationsByNatalRow.get(c) ?? [];
-    const eclipseFacts = eclipseFactsByEntry.get(c) ?? [];
-    const windowLine = c.passageWindowCount > 1 ? `\n    WINDOW: ${c.passageWindowIndex} of ${c.passageWindowCount} this passage` : '';
-    const passLine = c.exactDate && c.passagePassCount > 1 ? `\n    PASS: ${c.passagePassIndex} of ${c.passagePassCount} this passage` : '';
+    const windowLine = showWindowPass ? `\n    WINDOW: ${c.passageWindowIndex} of ${c.passageWindowCount} this passage` : '';
+    const passLine = showWindowPass
+      ? `\n    PASS: ${c.exactDate ? `${c.passagePassIndex} of ${c.passagePassCount} this passage` : '(none this window)'}`
+      : '';
+    const houseText = risingKnown ? `, ${c.point.house ?? 'house unknown'}` : '';
     let block =
 `  - ID: ${idFor(c, focusBody)}
     TYPE: NATAL_CONTACT
-    ASPECT: ${c.axisInvolved ? aspectLabelFor(c, focusBody) : `${c.aspect} natal ${c.point.name} (${c.point.degree.toFixed(1)}° ${c.point.sign}, ${c.point.house ?? 'house unknown'})`}
+    ASPECT: ${c.axisInvolved ? aspectLabelFor(c, focusBody) : `${c.aspect} natal ${c.point.name} (${c.point.degree.toFixed(1)}° ${c.point.sign}${houseText})`}
     DATES: ${formatContactDates(c, phaseStart, phaseEnd)}${windowLine}${passLine}
     STATUS: ${computeStatus(c, phaseStart, phaseEnd, siblings)}`;
     if (activations.length) {
       block += `\n    ACTIVATIONS:\n${activations.map(formatActivationFact).join('\n')}`;
-    }
-    if (eclipseFacts.length) {
-      block += `\n    ECLIPSE_ACTIVATIONS:\n${eclipseFacts.map(formatEclipseTransitFact).join('\n')}`;
     }
     timelineBlocks.push({ date: contactAnchorDate(c), text: block });
   }
@@ -472,75 +591,64 @@ export async function assembleBrief(focusBody) {
   for (const entry of skyContactEntries) {
     const { sky, otherBody, atmospheric } = entry;
     const anchor = sky.exact_date ?? sky.window_start;
-    const eclipseFacts = eclipseFactsByEntry.get(entry) ?? [];
     const skyDates = formatBoundaryDates(sky.window_start, sky.window_end, sky.exact_date, phaseStart, phaseEnd);
     const skyPassLine = sky.exact_date && sky.pass_m > 1 ? `\n    PASS: ${sky.pass_n} of ${sky.pass_m} this passage` : '';
-    let block =
+    const block =
 `  - ID: ${sky.id}
     TYPE: SKY_CONTACT
     ASPECT: ${sky.event === 'conjunction' ? 'conjunct' : sky.event} transiting ${otherBody}
     DATES: ${skyDates}${skyPassLine}
-    STATUS: ${sky.exact_date ? 'perfects this phase' : 'no exact this phase'}${atmospheric ? '\n    TETHER: atmospheric -- no natal point caught' : ''}`;
-    if (eclipseFacts.length) {
-      block += `\n    ECLIPSE_ACTIVATIONS:\n${eclipseFacts.map(formatEclipseTransitFact).join('\n')}`;
-    }
+    STATUS: ${computeSkyStatus(sky, phaseStart, phaseEnd)}${atmospheric ? '\n    TETHER: atmospheric -- no natal point caught' : ''}`;
     timelineBlocks.push({ date: anchor, text: block });
+  }
+
+  for (const entry of eclipseActivationEntries) {
+    timelineBlocks.push({ date: entry.eclipse.exact_date, text: formatEclipseActivationEntry(entry) });
   }
 
   timelineBlocks.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 
-  // ── PASSAGE_CONTACTS (undated summary, outside this phase, within the
-  // passage; grouped by point+aspect -- STEP 2 Bug B fix -- so a sextile
-  // and a square to the same point can never be merged into one falsely-
-  // summed line, and windows/passes are labeled and counted independently
-  // per STEP 4). ──
-  const passageContactsLines = [];
-  for (const rows of byAspectKey.values()) {
-    const outside = rows.filter(r => !timelineNatalSet.has(r));
-    if (outside.length === 0) continue;
-    const sample = outside[0];
-    const label = sample.axisInvolved ? labelAxisContact(sample.dist, focusBody === 'Nodes', sample.point).label : `${sample.aspect} natal ${sample.point.name}`;
-    const passCount = sample.passagePassCount ?? 0;
-    const windowCount = sample.passageWindowCount;
-    const windowNote = windowCount > 1 ? ` across ${windowCount} windows` : '';
-    const passesText = passCount > 0 ? `${passCount} pass${passCount === 1 ? '' : 'es'}${windowNote} total this passage` : 'no exact this passage';
-    passageContactsLines.push(`${label}, ${passesText}`);
-  }
-
   // ── Copresence ──
-  const natalCop = focusBody === 'Nodes'
-    ? `North Node end: ${formatCopresentNatal(natalCopresence(currentRow.north_sign, natalPoints))}; South Node end: ${formatCopresentNatal(natalCopresence(currentRow.south_sign, natalPoints))}`
-    : formatCopresentNatal(natalCopresence(currentRow.sign, natalPoints));
+  // COPRESENT_NATAL doesn't exist for the Nodes variant at all (per
+  // docs/brief-template-nodes.md) -- the axis-to-natal relationship is
+  // carried entirely by timeline contacts instead.
+  const natalCop = focusBody === 'Nodes' ? null : formatCopresentNatal(natalCopresence(currentRow.sign, natalPoints), risingKnown);
 
   const skySpans = new Map();
   for (const body of ALL_BODIES) {
-    if (body === focusBody) continue;
+    if (!SLOW_BODIES.has(body) || body === focusBody) continue;
     const otherSeries = await fetchSeriesRange(body, phaseStart, phaseEnd);
     const signsToCheck = focusBody === 'Nodes' ? [currentRow.north_sign, currentRow.south_sign] : [currentRow.sign];
     const spans = [];
     for (const sgn of signsToCheck) spans.push(...skyCopresenceSpans(otherSeries, sgn));
     if (spans.length) skySpans.set(body, spans);
   }
+  if (focusBody !== 'Nodes') {
+    const nodeSeries = await fetchSeriesRange('North Node', phaseStart, phaseEnd);
+    const nodeSpans = nodesCopresenceSpans(nodeSeries, currentRow.sign);
+    if (nodeSpans.length) skySpans.set('Nodes', nodeSpans);
+  }
   const skyCop = formatCopresentSky(skySpans, phaseStart, phaseEnd);
 
   // ── Assemble the message ──
   const lines = [];
   if (focusBody === 'Nodes') {
+    const nextNodesRow = await fetchNodesRowAtDate(passage.egressDate);
     lines.push(`PLANET: Nodes`);
-    lines.push(`AXIS: ${currentRow.north_sign} — ${currentRow.south_sign}`);
+    lines.push(`AXIS: North Node ${currentRow.north_sign} — South Node ${currentRow.south_sign}`);
     if (risingKnown) lines.push(`HOUSES: North Node ${houseOfSign(currentRow.north_sign, ascSign)}, South Node ${houseOfSign(currentRow.south_sign, ascSign)}`);
     lines.push(`RISING_SIGN_KNOWN: ${risingKnown}`);
     lines.push('');
     lines.push('PASSAGE:');
     lines.push(`  INGRESS: ${passage.ingressDate}`);
     lines.push(`  EGRESS: ${passage.egressDate}`);
-    lines.push(`  SHAPE: single phase -- the axis does not station`);
+    lines.push('  SHAPE:');
+    lines.push(`    - ingress ${passage.ingressDate}, closed by egress to North Node ${nextNodesRow.north_sign} / South Node ${nextNodesRow.south_sign} on ${passage.egressDate}`);
     lines.push('');
     lines.push('PHASE:');
     lines.push(`  INGRESS: ${passage.ingressDate}`);
     lines.push(`  EGRESS: ${passage.egressDate}`);
     lines.push('');
-    lines.push(`COPRESENT_NATAL: ${natalCop}`);
     lines.push(`COPRESENT_SKY: ${skyCop}`);
     lines.push('');
     lines.push('TIMELINE:');
@@ -558,10 +666,8 @@ export async function assembleBrief(focusBody) {
     DATE: ${e.exact_date}
     POINT: ${e.exact_degree.toFixed(1)}° ${e.body_1_sign}${risingKnown ? `, ${houseOfSign(e.body_1_sign, ascSign)}` : ''}
     CONFIGURATION: ${config}
-    NATAL_CAUGHT: ${catches.length ? catches.map(c => `${c.name} (${c.house ?? 'house unknown'}, ${c.end})`).join(', ') : 'none'}`);
+    NATAL_CAUGHT: ${formatNatalCaughtField(catches, risingKnown)}`);
     }
-    lines.push('');
-    lines.push('PASSAGE_CONTACTS: not used -- the single phase contains the whole passage');
   } else {
     lines.push(`PLANET: ${focusBody}`);
     lines.push(`SIGN: ${currentRow.sign}`);
@@ -570,38 +676,35 @@ export async function assembleBrief(focusBody) {
     lines.push('');
     lines.push('PASSAGE:');
     const ingressPhrase = passage.ingressDate !== null
-      ? `${passage.ingressDate}, entering direct`
+      ? passage.ingressDate
       : 'predates tracked data (before 2023-01-01), direction unknown';
     lines.push(`  INGRESS: ${ingressPhrase}`);
     lines.push(`  EGRESS: ${passage.egressDate}`);
-    lines.push(`  SHAPE: ${passage.shape}`);
+    if (passage.shape.length <= 1) {
+      lines.push(`  SHAPE: ${passage.shape[0] ?? ''}`);
+    } else {
+      lines.push('  SHAPE:');
+      passage.shape.forEach(seg => lines.push(`    - ${seg}`));
+    }
     lines.push('');
     lines.push('PHASE:');
     const motion = currentRow.event_type === 'station_retrograde' || currentRow.event_type === 'retro_ingress' ? 'RETROGRADE' : 'FORWARD';
     lines.push(`  MOTION: ${motion}`);
     lines.push(`  OPENED_BY: ${eventLabel(currentRow.event_type, currentRow.degree)} on ${currentRow.date}`);
     const closesRow = phaseEnd ? await fetchBodyRowAtDate(focusBody, phaseEnd) : null;
-    const closesLabel = closesRow ? eventLabel(closesRow.event_type, closesRow.degree) : 'egress';
-    lines.push(`  CLOSES: ${closesLabel} on ${phaseEnd}`);
+    lines.push(`  CLOSES: ${closesLabelFor(currentRow, closesRow)} on ${phaseEnd}`);
     lines.push('');
     lines.push(`COPRESENT_NATAL: ${natalCop}`);
     lines.push(`COPRESENT_SKY: ${skyCop}`);
     lines.push('');
     lines.push('TIMELINE:');
     timelineBlocks.forEach(b => lines.push(b.text));
-    lines.push('');
-    lines.push(`PASSAGE_CONTACTS: ${passageContactsLines.length ? passageContactsLines.join('; ') : 'none beyond this phase'}`);
-    if (eclipsePhaseLevelFacts.length) {
-      lines.push('');
-      lines.push('PHASE_LEVEL_ECLIPSE_ACTIVATIONS (no live entry to attach to this phase):');
-      eclipsePhaseLevelFacts.forEach(f => lines.push(formatEclipseTransitFact(f)));
-    }
   }
 
   const natalCount = timelineNatal.length;
   const skyCount = skyContactEntries.length;
   const activationCount = [...activationsByNatalRow.values()].reduce((s, a) => s + a.length, 0);
-  const eclipseFactCount = [...eclipseFactsByEntry.values()].reduce((s, a) => s + a.length, 0) + eclipsePhaseLevelFacts.length;
+  const eclipseFactCount = eclipseActivationEntries.length;
 
   return { text: lines.join('\n'), counts: { natalCount, skyCount, activationCount, eclipseFactCount, totalEntries: natalCount + skyCount } };
 }

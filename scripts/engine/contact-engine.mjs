@@ -315,6 +315,62 @@ export function computeShape(stationRows, firstIngress, finalEgress) {
   return `${n} retrograde episodes across this passage, ${m === 0 ? 'none of which' : `${m} of which`} carried the body out of the sign and back`;
 }
 
+// ── Passage SHAPE, structured per-segment form (per docs/brief-template-planet.md) ──
+//
+// Walks every motion segment across a passage's own bounds (first ingress to
+// true final egress) in order, including any out-of-sign retrograde dip --
+// membership answers "whose passage is this row," this answers "what
+// happened during this span," same distinction as computeShape above, just
+// rendered as the template's per-segment timeline instead of a summary
+// sentence. Each line names the segment's own opening trigger (degree
+// omitted -- already stated by the prior segment's own closing phrase),
+// tagged [out of sign] whenever the segment's own recorded sign isn't the
+// passage being described, followed by what closes it (the very next
+// trigger in the body's full event sequence). A clean (no-dip) passage
+// collapses to a single line, per the template's own note.
+//
+// bodyRows: every transit_calendar row for ONE body (any sign), date
+// ascending, spanning from the passage's own first-ingress row through its
+// own true-final-egress row (the next sign's ingress-type row, dated at
+// sign_egress_date) -- both endpoints included.
+export function computeShapeSegments(bodyRows, passageSign) {
+  function openingLabel(row) {
+    const outOfSign = row.sign !== passageSign;
+    const tag = outOfSign ? ' [out of sign]' : '';
+    if (row.event_type === 'ingress') return `ingress direct${tag} ${row.date}`;
+    if (row.event_type === 're_ingress') return `re-ingress direct${tag} ${row.date}`;
+    if (row.event_type === 'retro_ingress') return `retro-ingress to ${row.sign}${tag} ${row.date}`;
+    if (row.event_type === 'station_retrograde') return `station retrograde${outOfSign ? ` in ${row.sign}` : ''}${tag} ${row.date}`;
+    if (row.event_type === 'station_direct') return `station direct${outOfSign ? ` in ${row.sign}` : ''}${tag} ${row.date}`;
+    return `${row.event_type}${tag} ${row.date}`;
+  }
+
+  // "closed by" is phrased from the CURRENT segment's own sign: any sign
+  // change reads as "egress to {sign}", EXCEPT arriving back at the
+  // passage's own home sign, which reads as "re-ingress to {sign}" instead
+  // (the return leg of a dip). No sign change means an in-sign station,
+  // named with its degree (and its own sign, only when that sign isn't the
+  // passage's home sign -- the degree was never stated before this point).
+  function closingPhrase(fromRow, toRow) {
+    if (toRow.sign !== fromRow.sign) {
+      return toRow.sign === passageSign ? `re-ingress to ${toRow.sign}` : `egress to ${toRow.sign}`;
+    }
+    const outOfSign = toRow.sign !== passageSign;
+    const degreeText = `${toRow.degree.toFixed(1)}°${outOfSign ? ` ${toRow.sign}` : ''}`;
+    if (toRow.event_type === 'station_retrograde') return `station retrograde at ${degreeText}`;
+    if (toRow.event_type === 'station_direct') return `station direct at ${degreeText}`;
+    return toRow.event_type;
+  }
+
+  const segments = [];
+  for (let i = 0; i < bodyRows.length - 1; i++) {
+    const from = bodyRows[i];
+    const to = bodyRows[i + 1];
+    segments.push(`${openingLabel(from)}, closed by ${closingPhrase(from, to)} on ${to.date}`);
+  }
+  return segments;
+}
+
 // ── Standing structural guards (STEP 3) ───────────────────────────────
 //
 // Both guards below are verification, not filters: they hard-throw if a
@@ -519,8 +575,8 @@ export function eclipseCatches(eclipseRow, natalPoints, orb = 3) {
   const catches = [];
 
   function check(name, sign, pointDegree, extra) {
-    if (sign === signA && Math.abs(pointDegree - deg) <= orb) catches.push({ name, end: 'same sign as eclipse', ...extra });
-    if (sign === signB && Math.abs(pointDegree - deg) <= orb) catches.push({ name, end: 'opposite sign from eclipse', ...extra });
+    if (sign === signA && Math.abs(pointDegree - deg) <= orb) catches.push({ name, sign, degree: pointDegree, end: 'same sign as eclipse', ...extra });
+    if (sign === signB && Math.abs(pointDegree - deg) <= orb) catches.push({ name, sign, degree: pointDegree, end: 'opposite sign from eclipse', ...extra });
   }
 
   for (const p of natalPoints) {
