@@ -77,7 +77,7 @@ Full standing pieces for: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Ne
 - **Vantage rule:** the piece knows and states the full passage as fact; it interprets the current phase only. Past and future crossings are referenced as astronomical events, never as experiences. The phase names its own dated boundaries — what opened it, what closes it.
 - **Editions stand alone.** A subscriber may arrive mid-passage; every edition is a complete account of where the passage stands now, legible with nothing read before it.
 - **The sign passage is the story; motion is the lens.** Tradition-grounded hierarchy: retrogradation is a condition of movement, not a headline event. The pop inversion (Mercury retrograde as subject, the sign as footnote) is a quality failure.
-- **Out-of-phase contacts:** undated pass summaries only (the `PASSAGE_CONTACTS` field). No out-of-phase dates ever appear in content.
+- **Out-of-phase contacts:** ~~undated pass summaries only (the `PASSAGE_CONTACTS` field)~~ **SUPERSEDED — see §11A.8: `PASSAGE_CONTACTS` is removed entirely; passage-scoped totals live in each entry's own WINDOW/PASS fields.** No out-of-phase dates ever appear in DATES; an entry's ID may still carry one as provenance (§11A.8).
 - **Long passages:** the phase's boundaries are the only dated events named. The larger passage's shape is characterized, never enumerated (this is what keeps a Pluto piece from becoming a date ledger).
 - **The next territory is out of scope.** A piece never names, assumes, or gestures at which sign or house the planet enters next. Nothing about the next territory is in the input, so it does not exist for that piece. (This covers nodal backward motion without a special case.)
 
@@ -86,7 +86,10 @@ Two relationship categories:
 - **Copresence** — a standing, sign-level relationship, on both the natal side (natal points sharing the transited sign) and the sky side (other transiting planets sharing it). It exists **whether or not any aspect perfects**, and is interpreted regardless — including when the phase's motion means a co-present point's degree is never crossed.
 - **Contacts** — dated aspect events.
 
-Three contact-event types:
+Three contact-event types (SUPERSEDED — see §11A.8 for the current,
+four-entry-type architecture: NATAL_CONTACT, SKY_CONTACT,
+ECLIPSE_ACTIVATION, and ECLIPSE — left here for history, do not build
+against this list):
 - **NATAL_CONTACT** — the planet in focus aspects one natal point.
 - **SKY_CONTACT** — the planet in focus aspects another transiting planet. (Moon and ordinary lunations excluded; eclipses are homed in the Nodes piece.)
 - **CONFIGURATION** — SUPERSEDED by the ACTIVATION restructure (founder
@@ -791,6 +794,127 @@ read it.
   full (identical inputs → identical rows and IDs; corrections carried
   in-script). Trailing-edge NULLs and omitted trailing windows
   self-heal on extension.
+
+### 11A.8 Brief assembly (Phase 3 — BUILT & VALIDATED)
+
+`scripts/engine/assemble-brief.mjs` (with `scripts/engine/contact-engine.mjs`
+as the shared math library) assembles the Call 1 USER MESSAGE FORMAT block
+for one (chart, transiting body) pair. This section records the
+architecture as built and validated across the July 2026 brief-assembly
+sessions, superseding the informal sketch in §3 and the July 19
+ACTIVATION note in §11.2 wherever they conflict — those stay as decision
+history, not as the current contract.
+
+**Templates are the source of truth.** `docs/brief-template-planet.md`
+and `docs/brief-template-nodes.md` are the authoritative field/ID/
+section-order contract. The assembler conforms to the templates; the
+templates are never regenerated from the assembler. Any structural
+mismatch between them is a bug in the assembler (or a gap in the
+template's own illustrative coverage), never the reverse.
+
+**Entry types.** A brief's TIMELINE has exactly four entry kinds:
+NATAL_CONTACT, SKY_CONTACT, ECLIPSE_ACTIVATION (a non-Nodes piece's
+own-planet eclipse hit), and ECLIPSE (Nodes variant only — the axis
+piece owns the full eclipse itinerary). CONFIGURATION is REMOVED as an
+entry type (superseded by ACTIVATION facts, per the July 19 ruling in
+§11.2 — restated here as current, not historical).
+
+**ACTIVATION facts.** A third body B activates a host entry when (leg
+1) B reaches the 1° exact band with the piece's planet while the host's
+own aspect/contact is in orb, AND (leg 2) B itself contacts the host's
+shared target — the SAME natal point for a NATAL_CONTACT host
+(NATAL_ASPECT leg), or the host pair's OTHER member for a SKY_CONTACT
+host (PAIR_ASPECT leg; the sky-pair activation variant, distinct from
+the natal one only in what leg 2 targets). Anchor date = day of closest
+approach within the shared span, ties to the earlier day. Perfection
+outside the host's own orb window is stated directionally ("perfects
+{date}, before/after this contact begins/separates").
+
+**Sky-contact placement, by pair speed class:** a SLOW pair (both
+bodies Jupiter or slower) is ALWAYS its own SKY_CONTACT entry,
+regardless of natal activity, plus activation facts wherever it also
+intersects a natal point or is itself activated by a third body. A
+FAST-INVOLVING pair (Sun/Mercury/Venus/Mars on at least one side)
+becomes an activation fact only when it intersects a natal point (no
+separate entry), and its own atmospheric entry (TETHER: atmospheric)
+when it touches no natal point at all. Every computed sky aspect of the
+focus body appears in its brief at least once — as an entry, as facts,
+or both.
+
+**WINDOW and PASS are two independent, always-shown counters,** no
+exceptions anywhere (including the Nodes axis, always "1 of 1" since it
+never stations). WINDOW counts distinct orb-engagement spans within a
+passage; PASS counts only the ones that reached exact. For
+NATAL_CONTACT, scoped to the transiting body's own PASSAGE (sign
+residency). For SKY_CONTACT, scoped to the pair's own "aspect passage"
+— a run of consecutive orb-engagement windows between the same two
+bodies, unbroken by a sign change in EITHER body (mirrors how
+aspect_calendar's pass_n/pass_m are scoped at the data layer; see
+`skyWindowPassageIndex` in contact-engine.mjs). PASS reads "(none this
+window)" when this row's own window never reached exact, same wording
+in both variants.
+
+**Phase membership is strict overlap:** a contact/entry belongs to the
+current phase iff window_start < phase_end AND window_end >
+phase_start — excluding only degenerate zero-duration boundary touches
+(a window closing exactly on the phase's own opening date, or opening
+exactly on its closing date). A window with any real duration overlap
+is included, even one spanning a station and shared with an adjacent
+phase. An exact/anchor date landing exactly ON a boundary date belongs
+to the phase that OPENS on that date, never the one that closes on it
+— consistent with the half-open current-phase lookup (date <= today <
+phase_end_date) used throughout.
+
+**PASSAGE_CONTACTS is removed entirely** (superseding §3.2's mention).
+Passage-scoped totals live in each entry's own WINDOW/PASS fields; there
+is no separate undated-summary field in either template.
+
+**Out-of-phase exacts stay out of DATES.** When a SKY_CONTACT's own
+exact_date falls outside the current phase (its window still overlaps
+it), DATES states only what happens within the phase and STATUS reads
+"no exact this phase" — the out-of-phase date is never added to DATES.
+The entry's own ID still carries that date as PROVENANCE (the aspect's
+own passage-scoped exact date and pass), not a phase claim; the date
+isn't lost, and for a slow pair it also surfaces in whichever other
+phase's own SKY_CONTACT entry it belongs to.
+
+**COPRESENT_SKY is slow-bodies-only** (Jupiter or slower, and the
+transiting Nodes — the sharing END is named, e.g. "South Node", the
+other end necessarily opposite), dated span each, "(all phase)" when
+present throughout. **COPRESENT_NATAL is all natal points**, any speed,
+in the planet variant only — the Nodes variant has no COPRESENT_NATAL
+line at all (the axis-to-natal relationship is carried entirely by
+timeline contacts).
+
+**SHAPE** is a structured per-segment timeline of the WHOLE passage
+(first ingress to true final egress), not a summary sentence: each
+segment names its own opening trigger and what closes it, in order,
+including any out-of-sign retrograde dip. Segments while the body is
+OUT of the piece's own sign are tagged `[out of sign]` — context for
+why the passage dipped and returned, not events the piece interprets. A
+clean (no-dip) passage collapses to one line. The Nodes variant's SHAPE
+is always a single ingress-to-egress line (the axis never stations).
+
+**Nodes conventions:** AXIS is always stated North Node first, then
+South Node. NATAL_CAUGHT (both the Nodes piece's own ECLIPSE entries and
+a planet piece's ECLIPSE_ACTIVATION) names HOW each point is caught —
+"conjunct the eclipse degree" (within 3° of the eclipse point itself) or
+"opposite the eclipse degree" (within 3° of the far end of the lunation
+axis); an end with nothing caught is omitted, "none" if nothing at all.
+
+**Validation practice.** Two standing tools, both read-only, no writes,
+no AI/API calls: `scripts/template-conformance.mjs`, a mechanical
+structural differ that parses both template files and a live assembled
+brief into pure structure (entry types, field names/order, fact-block
+types) with the SAME parser for both sides, and asserts conformance —
+run inside `scripts/certify-calendars.mjs`; and
+`scripts/exercise-engine.mjs`, an engine-scale exercise running the
+assembler across all ten tracked bodies, multiple charts (the real
+dogfood chart, synthetic charts for RISING_SIGN_KNOWN: false and other
+unusual cases, and five cusp-geometry charts per §11A.4's validation-law
+extension), and multiple phases per body (prior/current/future) —
+currently 271 briefs, asserted against the differ, no human reading the
+output.
 
 ---
 

@@ -34,8 +34,13 @@ plan and every change in plain, non-technical language.
   placeholder rather than halting — but flag it explicitly for Avery's
   review and rewrite. Never compress or paraphrase language Avery has
   approved. All non-trivial copy waits for verbatim approval.
-- Never edit the AI prompt files (`lib/prompts/`) unless the task explicitly
-  says so — prompt content is managed separately by the founder.
+- Never edit the AI prompt files (`lib/prompts/`), the transit/synthesis
+  prompt documents (`docs/*_CALL_*.md`), or the brief-format templates
+  (`docs/brief-template-*.md`) unless the task explicitly names the file —
+  prompt content and the binding format contract are managed separately by
+  the founder.
+- Never produce visual design mockups, UI comps, or rendered design
+  artifacts unless Avery explicitly requests one.
 - Commit once per approved task with a plain-English message.
 
 ## Hard rules
@@ -43,3 +48,8 @@ plan and every change in plain, non-technical language.
 - Never write secrets from `.env.local` (or any env var) into committed files.
 - Deterministic astrology math must be validated against a professional
   ephemeris (astro.com) before anything downstream depends on it, per SPEC.md.
+- After any write to a live table, verify the resulting STATE with a fresh
+  read — never trust a script's own success log alone. A script can report
+  success while leaving the table wrong (e.g. an unpaginated read silently
+  capping at Supabase's default row limit and leaving stale rows behind,
+  caught only by checking the live row count directly, not the log).
