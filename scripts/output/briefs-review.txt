@@ -35,6 +35,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: conjunct transiting Neptune
     DATES: orb opens 2026-02-15, exact 2026-02-20, separates 2026-03-28
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     ACTIVATIONS:
       - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-saturn-conjunction-neptune-2026-02-20-p1of1
@@ -135,6 +137,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: sextile transiting Pluto
     DATES: orb opens 2026-02-27, exact 2026-03-28, separates 2026-04-25
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     ACTIVATIONS:
       - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-saturn-sextile-pluto-2026-03-28-p1of1
@@ -240,6 +244,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: square transiting Mercury
     DATES: orb opens 2026-06-08, exact 2026-06-10, separates 2026-06-12
+    WINDOW: 1 of 2 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     TETHER: atmospheric -- no natal point caught
   - ID: saturn-conjunction-natal-saturn-2026-06-14-noexact
@@ -297,6 +303,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: square transiting Mercury
     DATES: orb opens 2026-07-19, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    WINDOW: 2 of 2 this passage
+    PASS: (none this window)
     STATUS: no exact this phase
     TETHER: atmospheric -- no natal point caught
 
@@ -343,6 +351,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: conjunct transiting Sun
     DATES: orb opens 2026-07-12, exact 2026-07-13, separates 2026-07-14
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     TETHER: atmospheric -- no natal point caught
   - ID: mercury-square-natal-saturn-2026-07-16-noexact
@@ -356,6 +366,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: square transiting Saturn
     DATES: orb opens 2026-07-19, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    WINDOW: 2 of 2 this passage
+    PASS: (none this window)
     STATUS: no exact this phase
     TETHER: atmospheric -- no natal point caught
 
@@ -391,26 +403,36 @@ TIMELINE:
     TYPE: NATAL_CONTACT
     ASPECT: transiting North Node opposite natal North Node = conjunct natal South Node (one event)
     DATES: orb opens 2025-07-25, exact 2025-09-19, separates 2025-11-15
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
   - ID: nodes-square-node-axis-mars-2025-11-24-p1of1
     TYPE: NATAL_CONTACT
     ASPECT: Natal Mars squares the nodal axis
     DATES: orb opens 2025-09-29, exact 2025-11-24, separates 2026-01-20
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
   - ID: nodes-square-node-axis-venus-2026-01-13-p1of1
     TYPE: NATAL_CONTACT
     ASPECT: Natal Venus squares the nodal axis
     DATES: orb opens 2025-11-18, exact 2026-01-13, separates 2026-03-10
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
   - ID: nodes-square-node-axis-pluto-2026-06-04-p1of1
     TYPE: NATAL_CONTACT
     ASPECT: Natal Pluto squares the nodal axis
     DATES: orb opens 2026-04-09, exact 2026-06-04, separates 2026-07-31
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
   - ID: nodes-square-node-axis-moon-2026-07-18-p1of1
     TYPE: NATAL_CONTACT
     ASPECT: Natal Moon squares the nodal axis
     DATES: orb opens 2026-05-23, exact 2026-07-18, separates 2026-08-18
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
   - TYPE: ECLIPSE
     ID: lunar-eclipse-2025-03-14
