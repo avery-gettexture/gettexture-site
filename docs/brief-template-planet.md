@@ -116,6 +116,8 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: conjunct transiting Neptune
     DATES: orb opens 2028-04-19, exact 2028-05-11, separates 2028-06-02
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     ACTIVATIONS:
       # (A sky-pair activation = a third body B that reached the 1° band with
@@ -139,6 +141,16 @@ TIMELINE:
     #  may also carry ACTIVATIONS when a third body contacts both members —
     #  same fact structure as natal-contact activations.)
 
+  # (RULING — WINDOW and PASS are ALWAYS shown on every SKY_CONTACT entry,
+  #  including "1 of 1" — never conditionally displayed, symmetric with
+  #  NATAL_CONTACT: absence must never require interpretation. Scoped to
+  #  this aspect's own "aspect passage" — a run of consecutive orb-
+  #  engagement windows between the same two bodies, unbroken by a sign
+  #  change in EITHER body — distinct from a transit_calendar PASSAGE.
+  #  WINDOW counts every such span (exact or not); PASS counts only the
+  #  ones that reached exact, "(none this window)" when this row's own
+  #  window never did, same phrasing as NATAL_CONTACT.)
+
   # (RULING — a SKY_CONTACT's ID is PROVENANCE, not a phase claim: it always
   #  carries the underlying aspect's own passage-scoped exact date and pass
   #  [e.g. "-2028-11-29-p2of5"], which may fall OUTSIDE the phase this entry
@@ -156,10 +168,29 @@ TIMELINE:
     TYPE: SKY_CONTACT
     ASPECT: square transiting Mars
     DATES: orb opens 2028-06-16, exact 2028-06-18, separates 2028-06-20
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     TETHER: atmospheric -- no natal point caught
     # (Atmospheric = collective weather touching nothing in the chart. Marked
     #  TETHER: atmospheric. Carried at honest atmospheric weight in prose.)
+
+  # --- SKY_CONTACT, in orb during the phase but its own perfection falls
+  #     outside it (STATUS: no exact this phase) ---
+  - ID: mercury-square-saturn-2028-05-30-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: square transiting Mercury
+    DATES: orb opens 2028-05-28, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
+    STATUS: no exact this phase
+    TETHER: atmospheric -- no natal point caught
+    # (This aspect's own exact date (2028-05-30) falls after this phase
+    #  closes -- DATES states only what happens within the phase (see the
+    #  ID-is-provenance RULING above), and STATUS names the plain fact:
+    #  no exact THIS phase. PASS still reports the real pass this window
+    #  belongs to (1 of 1) — a row can have its own exact date and still
+    #  read "no exact this phase" if that date isn't in THIS phase.)
 
   # --- Eclipse-to-transit activation (eclipse within 3° of the piece's planet) ---
   - ID: solar-eclipse-2028-07-22-activates-transiting-saturn
@@ -171,7 +202,7 @@ TIMELINE:
     #  their planet on eclipse day. The Nodes piece owns the FULL eclipse
     #  itinerary; this is only the piece-planet-adjacent case.)
 
-[counts] entries: 6 (4 NATAL_CONTACT, 2 SKY_CONTACT); activation facts: 4; eclipse-to-transit facts: 1
+[counts] entries: 7 (4 NATAL_CONTACT, 3 SKY_CONTACT); activation facts: 4; eclipse-to-transit facts: 1
 
 # NOTE — RISING_SIGN_KNOWN: false variant: HOUSE header line omitted; all
 # "(Nth House)" suffixes omitted from natal points and contacts; natal Moon

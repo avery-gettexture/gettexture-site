@@ -598,6 +598,58 @@ export function isSlowPair(bodyA, bodyB) {
   return SLOW_BODIES.has(bodyA) && SLOW_BODIES.has(bodyB);
 }
 
+// ── SKY_CONTACT WINDOW/PASS (GAP 3) ──────────────────────────────────────
+//
+// Mirrors scripts/generate-aspect-calendar.mjs's assignAspectPassages
+// grouping exactly (that script is not modified; this re-expresses the
+// same "aspect passage" rule as a reusable function so assemble-brief.mjs
+// can compute WINDOW the same way pass_n/pass_m -- already stored on every
+// row -- was computed): a run of consecutive windows of the SAME aspect
+// between the SAME pair, unbroken by a sign change in EITHER body. WINDOW
+// and PASS are independent counters over that passage -- WINDOW counts
+// every distinct orb-engagement span (exact or not), PASS counts only the
+// ones that reached exact.
+function bodySignConstantAcrossGap(series, dateA, dateB) {
+  let sign = null;
+  for (const r of series) {
+    if (r.date < dateA || r.date > dateB) continue;
+    if (sign === null) sign = r.sign;
+    else if (r.sign !== sign) return false;
+  }
+  return true;
+}
+
+// rowsForOneAspect: every aspect_calendar row (ALL time, not phase-scoped)
+// for one specific (bodyA, bodyB, event) combination. series1/series2:
+// full sky_positions history for the two bodies (order doesn't matter).
+// hostWindowKey: "{window_start}|{window_end}" for the row being placed.
+// Returns { windowIndex, windowCount }, 1-of-1 when the aspect never
+// repeats across more than one span.
+export function skyWindowPassageIndex(rowsForOneAspect, series1, series2, hostWindowKey) {
+  const windowsMap = new Map();
+  for (const r of rowsForOneAspect) {
+    const wk = `${r.window_start}|${r.window_end}`;
+    if (!windowsMap.has(wk)) windowsMap.set(wk, r);
+  }
+  const windowKeys = [...windowsMap.keys()].sort((a, b) => (a < b ? -1 : 1));
+
+  const passageGroups = [[windowKeys[0]]];
+  for (let i = 1; i < windowKeys.length; i++) {
+    const prevEnd = windowsMap.get(windowKeys[i - 1]).window_end;
+    const curStart = windowsMap.get(windowKeys[i]).window_start;
+    const unbroken = bodySignConstantAcrossGap(series1, prevEnd, curStart)
+      && bodySignConstantAcrossGap(series2, prevEnd, curStart);
+    if (unbroken) passageGroups[passageGroups.length - 1].push(windowKeys[i]);
+    else passageGroups.push([windowKeys[i]]);
+  }
+
+  for (const group of passageGroups) {
+    const idx = group.indexOf(hostWindowKey);
+    if (idx !== -1) return { windowIndex: idx + 1, windowCount: group.length };
+  }
+  throw new Error(`skyWindowPassageIndex: hostWindowKey "${hostWindowKey}" not found among its own rowsForOneAspect -- caller must include the host row in the fetched set`);
+}
+
 // ── ID minting (deterministic; regeneration from identical data reproduces identical IDs) ──
 
 function slug(s) {

@@ -40,17 +40,23 @@ TIMELINE:
     TYPE: NATAL_CONTACT
     ASPECT: transiting North Node conjunct natal North Node = opposite natal South Node (one event)
     DATES: orb opens 2029-09-14, exact 2029-11-08, separates 2029-12-30
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
     # (Only conjunctions-to-either-end and squares-to-the-axis are computed for
     #  the axis. A conjunction to one end is phrased as the merged one-event
-    #  statement. No WINDOW/PASS lines — the single non-stationing passage makes
-    #  every axis contact a single pass.)
+    #  statement. WINDOW/PASS are always shown, same as everywhere else — always
+    #  "1 of 1" here, since the axis never stations and crosses each degree
+    #  once. Uninformative but consistent: there are no exceptions to
+    #  always-show anywhere in either variant.)
 
   # --- Square to the axis (a natal planet at the bend) ---
   - ID: nodes-square-node-axis-mars-2030-05-19-p1of1
     TYPE: NATAL_CONTACT
     ASPECT: Natal Mars squares the nodal axis
     DATES: orb opens 2030-03-25, exact 2030-05-19, separates 2030-07-12
+    WINDOW: 1 of 1 this passage
+    PASS: 1 of 1 this passage
     STATUS: perfects this phase
 
   # --- Eclipse entries (the Nodes piece owns the FULL itinerary) ---

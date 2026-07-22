@@ -42,7 +42,7 @@ import {
   mintContactId, mintAxisContactId, labelAxisContact, houseOfSign,
   isSlowPair, SLOW_BODIES, mintActivationId, mintPairActivationId, mintEclipseTransitActivationId,
   assertSignConsonant, filterAndGroupForPassage, findActivationAnchor,
-  computeShapeSegments,
+  computeShapeSegments, skyWindowPassageIndex,
 } from './contact-engine.mjs';
 
 const supabase = createClient(
@@ -73,6 +73,19 @@ async function fetchFullSeries(body) {
     offset += PAGE_SIZE;
   }
   return rows;
+}
+
+// All aspect_calendar rows (ALL time, not phase-scoped) for one specific
+// pair+event -- used only for GAP 3's WINDOW computation, which needs the
+// full "aspect passage" (can span years for the slowest pairs) to count
+// distinct orb-engagement windows within it, mirroring how pass_n/pass_m
+// were computed at the data layer (see skyWindowPassageIndex).
+async function fetchAspectCalendarForPairEvent(bodyA, bodyB, event) {
+  const { data, error } = await supabase.from('aspect_calendar').select('*')
+    .or(`and(body_1.eq.${bodyA},body_2.eq.${bodyB}),and(body_1.eq.${bodyB},body_2.eq.${bodyA})`)
+    .eq('event', event);
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 async function fetchSeriesRange(body, start, end) {
@@ -561,6 +574,17 @@ export async function assembleBrief(focusBody, options = {}) {
   const series = await fetchFullSeries(seriesBody);
   const passageSign = focusBody === 'Nodes' ? currentRow.north_sign : currentRow.sign;
 
+  // Full-series cache, scoped to this one assembleBrief() call -- GAP 3's
+  // WINDOW computation needs the OTHER body's full sky_positions history
+  // for every SKY_CONTACT entry, and several entries commonly share the
+  // same other body (e.g. multiple Uranus-Neptune passes), so this avoids
+  // re-fetching identical data repeatedly within one brief.
+  const fullSeriesCache = new Map([[seriesBody, series]]);
+  async function getFullSeries(body) {
+    if (!fullSeriesCache.has(body)) fullSeriesCache.set(body, await fetchFullSeries(body));
+    return fullSeriesCache.get(body);
+  }
+
   // Raw (all-time, all-sign) contacts per natal point, sign-consonance
   // checked on every row (STEP 3 guard 1), then filtered down to THIS
   // passage occurrence (date range AND sign match -- see
@@ -754,16 +778,17 @@ export async function assembleBrief(focusBody, options = {}) {
 
   // ── Render TIMELINE blocks ──
   const timelineBlocks = [];
-  const showWindowPass = focusBody !== 'Nodes'; // Nodes' single non-stationing passage makes every axis contact a single pass -- no WINDOW/PASS lines ever (per docs/brief-template-nodes.md)
 
   for (const c of timelineNatal) {
     const aspectKey = `${c.key}|${c.axisInvolved ? `axis-dist${c.dist}` : c.aspect}`;
     const siblings = byAspectKey.get(aspectKey);
     const activations = activationsByNatalRow.get(c) ?? [];
-    const windowLine = showWindowPass ? `\n    WINDOW: ${c.passageWindowIndex} of ${c.passageWindowCount} this passage` : '';
-    const passLine = showWindowPass
-      ? `\n    PASS: ${c.exactDate ? `${c.passagePassIndex} of ${c.passagePassCount} this passage` : '(none this window)'}`
-      : '';
+    // NODES UNIFORMITY: WINDOW/PASS are always shown, including for the
+    // Nodes axis (always "1 of 1" -- the axis never stations, so it
+    // crosses each degree once; uninformative but consistent, which is
+    // the point of always-show). No exceptions remain anywhere.
+    const windowLine = `\n    WINDOW: ${c.passageWindowIndex} of ${c.passageWindowCount} this passage`;
+    const passLine = `\n    PASS: ${c.exactDate ? `${c.passagePassIndex} of ${c.passagePassCount} this passage` : '(none this window)'}`;
     const houseText = risingKnown ? `, ${c.point.house ?? 'house unknown'}` : '';
     let block =
 `  - ID: ${idFor(c, focusBody)}
@@ -781,12 +806,25 @@ export async function assembleBrief(focusBody, options = {}) {
     const { sky, otherBody, atmospheric } = entry;
     const anchor = sky.exact_date ?? sky.window_start;
     const skyDates = formatBoundaryDates(sky.window_start, sky.window_end, sky.exact_date, phaseStart, phaseEnd);
-    const skyPassLine = sky.exact_date && sky.pass_m > 1 ? `\n    PASS: ${sky.pass_n} of ${sky.pass_m} this passage` : '';
+
+    // GAP 3: WINDOW and PASS are always shown on every SKY_CONTACT entry,
+    // symmetric with NATAL_CONTACT -- absence must never require
+    // interpretation. WINDOW needs the aspect's full all-time history to
+    // count distinct orb-engagement spans within its own "aspect passage"
+    // (skyWindowPassageIndex); PASS reuses pass_n/pass_m, already computed
+    // at the data layer with the identical passage scoping.
+    const pairEventRows = await fetchAspectCalendarForPairEvent(sky.body_1, sky.body_2, sky.event);
+    const otherFullSeries = await getFullSeries(otherBody);
+    const hostWindowKey = `${sky.window_start}|${sky.window_end}`;
+    const { windowIndex, windowCount } = skyWindowPassageIndex(pairEventRows, series, otherFullSeries, hostWindowKey);
+    const windowLine = `\n    WINDOW: ${windowIndex} of ${windowCount} this passage`;
+    const passLine = `\n    PASS: ${sky.exact_date ? `${sky.pass_n} of ${sky.pass_m} this passage` : '(none this window)'}`;
+
     let block =
 `  - ID: ${sky.id}
     TYPE: SKY_CONTACT
     ASPECT: ${sky.event === 'conjunction' ? 'conjunct' : sky.event} transiting ${otherBody}
-    DATES: ${skyDates}${skyPassLine}
+    DATES: ${skyDates}${windowLine}${passLine}
     STATUS: ${computeSkyStatus(sky, phaseStart, phaseEnd)}${atmospheric ? '\n    TETHER: atmospheric -- no natal point caught' : ''}`;
     const pairActivations = pairActivationsByHostId.get(sky.id) ?? [];
     if (pairActivations.length) {
