@@ -31,7 +31,13 @@
 // Usage: node --env-file=.env.local scripts/certify-calendars.mjs
 
 import { createClient } from '@supabase/supabase-js';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { assembleBrief } from './engine/assemble-brief.mjs';
+import { checkConformance } from './template-conformance.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -496,6 +502,52 @@ async function certifyStructuralGuardsAndBriefs() {
   }
 }
 
+// Reconstructs the exact text scripts/engine/assemble-brief.mjs's own CLI
+// (main()) prints, including the trailing [counts] line -- assembleBrief()
+// itself returns text/counts separately (a library-function contract), but
+// what actually ships to scripts/output/briefs-review.txt and what the
+// differ must check is the two joined, since the counts line is part of
+// the binding template contract too (both templates end with one).
+function fullBriefText(body, text, counts) {
+  const eclipseComponent = body === 'Nodes' ? `, ${counts.eclipseEntryCount} ECLIPSE` : '';
+  return `${text}\n\n[counts] entries: ${counts.totalEntries} (${counts.natalCount} NATAL_CONTACT, ${counts.skyCount} SKY_CONTACT${eclipseComponent}); `
+    + `activation facts: ${counts.activationCount}; eclipse-to-transit facts: ${counts.eclipseFactCount}`;
+}
+
+// ── 6. mechanical template-conformance differ (STEP C) ──────────────────
+
+async function certifyTemplateConformance() {
+  console.log('\n=== TEMPLATE CONFORMANCE (mechanical structural differ) ===');
+  console.log(
+    '  Parses both docs/brief-template-planet.md and docs/brief-template-nodes.md and a live re-assembly of each body\'s '
+    + 'brief into pure structure (entry types, field names and order, fact-block types) using the same parser for both '
+    + 'sides, then asserts: every entry/fact type in output exists in the template\'s own vocabulary, every field the '
+    + 'template always shows for that type is present, no unrecognized field appears, field order matches, every date is '
+    + 'ISO YYYY-MM-DD, the [counts] line names every entry type actually present, and STATUS/TETHER/MOTION/trigger words '
+    + 'come only from the template\'s own demonstrated vocabulary. Compares structure only, never values.',
+  );
+  const planetTemplate = readFileSync(join(__dirname, '..', 'docs', 'brief-template-planet.md'), 'utf8');
+  const nodesTemplate = readFileSync(join(__dirname, '..', 'docs', 'brief-template-nodes.md'), 'utf8');
+  const bodies = [
+    ['Saturn', planetTemplate, 'planet'],
+    ['Mercury', planetTemplate, 'planet'],
+    ['Nodes', nodesTemplate, 'nodes'],
+  ];
+  for (const [body, template, variant] of bodies) {
+    try {
+      const { text, counts } = await assembleBrief(body);
+      const fullText = fullBriefText(body, text, counts);
+      const { pass, failures } = checkConformance(template, fullText, variant);
+      const detail = pass
+        ? 'structurally conforms to the template'
+        : failures.map(f => `[${f.entry} / ${f.field}] ${f.issue}`).join(' | ');
+      record('template conformance', `${body}: brief structure matches docs/brief-template-${variant}.md`, pass, detail);
+    } catch (err) {
+      record('template conformance', `${body}: brief structure matches docs/brief-template-${variant}.md`, false, err.message);
+    }
+  }
+}
+
 // ── main ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -507,6 +559,7 @@ async function main() {
   await certifyAspectCalendar();
   await certifyTransitPieces();
   await certifyStructuralGuardsAndBriefs();
+  await certifyTemplateConformance();
 
   console.log('\n=== SUMMARY ===');
   const failed = results.filter((r) => !r.pass);
