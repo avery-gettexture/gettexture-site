@@ -27,10 +27,21 @@ PHASE:
   EGRESS: 2031-01-20
   # (No MOTION, no OPENED_BY/CLOSES triggers — phase == passage.)
 
-COPRESENT_SKY: Neptune (2029-07-04 – 2029-11-30), Saturn (2030-03-01 – 2031-01-20)
-  # (Only SLOW transiting bodies sharing EITHER axis sign during the passage,
-  #  dated span each — a "planet on the nodes" condition. Same slow-only rule
-  #  as the planet variant. "none" if empty. No COPRESENT_NATAL line exists in
+COPRESENT_SKY: Neptune in Aries, North Node end, 4th House (2029-07-04 – 2029-11-30); Saturn in Libra, South Node end, 10th House (2030-03-01 – 2031-01-20)
+  # (Only SLOW transiting bodies sharing EITHER axis sign during the passage
+  #  — a "planet on the nodes" condition, same slow-only rule as the planet
+  #  variant. Grouped by body: sign, which end, and house stated once per
+  #  body — house is derivable from the end label plus the HOUSES header,
+  #  stated anyway per the always-show principle used throughout this brief
+  #  — then every dated span for that body, comma-separated, inside one set
+  #  of parens; "(all phase)" replaces a span that covers the entire phase,
+  #  same convention as the planet variant. Multiple bodies are joined with
+  #  "; " (commas now live inside each body's own entry). A slow body can
+  #  only ever be copresent with ONE end of the axis during a single nodal
+  #  passage — reaching the other end would mean crossing six signs in ~18
+  #  months, impossible at Jupiter's speed or slower — so multiple spans for
+  #  one body just mean it dipped in and out of the same sign; they never
+  #  split across ends. "none" if empty. No COPRESENT_NATAL line exists in
   #  this variant.)
 
 TIMELINE:

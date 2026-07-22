@@ -418,6 +418,38 @@ function formatCopresentSky(spansByBody, phaseStart, phaseEnd) {
   return entries.length ? entries.join(', ') : 'none';
 }
 
+// Nodes-variant COPRESENT_SKY only (docs/brief-template-nodes.md): grouped
+// by body, since the planet variant's per-span rendering above never says
+// WHICH end of the axis a copresent body shares -- undecidable from the
+// rest of the brief and interpretively significant (a body sharing the
+// South Node's house reads oppositely from one sharing the North Node's).
+// Sign/end/house are stated once per body (house is derivable from the end
+// label plus the HOUSES header, stated anyway per the always-show principle
+// used throughout this brief); every dated span for that body is then
+// comma-joined inside one set of parens; bodies are joined with "; ".
+function formatCopresentSkyNodes(spansByBody, phaseStart, phaseEnd, ascSign, risingKnown) {
+  const entries = [];
+  for (const [body, spans] of spansByBody) {
+    // GUARD: a slow body cannot be copresent with BOTH nodal ends during one
+    // passage -- that would require crossing six signs in ~18 months, proven
+    // impossible at Jupiter's speed or slower. Grouping by body is lossless
+    // ONLY under this assumption; if it ever fails against real data, that's
+    // a genuine surprise to investigate, not a case to render around.
+    const ends = new Set(spans.map(sp => sp.axisEnd));
+    if (ends.size > 1) {
+      throw new Error(`formatCopresentSkyNodes: ${body} is copresent with both nodal ends in one passage (${[...ends].join(', ')}) -- proven structurally impossible for a slow body; investigate before rendering.`);
+    }
+    const { axisEnd, sign } = spans[0];
+    const houseText = risingKnown ? `, ${houseOfSign(sign, ascSign)}` : '';
+    const spanTexts = spans.map(sp => {
+      const full = sp.start <= phaseStart && sp.end >= phaseEnd;
+      return full ? 'all phase' : `${sp.start} – ${sp.end}`;
+    });
+    entries.push(`${body} in ${sign}, ${axisEnd} end${houseText} (${spanTexts.join(', ')})`);
+  }
+  return entries.length ? entries.join('; ') : 'none';
+}
+
 // The transiting Nodes never appear in ALL_BODIES (they're computed from
 // 'North Node' sky_positions rows, same as elsewhere in this file); South
 // Node's sign is always the opposite sign, derived, never queried directly.
@@ -876,7 +908,18 @@ export async function assembleBrief(focusBody, options = {}) {
     const otherSeries = await fetchSeriesRange(body, phaseStart, phaseEnd);
     const signsToCheck = focusBody === 'Nodes' ? [currentRow.north_sign, currentRow.south_sign] : [currentRow.sign];
     const spans = [];
-    for (const sgn of signsToCheck) spans.push(...skyCopresenceSpans(otherSeries, sgn));
+    for (const sgn of signsToCheck) {
+      const rawSpans = skyCopresenceSpans(otherSeries, sgn);
+      // Tag which axis end this sign belongs to -- only meaningful (and only
+      // consumed downstream) when focusBody is the Nodes piece itself; see
+      // formatCopresentSkyNodes.
+      if (focusBody === 'Nodes') {
+        const axisEnd = sgn === currentRow.north_sign ? 'North Node' : 'South Node';
+        spans.push(...rawSpans.map(sp => ({ ...sp, sign: sgn, axisEnd })));
+      } else {
+        spans.push(...rawSpans);
+      }
+    }
     if (spans.length) skySpans.set(body, spans);
   }
   if (focusBody !== 'Nodes') {
@@ -884,7 +927,9 @@ export async function assembleBrief(focusBody, options = {}) {
     const nodeSpans = nodesCopresenceSpans(nodeSeries, currentRow.sign);
     if (nodeSpans.length) skySpans.set('Nodes', nodeSpans);
   }
-  const skyCop = formatCopresentSky(skySpans, phaseStart, phaseEnd);
+  const skyCop = focusBody === 'Nodes'
+    ? formatCopresentSkyNodes(skySpans, phaseStart, phaseEnd, ascSign, risingKnown)
+    : formatCopresentSky(skySpans, phaseStart, phaseEnd);
 
   // ── Assemble the message ──
   const lines = [];
