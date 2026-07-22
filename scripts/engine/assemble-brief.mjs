@@ -15,7 +15,14 @@
 // SKY_CONTACT placement (by pair speed class):
 //   - SLOW pair (both bodies in Jupiter/Saturn/Uranus/Neptune/Pluto): ALWAYS
 //     its own entry, regardless of natal activity; PLUS activation facts
-//     wherever it also intersects a natal point.
+//     wherever it also intersects a natal point; PLUS its own ACTIVATIONS
+//     when a third body B reaches the 1-degree band with the piece's
+//     planet while this pair's aspect is in orb AND B also aspects the
+//     pair's other member (PAIR_ASPECT leg -- same two-leg shape as a
+//     natal-contact activation, second leg's target swapped from a natal
+//     point to the pair's other transiting member). B may itself be a
+//     slow body already carrying its own SKY_CONTACT entry elsewhere in
+//     the same brief -- expected, not a conflict.
 //   - FAST-INVOLVING pair (Sun/Mercury/Venus/Mars on at least one side):
 //     activation facts only when it intersects a natal point (no separate
 //     entry); its own atmospheric (chart-untethered) entry when it touches
@@ -33,7 +40,7 @@ import {
   SIGNS, extractNatalPoints, computeContactWindows, contactAnchorDate,
   windowOverlaps, natalCopresence, skyCopresenceSpans, eclipseCatches,
   mintContactId, mintAxisContactId, labelAxisContact, houseOfSign,
-  isSlowPair, SLOW_BODIES, mintActivationId, mintEclipseTransitActivationId,
+  isSlowPair, SLOW_BODIES, mintActivationId, mintPairActivationId, mintEclipseTransitActivationId,
   assertSignConsonant, filterAndGroupForPassage, findActivationAnchor,
   computeShapeSegments,
 } from './contact-engine.mjs';
@@ -127,6 +134,19 @@ async function fetchAspectCalendarForBody(body, start, end) {
   const { data: d2, error: e2 } = await supabase.from('aspect_calendar').select('*').eq('body_2', body).lte('window_start', end).gte('window_end', start);
   if (e2) throw new Error(e2.message);
   return [...d1, ...d2];
+}
+
+// All aspect_calendar rows between one specific pair of bodies (either
+// storage order) overlapping [start, end] -- used only for a sky-pair
+// activation's PAIR_ASPECT leg (candidate B vs. the host pair's other
+// member), never for focusBody's own aspects (fetchAspectCalendarForBody
+// already covers those).
+async function fetchAspectCalendarBetween(bodyA, bodyB, start, end) {
+  const { data, error } = await supabase.from('aspect_calendar').select('*')
+    .or(`and(body_1.eq.${bodyA},body_2.eq.${bodyB}),and(body_1.eq.${bodyB},body_2.eq.${bodyA})`)
+    .lte('window_start', end).gte('window_end', start);
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 async function fetchEclipsesInRange(start, end) {
@@ -368,6 +388,16 @@ function nodesCopresenceSpans(northSeries, transitedSign) {
 // precedes the host window opening, "after this contact separates" when
 // it follows the close.
 
+// Overlap test for raw aspect_calendar rows (snake_case window_start/
+// window_end, falling back to exact_date same as skyStart/skyEnd
+// elsewhere in this file) -- windowOverlaps() from contact-engine.mjs only
+// accepts computeContactWindows' camelCase rows, not these.
+function rawWindowOverlaps(row, startDate, endDate) {
+  const s = row.window_start ?? row.exact_date;
+  const e = row.window_end ?? row.exact_date;
+  return s <= endDate && e >= startDate;
+}
+
 function formatActivationFact(fact) {
   const {
     id, otherBody, sky, anchorDate, perfectsBeforeHostOrb, perfectsAfterHostOrb,
@@ -388,6 +418,42 @@ function formatActivationFact(fact) {
         BODY: ${otherBody}
         SKY_ASPECT: ${skyLine}
         NATAL_ASPECT: ${natalLine}
+        DATE: ${anchorDate}`
+  );
+}
+
+// ── Sky-pair activation rendering (slow-pair SKY_CONTACT ACTIVATIONS) ──
+//
+// A slow-pair SKY_CONTACT's own activation: a third body B that reached the
+// 1-degree band with the piece's planet while the pair's aspect was in
+// orb, AND itself aspects the pair's OTHER member. Same two-leg qualifying
+// test as formatActivationFact's natal-contact activations, with the
+// second leg's target swapped from a natal point to the pair's other
+// transiting member -- so it carries PAIR_ASPECT instead of NATAL_ASPECT.
+// Directional before/after-host-orb phrasing applies to SKY_ASPECT exactly
+// as it does for natal activations; PAIR_ASPECT states its own exact date
+// plainly, same as NATAL_ASPECT does.
+function formatPairActivationFact(fact) {
+  const {
+    id, otherBody, sky, anchorDate, perfectsBeforeHostOrb, perfectsAfterHostOrb,
+    pairAspect, hostOtherBody,
+  } = fact;
+  const motionLine = `(${sky.body_1} ${sky.body_1_retrograde ? 'retrograde' : 'direct'}, ${sky.body_2} ${sky.body_2_retrograde ? 'retrograde' : 'direct'})`;
+  const perfectionNote = sky.exact_date
+    ? perfectsBeforeHostOrb
+      ? `; perfects ${sky.exact_date}, before this pair's aspect begins`
+      : perfectsAfterHostOrb
+        ? `; perfects ${sky.exact_date}, after this pair's aspect separates`
+        : `; perfects ${sky.exact_date}`
+    : '; no exact in this window';
+  const skyLine = `${otherBody} ${sky.event} the piece's planet, within 1° on ${anchorDate}${perfectionNote} ${motionLine}`;
+  const motionOf = (row, body) => ((body === row.body_1 ? row.body_1_retrograde : row.body_2_retrograde) ? 'retrograde' : 'direct');
+  const pairLine = `${otherBody} ${pairAspect.event} ${hostOtherBody}, ${pairAspect.exact_date ? `exact ${pairAspect.exact_date}` : 'no exact'} (${otherBody} ${motionOf(pairAspect, otherBody)}, ${hostOtherBody} ${motionOf(pairAspect, hostOtherBody)})`;
+  return (
+`      - ID: ${id}
+        BODY: ${otherBody}
+        SKY_ASPECT: ${skyLine}
+        PAIR_ASPECT: ${pairLine}
         DATE: ${anchorDate}`
   );
 }
@@ -539,6 +605,57 @@ export async function assembleBrief(focusBody) {
     }
   }
 
+  // ── Sky-pair activations: a slow-pair SKY_CONTACT's own ACTIVATIONS.
+  // A third body B activates the pair when (leg 1) B reaches the 1-degree
+  // band with the piece's planet while the pair's own aspect is in orb,
+  // AND (leg 2) B has its own aspect to the pair's OTHER member, that
+  // aspect's window overlapping both B's activating window and the host
+  // pair's own window -- the identical two-leg shape as the natal-contact
+  // activations above, second leg's target swapped from a natal point to
+  // the pair's other transiting member (PAIR_ASPECT, not NATAL_ASPECT).
+  // Every skyRows entry (Moon already excluded) is a candidate B; B may
+  // itself be a slow-pair host elsewhere in this same brief -- that is
+  // expected, not a conflict (facts repeat where relevant; entries never
+  // duplicate).
+  const slowPairHosts = skyContactEntries.filter(e => !e.atmospheric && isSlowPair(focusBody, e.otherBody));
+  const candidateSkyRows = skyRows.filter(s => (s.body_1 === focusBody ? s.body_2 : s.body_1) !== 'Moon')
+    .map(s => ({ sky: s, otherBody: s.body_1 === focusBody ? s.body_2 : s.body_1 }));
+  const pairActivationsByHostId = new Map(); // host sky.id -> [fact, ...]
+
+  for (const host of slowPairHosts) {
+    const hostStart = host.sky.window_start ?? host.sky.exact_date;
+    const hostEnd = host.sky.window_end ?? host.sky.exact_date;
+    const focusSliceH = series.filter(r => r.date >= hostStart && r.date <= hostEnd);
+
+    for (const cand of candidateSkyRows) {
+      const candB = cand.otherBody;
+      if (candB === host.otherBody) continue; // must be a THIRD body, not the pair's own other member
+      const candSky = cand.sky;
+
+      const candSeriesOverHost = await fetchSeriesRange(candB, hostStart, hostEnd);
+      const anchorDate = findActivationAnchor(focusSliceH, candSeriesOverHost, candSky.event, hostStart, hostEnd);
+      if (!anchorDate) continue; // leg 1
+
+      const candStart = candSky.window_start ?? candSky.exact_date;
+      const candEnd = candSky.window_end ?? candSky.exact_date;
+      const rangeStart = candStart < hostStart ? candStart : hostStart;
+      const rangeEnd = candEnd > hostEnd ? candEnd : hostEnd;
+      const pairRows = await fetchAspectCalendarBetween(candB, host.otherBody, rangeStart, rangeEnd);
+      const pairAspect = pairRows.find(r => rawWindowOverlaps(r, candStart, candEnd) && rawWindowOverlaps(r, hostStart, hostEnd));
+      if (!pairAspect) continue; // leg 2
+
+      const perfectsBeforeHostOrb = !!candSky.exact_date && candSky.exact_date < hostStart;
+      const perfectsAfterHostOrb = !!candSky.exact_date && candSky.exact_date > hostEnd;
+      const id = mintPairActivationId(candSky.id, host.sky.id);
+      const fact = {
+        id, otherBody: candB, sky: candSky, anchorDate, perfectsBeforeHostOrb, perfectsAfterHostOrb,
+        pairAspect, hostOtherBody: host.otherBody,
+      };
+      if (!pairActivationsByHostId.has(host.sky.id)) pairActivationsByHostId.set(host.sky.id, []);
+      pairActivationsByHostId.get(host.sky.id).push(fact);
+    }
+  }
+
   // ── Eclipse-to-transit entries (RULING 4): eclipses within the phase
   // whose degree is sign-consonant + within 3 deg of the focus body's OWN
   // position on eclipse day (either end of the lunation axis) become their
@@ -593,12 +710,16 @@ export async function assembleBrief(focusBody) {
     const anchor = sky.exact_date ?? sky.window_start;
     const skyDates = formatBoundaryDates(sky.window_start, sky.window_end, sky.exact_date, phaseStart, phaseEnd);
     const skyPassLine = sky.exact_date && sky.pass_m > 1 ? `\n    PASS: ${sky.pass_n} of ${sky.pass_m} this passage` : '';
-    const block =
+    let block =
 `  - ID: ${sky.id}
     TYPE: SKY_CONTACT
     ASPECT: ${sky.event === 'conjunction' ? 'conjunct' : sky.event} transiting ${otherBody}
     DATES: ${skyDates}${skyPassLine}
     STATUS: ${computeSkyStatus(sky, phaseStart, phaseEnd)}${atmospheric ? '\n    TETHER: atmospheric -- no natal point caught' : ''}`;
+    const pairActivations = pairActivationsByHostId.get(sky.id) ?? [];
+    if (pairActivations.length) {
+      block += `\n    ACTIVATIONS:\n${pairActivations.map(formatPairActivationFact).join('\n')}`;
+    }
     timelineBlocks.push({ date: anchor, text: block });
   }
 
@@ -703,7 +824,13 @@ export async function assembleBrief(focusBody) {
 
   const natalCount = timelineNatal.length;
   const skyCount = skyContactEntries.length;
-  const activationCount = [...activationsByNatalRow.values()].reduce((s, a) => s + a.length, 0);
+  // "activation facts" is a single combined count in the template's
+  // [counts] line -- natal-contact activations and sky-pair activations
+  // are the same fact category (a third body B caught at the 1-degree
+  // band), just attached to different host entry types.
+  const natalActivationCount = [...activationsByNatalRow.values()].reduce((s, a) => s + a.length, 0);
+  const pairActivationCount = [...pairActivationsByHostId.values()].reduce((s, a) => s + a.length, 0);
+  const activationCount = natalActivationCount + pairActivationCount;
   const eclipseFactCount = eclipseActivationEntries.length;
 
   return { text: lines.join('\n'), counts: { natalCount, skyCount, activationCount, eclipseFactCount, totalEntries: natalCount + skyCount } };

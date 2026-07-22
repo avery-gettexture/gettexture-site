@@ -110,12 +110,31 @@ TIMELINE:
     # (In orb but no perfection in-phase: PASS shows "(none this window)";
     #  ID carries "-noexact" suffix, no pXofY.)
 
-  # --- SKY_CONTACT, slow pair (both Jupiter or slower) — always its own entry ---
+  # --- SKY_CONTACT, slow pair (both Jupiter or slower) — always its own entry,
+  #     shown here carrying an ACTIVATION (a third body touching both members) ---
   - ID: saturn-conjunction-neptune-2028-05-11-p1of1
     TYPE: SKY_CONTACT
     ASPECT: conjunct transiting Neptune
     DATES: orb opens 2028-04-19, exact 2028-05-11, separates 2028-06-02
     STATUS: perfects this phase
+    ACTIVATIONS:
+      # (A sky-pair activation = a third body B that reached the 1° band with
+      #  the PIECE'S PLANET while this pair's aspect was in orb, AND itself
+      #  aspects the pair's OTHER member. Same two-leg structure as
+      #  natal-contact activations, with the second leg swapped: PAIR_ASPECT
+      #  (B to the pair's other member) instead of NATAL_ASPECT.
+      #  ID anchors on B's aspect to the PIECE'S PLANET, then names the host
+      #  pair's sky-contact id: {B-to-piece's-planet sky id}-activates-{host
+      #  pair sky id}. B's aspect to the other member lives in PAIR_ASPECT
+      #  only, never in the ID.)
+      - ID: jupiter-sextile-saturn-2028-05-09-p1of1-activates-saturn-conjunction-neptune-2028-05-11-p1of1
+        BODY: Jupiter
+        SKY_ASPECT: Jupiter sextile the piece's planet, within 1° on 2028-05-08; perfects 2028-05-09 (Jupiter direct, Saturn direct)
+        PAIR_ASPECT: Jupiter sextile Neptune, exact 2028-05-12 (Jupiter direct, Neptune retrograde)
+        DATE: 2028-05-08
+      # (Out-of-host direction phrasing applies here identically: "perfects
+      #  {date}, before this pair's aspect begins" / "...after this pair's
+      #  aspect separates" when B's perfection falls outside the host window.)
     # (Slow-pair sky aspects are headline mundane events; always entries. They
     #  may also carry ACTIVATIONS when a third body contacts both members —
     #  same fact structure as natal-contact activations.)
@@ -140,7 +159,7 @@ TIMELINE:
     #  their planet on eclipse day. The Nodes piece owns the FULL eclipse
     #  itinerary; this is only the piece-planet-adjacent case.)
 
-[counts] entries: 6 (4 NATAL_CONTACT, 2 SKY_CONTACT); activation facts: 3; eclipse-to-transit facts: 1
+[counts] entries: 6 (4 NATAL_CONTACT, 2 SKY_CONTACT); activation facts: 4; eclipse-to-transit facts: 1
 
 # NOTE — RISING_SIGN_KNOWN: false variant: HOUSE header line omitted; all
 # "(Nth House)" suffixes omitted from natal points and contacts; natal Moon

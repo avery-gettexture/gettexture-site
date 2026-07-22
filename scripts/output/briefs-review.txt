@@ -1,0 +1,480 @@
+
+==============================================================================
+ASSEMBLED CALL 1 INPUT -- Saturn
+==============================================================================
+
+PLANET: Saturn
+SIGN: Aries
+HOUSE: 4th House
+RISING_SIGN_KNOWN: true
+
+PASSAGE:
+  INGRESS: 2025-05-25
+  EGRESS: 2028-04-13
+  SHAPE:
+    - ingress direct 2025-05-25, closed by station retrograde at 1.9° on 2025-07-13
+    - station retrograde 2025-07-13, closed by egress to Pisces on 2025-09-01
+    - retro-ingress to Pisces [out of sign] 2025-09-01, closed by station direct at 25.2° Pisces on 2025-11-28
+    - station direct in Pisces [out of sign] 2025-11-28, closed by re-ingress to Aries on 2026-02-14
+    - re-ingress direct 2026-02-14, closed by station retrograde at 14.7° on 2026-07-26
+    - station retrograde 2026-07-26, closed by station direct at 7.9° on 2026-12-10
+    - station direct 2026-12-10, closed by station retrograde at 27.9° on 2027-08-09
+    - station retrograde 2027-08-09, closed by station direct at 21.0° on 2027-12-24
+    - station direct 2027-12-24, closed by egress to Taurus on 2028-04-13
+
+PHASE:
+  MOTION: FORWARD
+  OPENED_BY: re-ingress on 2026-02-14
+  CLOSES: station retrograde at 14.7° on 2026-07-26
+
+COPRESENT_NATAL: Saturn 16.2° (4th House)
+COPRESENT_SKY: Neptune (all phase)
+
+TIMELINE:
+  - ID: saturn-sextile-uranus-2026-01-20-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: sextile transiting Uranus
+    DATES: in orb at phase open (since 2025-12-17), separates 2026-02-14
+    STATUS: no exact this phase
+  - ID: saturn-conjunction-neptune-2026-02-20-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: conjunct transiting Neptune
+    DATES: orb opens 2026-02-15, exact 2026-02-20, separates 2026-03-28
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-saturn-conjunction-neptune-2026-02-20-p1of1
+        BODY: Sun
+        SKY_ASPECT: Sun conjunction the piece's planet, within 1° on 2026-03-25; perfects 2026-03-25 (Sun direct, Saturn direct)
+        PAIR_ASPECT: Sun conjunction Neptune, exact 2026-03-22 (Sun direct, Neptune direct)
+        DATE: 2026-03-25
+      - ID: venus-conjunction-saturn-2026-03-08-p1of1-activates-saturn-conjunction-neptune-2026-02-20-p1of1
+        BODY: Venus
+        SKY_ASPECT: Venus conjunction the piece's planet, within 1° on 2026-03-09; perfects 2026-03-08 (Venus direct, Saturn direct)
+        PAIR_ASPECT: Venus conjunction Neptune, exact 2026-03-07 (Venus direct, Neptune direct)
+        DATE: 2026-03-09
+  - ID: saturn-sextile-natal-moon-2026-02-28-p3of3
+    TYPE: NATAL_CONTACT
+    ASPECT: sextile natal Moon (1.7° Gemini, 6th House)
+    DATES: orb opens 2026-02-15, exact 2026-02-28, separates 2026-03-25
+    WINDOW: 2 of 2 this passage
+    PASS: 3 of 3 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: saturn-conjunction-neptune-2026-02-20-p1of1-activates-natal-moon
+        BODY: Neptune
+        SKY_ASPECT: Neptune conjunction the piece's planet, within 1° on 2026-02-21; perfects 2026-02-20 (Saturn direct, Neptune direct)
+        NATAL_ASPECT: Neptune sextile natal Moon, exact 2026-03-18 (Neptune direct)
+        DATE: 2026-02-21
+      - ID: saturn-sextile-pluto-2026-03-28-p1of1-activates-natal-moon
+        BODY: Pluto
+        SKY_ASPECT: Pluto sextile the piece's planet, within 1° on 2026-03-25; perfects 2026-03-28, after this contact separates (Saturn direct, Pluto direct)
+        NATAL_ASPECT: Pluto trine natal Moon, no exact (Pluto direct)
+        DATE: 2026-03-25
+      - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-natal-moon
+        BODY: Sun
+        SKY_ASPECT: Sun conjunction the piece's planet, within 1° on 2026-03-25; perfects 2026-03-25 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun sextile natal Moon, exact 2026-03-22 (Sun direct)
+        DATE: 2026-03-25
+      - ID: venus-conjunction-saturn-2026-03-08-p1of1-activates-natal-moon
+        BODY: Venus
+        SKY_ASPECT: Venus conjunction the piece's planet, within 1° on 2026-03-09; perfects 2026-03-08 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus sextile natal Moon, exact 2026-03-07 (Venus direct)
+        DATE: 2026-03-09
+  - ID: saturn-trine-natal-pluto-2026-03-19-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: trine natal Pluto (4.0° Sagittarius, 12th House)
+    DATES: orb opens 2026-02-23, exact 2026-03-19, separates 2026-04-12
+    WINDOW: 2 of 2 this passage
+    PASS: 1 of 1 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: saturn-conjunction-neptune-2026-02-20-p1of1-activates-natal-pluto
+        BODY: Neptune
+        SKY_ASPECT: Neptune conjunction the piece's planet, within 1° on 2026-02-23; perfects 2026-02-20, before this contact begins (Saturn direct, Neptune direct)
+        NATAL_ASPECT: Neptune trine natal Pluto, no exact (Neptune direct)
+        DATE: 2026-02-23
+      - ID: saturn-sextile-pluto-2026-03-28-p1of1-activates-natal-pluto
+        BODY: Pluto
+        SKY_ASPECT: Pluto sextile the piece's planet, within 1° on 2026-03-29; perfects 2026-03-28 (Saturn direct, Pluto direct)
+        NATAL_ASPECT: Pluto sextile natal Pluto, no exact (Pluto direct)
+        DATE: 2026-03-29
+      - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-natal-pluto
+        BODY: Sun
+        SKY_ASPECT: Sun conjunction the piece's planet, within 1° on 2026-03-25; perfects 2026-03-25 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun trine natal Pluto, exact 2026-03-24 (Sun direct)
+        DATE: 2026-03-25
+      - ID: venus-conjunction-saturn-2026-03-08-p1of1-activates-natal-pluto
+        BODY: Venus
+        SKY_ASPECT: Venus conjunction the piece's planet, within 1° on 2026-03-09; perfects 2026-03-08 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus trine natal Pluto, exact 2026-03-09 (Venus direct)
+        DATE: 2026-03-09
+  - ID: saturn-sextile-natal-uranus-2026-03-25-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: sextile natal Uranus (4.7° Aquarius, 2nd House)
+    DATES: orb opens 2026-03-02, exact 2026-03-25, separates 2026-04-18
+    WINDOW: 2 of 2 this passage
+    PASS: 1 of 1 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: saturn-conjunction-neptune-2026-02-20-p1of1-activates-natal-uranus
+        BODY: Neptune
+        SKY_ASPECT: Neptune conjunction the piece's planet, within 1° on 2026-03-02; perfects 2026-02-20, before this contact begins (Saturn direct, Neptune direct)
+        NATAL_ASPECT: Neptune sextile natal Uranus, no exact (Neptune direct)
+        DATE: 2026-03-02
+      - ID: saturn-sextile-pluto-2026-03-28-p1of1-activates-natal-uranus
+        BODY: Pluto
+        SKY_ASPECT: Pluto sextile the piece's planet, within 1° on 2026-03-29; perfects 2026-03-28 (Saturn direct, Pluto direct)
+        NATAL_ASPECT: Pluto conjunction natal Uranus, exact 2026-03-09 (Pluto direct)
+        DATE: 2026-03-29
+      - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-natal-uranus
+        BODY: Sun
+        SKY_ASPECT: Sun conjunction the piece's planet, within 1° on 2026-03-25; perfects 2026-03-25 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun sextile natal Uranus, exact 2026-03-25 (Sun direct)
+        DATE: 2026-03-25
+      - ID: venus-conjunction-saturn-2026-03-08-p1of1-activates-natal-uranus
+        BODY: Venus
+        SKY_ASPECT: Venus conjunction the piece's planet, within 1° on 2026-03-09; perfects 2026-03-08 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus sextile natal Uranus, exact 2026-03-10 (Venus direct)
+        DATE: 2026-03-09
+  - ID: saturn-sextile-pluto-2026-03-28-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: sextile transiting Pluto
+    DATES: orb opens 2026-02-27, exact 2026-03-28, separates 2026-04-25
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: sun-conjunction-saturn-2026-03-25-p1of1-activates-saturn-sextile-pluto-2026-03-28-p1of1
+        BODY: Sun
+        SKY_ASPECT: Sun conjunction the piece's planet, within 1° on 2026-03-25; perfects 2026-03-25 (Sun direct, Saturn direct)
+        PAIR_ASPECT: Sun sextile Pluto, exact 2026-03-25 (Sun direct, Pluto direct)
+        DATE: 2026-03-25
+      - ID: mercury-conjunction-saturn-2026-04-20-p1of1-activates-saturn-sextile-pluto-2026-03-28-p1of1
+        BODY: Mercury
+        SKY_ASPECT: Mercury conjunction the piece's planet, within 1° on 2026-04-20; perfects 2026-04-20 (Mercury direct, Saturn direct)
+        PAIR_ASPECT: Mercury sextile Pluto, exact 2026-04-18 (Mercury direct, Pluto direct)
+        DATE: 2026-04-20
+      - ID: venus-conjunction-saturn-2026-03-08-p1of1-activates-saturn-sextile-pluto-2026-03-28-p1of1
+        BODY: Venus
+        SKY_ASPECT: Venus conjunction the piece's planet, within 1° on 2026-03-09; perfects 2026-03-08 (Venus direct, Saturn direct)
+        PAIR_ASPECT: Venus sextile Pluto, exact 2026-03-10 (Venus direct, Pluto direct)
+        DATE: 2026-03-09
+      - ID: mars-conjunction-saturn-2026-04-19-p1of1-activates-saturn-sextile-pluto-2026-03-28-p1of1
+        BODY: Mars
+        SKY_ASPECT: Mars conjunction the piece's planet, within 1° on 2026-04-20; perfects 2026-04-19 (Mars direct, Saturn direct)
+        PAIR_ASPECT: Mars sextile Pluto, exact 2026-04-16 (Mars direct, Pluto direct)
+        DATE: 2026-04-20
+  - ID: saturn-square-natal-ascendant-2026-05-01-p1of3
+    TYPE: NATAL_CONTACT
+    ASPECT: square natal Ascendant (9.2° Capricorn, 1st House)
+    DATES: orb opens 2026-04-06, exact 2026-05-01, separates 2026-05-30
+    WINDOW: 1 of 2 this passage
+    PASS: 1 of 3 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: mercury-conjunction-saturn-2026-04-20-p1of1-activates-natal-ascendant
+        BODY: Mercury
+        SKY_ASPECT: Mercury conjunction the piece's planet, within 1° on 2026-04-20; perfects 2026-04-20 (Mercury direct, Saturn direct)
+        NATAL_ASPECT: Mercury square natal Ascendant, exact 2026-04-21 (Mercury direct)
+        DATE: 2026-04-20
+      - ID: venus-square-saturn-2026-05-29-p1of1-activates-natal-ascendant
+        BODY: Venus
+        SKY_ASPECT: Venus square the piece's planet, within 1° on 2026-05-29; perfects 2026-05-29 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus opposition natal Ascendant, exact 2026-05-26 (Venus direct)
+        DATE: 2026-05-29
+      - ID: mars-conjunction-saturn-2026-04-19-p1of1-activates-natal-ascendant
+        BODY: Mars
+        SKY_ASPECT: Mars conjunction the piece's planet, within 1° on 2026-04-20; perfects 2026-04-19 (Mars direct, Saturn direct)
+        NATAL_ASPECT: Mars square natal Ascendant, exact 2026-04-21 (Mars direct)
+        DATE: 2026-04-20
+  - ID: saturn-trine-natal-venus-2026-05-23-p1of3
+    TYPE: NATAL_CONTACT
+    ASPECT: trine natal Venus (11.5° Sagittarius, 12th House)
+    DATES: orb opens 2026-04-26, exact 2026-05-23, separates 2026-07-10
+    WINDOW: 1 of 3 this passage
+    PASS: 1 of 3 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: sun-sextile-saturn-2026-06-02-p1of1-activates-natal-venus
+        BODY: Sun
+        SKY_ASPECT: Sun sextile the piece's planet, within 1° on 2026-06-03; perfects 2026-06-02 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun opposition natal Venus, exact 2026-06-02 (Sun direct)
+        DATE: 2026-06-03
+      - ID: mercury-sextile-saturn-2026-05-22-p1of1-activates-natal-venus
+        BODY: Mercury
+        SKY_ASPECT: Mercury sextile the piece's planet, within 1° on 2026-05-23; perfects 2026-05-22 (Mercury direct, Saturn direct)
+        NATAL_ASPECT: Mercury opposition natal Venus, exact 2026-05-22 (Mercury direct)
+        DATE: 2026-05-23
+      - ID: venus-sextile-saturn-2026-05-01-p1of1-activates-natal-venus
+        BODY: Venus
+        SKY_ASPECT: Venus sextile the piece's planet, within 1° on 2026-05-02; perfects 2026-05-01 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus opposition natal Venus, exact 2026-05-03 (Venus direct)
+        DATE: 2026-05-02
+      - ID: venus-trine-saturn-2026-06-25-p1of1-activates-natal-venus
+        BODY: Venus
+        SKY_ASPECT: Venus trine the piece's planet, within 1° on 2026-06-26; perfects 2026-06-25 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus trine natal Venus, exact 2026-06-23 (Venus direct)
+        DATE: 2026-06-26
+  - ID: saturn-sextile-natal-jupiter-2026-06-01-p1of3
+    TYPE: NATAL_CONTACT
+    ASPECT: sextile natal Jupiter (12.3° Aquarius, 2nd House)
+    DATES: orb opens 2026-05-03, exact 2026-06-01, remains in orb at phase close
+    WINDOW: 1 of 2 this passage
+    PASS: 1 of 3 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: sun-sextile-saturn-2026-06-02-p1of1-activates-natal-jupiter
+        BODY: Sun
+        SKY_ASPECT: Sun sextile the piece's planet, within 1° on 2026-06-03; perfects 2026-06-02 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun trine natal Jupiter, exact 2026-06-02 (Sun direct)
+        DATE: 2026-06-03
+      - ID: mercury-sextile-saturn-2026-05-22-p1of1-activates-natal-jupiter
+        BODY: Mercury
+        SKY_ASPECT: Mercury sextile the piece's planet, within 1° on 2026-05-23; perfects 2026-05-22 (Mercury direct, Saturn direct)
+        NATAL_ASPECT: Mercury trine natal Jupiter, exact 2026-05-23 (Mercury direct)
+        DATE: 2026-05-23
+      - ID: venus-trine-saturn-2026-06-25-p1of1-activates-natal-jupiter
+        BODY: Venus
+        SKY_ASPECT: Venus trine the piece's planet, within 1° on 2026-06-26; perfects 2026-06-25 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus opposition natal Jupiter, exact 2026-06-24 (Venus direct)
+        DATE: 2026-06-26
+      - ID: mars-sextile-saturn-2026-07-19-p1of1-activates-natal-jupiter
+        BODY: Mars
+        SKY_ASPECT: Mars sextile the piece's planet, within 1° on 2026-07-20; perfects 2026-07-19 (Mars direct, Saturn direct)
+        NATAL_ASPECT: Mars trine natal Jupiter, exact 2026-07-16 (Mars direct)
+        DATE: 2026-07-20
+  - ID: mercury-square-saturn-2026-06-10-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: square transiting Mercury
+    DATES: orb opens 2026-06-08, exact 2026-06-10, separates 2026-06-12
+    STATUS: perfects this phase
+    TETHER: atmospheric -- no natal point caught
+  - ID: saturn-conjunction-natal-saturn-2026-06-14-noexact
+    TYPE: NATAL_CONTACT
+    ASPECT: conjunction natal Saturn (16.2° Aries, 4th House)
+    DATES: orb opens 2026-06-14, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    WINDOW: 1 of 2 this passage
+    PASS: (none this window)
+    STATUS: no exact this phase -- perfects on a later pass
+    ACTIVATIONS:
+      - ID: sun-square-saturn-2026-07-06-p1of1-activates-natal-saturn
+        BODY: Sun
+        SKY_ASPECT: Sun square the piece's planet, within 1° on 2026-07-06; perfects 2026-07-06 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun square natal Saturn, exact 2026-07-08 (Sun direct)
+        DATE: 2026-07-06
+      - ID: venus-trine-saturn-2026-06-25-p1of1-activates-natal-saturn
+        BODY: Venus
+        SKY_ASPECT: Venus trine the piece's planet, within 1° on 2026-06-26; perfects 2026-06-25 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus trine natal Saturn, exact 2026-06-27 (Venus direct)
+        DATE: 2026-06-26
+      - ID: mars-sextile-saturn-2026-07-19-p1of1-activates-natal-saturn
+        BODY: Mars
+        SKY_ASPECT: Mars sextile the piece's planet, within 1° on 2026-07-20; perfects 2026-07-19 (Mars direct, Saturn direct)
+        NATAL_ASPECT: Mars sextile natal Saturn, exact 2026-07-21 (Mars direct)
+        DATE: 2026-07-20
+  - ID: saturn-trine-natal-mars-2026-06-30-p1of3
+    TYPE: NATAL_CONTACT
+    ASPECT: trine natal Mars (14.2° Sagittarius, 12th House)
+    DATES: orb opens 2026-05-21, exact 2026-06-30, remains in orb at phase close
+    WINDOW: 1 of 2 this passage
+    PASS: 1 of 3 this passage
+    STATUS: perfects this phase
+    ACTIVATIONS:
+      - ID: sun-sextile-saturn-2026-06-02-p1of1-activates-natal-mars
+        BODY: Sun
+        SKY_ASPECT: Sun sextile the piece's planet, within 1° on 2026-06-03; perfects 2026-06-02 (Sun direct, Saturn direct)
+        NATAL_ASPECT: Sun opposition natal Mars, exact 2026-06-04 (Sun direct)
+        DATE: 2026-06-03
+      - ID: mercury-sextile-saturn-2026-05-22-p1of1-activates-natal-mars
+        BODY: Mercury
+        SKY_ASPECT: Mercury sextile the piece's planet, within 1° on 2026-05-23; perfects 2026-05-22 (Mercury direct, Saturn direct)
+        NATAL_ASPECT: Mercury opposition natal Mars, exact 2026-05-24 (Mercury direct)
+        DATE: 2026-05-23
+      - ID: venus-trine-saturn-2026-06-25-p1of1-activates-natal-mars
+        BODY: Venus
+        SKY_ASPECT: Venus trine the piece's planet, within 1° on 2026-06-26; perfects 2026-06-25 (Venus direct, Saturn direct)
+        NATAL_ASPECT: Venus trine natal Mars, exact 2026-06-25 (Venus direct)
+        DATE: 2026-06-26
+      - ID: mars-sextile-saturn-2026-07-19-p1of1-activates-natal-mars
+        BODY: Mars
+        SKY_ASPECT: Mars sextile the piece's planet, within 1° on 2026-07-20; perfects 2026-07-19 (Mars direct, Saturn direct)
+        NATAL_ASPECT: Mars opposition natal Mars, exact 2026-07-18 (Mars direct)
+        DATE: 2026-07-20
+  - ID: mercury-square-saturn-2026-07-19-noexact
+    TYPE: SKY_CONTACT
+    ASPECT: square transiting Mercury
+    DATES: orb opens 2026-07-19, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    STATUS: no exact this phase
+    TETHER: atmospheric -- no natal point caught
+
+[counts] entries: 13 (8 NATAL_CONTACT, 5 SKY_CONTACT); activation facts: 36; eclipse-to-transit facts: 0
+
+==============================================================================
+End of assembled brief for Saturn. No API call made.
+==============================================================================
+
+==============================================================================
+ASSEMBLED CALL 1 INPUT -- Mercury
+==============================================================================
+
+PLANET: Mercury
+SIGN: Cancer
+HOUSE: 7th House
+RISING_SIGN_KNOWN: true
+
+PASSAGE:
+  INGRESS: 2026-06-01
+  EGRESS: 2026-08-09
+  SHAPE:
+    - ingress direct 2026-06-01, closed by station retrograde at 26.2° on 2026-06-29
+    - station retrograde 2026-06-29, closed by station direct at 16.4° on 2026-07-23
+    - station direct 2026-07-23, closed by egress to Leo on 2026-08-09
+
+PHASE:
+  MOTION: RETROGRADE
+  OPENED_BY: station retrograde at 26.2° on 2026-06-29
+  CLOSES: station direct at 16.4° on 2026-07-23
+
+COPRESENT_NATAL: none
+COPRESENT_SKY: Jupiter (Jun 29, 2026 – Jun 30, 2026)
+
+TIMELINE:
+  - ID: mercury-square-natal-sun-2026-07-04-p2of3
+    TYPE: NATAL_CONTACT
+    ASPECT: square natal Sun (25.4° Libra, 10th House)
+    DATES: in orb at phase open (since 2026-06-20), exact 2026-07-04, separates 2026-07-10
+    WINDOW: 1 of 2 this passage
+    PASS: 2 of 3 this passage
+    STATUS: perfects this phase
+  - ID: sun-conjunction-mercury-2026-07-13-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: conjunct transiting Sun
+    DATES: orb opens 2026-07-12, exact 2026-07-13, separates 2026-07-14
+    STATUS: perfects this phase
+    TETHER: atmospheric -- no natal point caught
+  - ID: mercury-square-natal-saturn-2026-07-16-noexact
+    TYPE: NATAL_CONTACT
+    ASPECT: square natal Saturn (16.2° Aries, 4th House)
+    DATES: orb opens 2026-07-16, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    WINDOW: 2 of 2 this passage
+    PASS: (none this window)
+    STATUS: no exact this phase -- perfects on a later pass
+  - ID: mercury-square-saturn-2026-07-19-noexact
+    TYPE: SKY_CONTACT
+    ASPECT: square transiting Saturn
+    DATES: orb opens 2026-07-19, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    STATUS: no exact this phase
+    TETHER: atmospheric -- no natal point caught
+  - ID: mercury-sextile-venus-2026-07-24-p1of1
+    TYPE: SKY_CONTACT
+    ASPECT: sextile transiting Venus
+    DATES: orb opens 2026-07-23, no exact this phase -- phase closes mid-window, remains in orb at phase close
+    STATUS: no exact this phase
+    TETHER: atmospheric -- no natal point caught
+
+[counts] entries: 5 (2 NATAL_CONTACT, 3 SKY_CONTACT); activation facts: 0; eclipse-to-transit facts: 0
+
+==============================================================================
+End of assembled brief for Mercury. No API call made.
+==============================================================================
+
+==============================================================================
+ASSEMBLED CALL 1 INPUT -- Nodes
+==============================================================================
+
+PLANET: Nodes
+AXIS: North Node Pisces — South Node Virgo
+HOUSES: North Node 3rd House, South Node 9th House
+RISING_SIGN_KNOWN: true
+
+PASSAGE:
+  INGRESS: 2025-01-29
+  EGRESS: 2026-08-18
+  SHAPE:
+    - ingress 2025-01-29, closed by egress to North Node Aquarius / South Node Leo on 2026-08-18
+
+PHASE:
+  INGRESS: 2025-01-29
+  EGRESS: 2026-08-18
+
+COPRESENT_SKY: Saturn (Jan 29, 2025 – May 25, 2025), Saturn (Sep 2, 2025 – Feb 14, 2026), Neptune (Jan 29, 2025 – Mar 30, 2025), Neptune (Oct 23, 2025 – Jan 26, 2026)
+
+TIMELINE:
+  - ID: nodes-conjunct-node-south-axis-2025-09-19-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: transiting North Node opposite natal North Node = conjunct natal South Node (one event)
+    DATES: orb opens 2025-07-25, exact 2025-09-19, separates 2025-11-15
+    STATUS: perfects this phase
+  - ID: nodes-square-node-axis-mars-2025-11-24-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: Natal Mars squares the nodal axis
+    DATES: orb opens 2025-09-29, exact 2025-11-24, separates 2026-01-20
+    STATUS: perfects this phase
+  - ID: nodes-square-node-axis-venus-2026-01-13-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: Natal Venus squares the nodal axis
+    DATES: orb opens 2025-11-18, exact 2026-01-13, separates 2026-03-10
+    STATUS: perfects this phase
+  - ID: nodes-square-node-axis-pluto-2026-06-04-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: Natal Pluto squares the nodal axis
+    DATES: orb opens 2026-04-09, exact 2026-06-04, separates 2026-07-31
+    STATUS: perfects this phase
+  - ID: nodes-square-node-axis-moon-2026-07-18-p1of1
+    TYPE: NATAL_CONTACT
+    ASPECT: Natal Moon squares the nodal axis
+    DATES: orb opens 2026-05-23, exact 2026-07-18, separates 2026-08-18
+    STATUS: perfects this phase
+  - TYPE: ECLIPSE
+    ID: lunar-eclipse-2025-03-14
+    KIND: lunar
+    DATE: 2025-03-14
+    POINT: 23.7° Pisces, 3rd House
+    CONFIGURATION: sextile Uranus
+    NATAL_CAUGHT: none
+  - TYPE: ECLIPSE
+    ID: solar-eclipse-2025-03-29
+    KIND: solar
+    DATE: 2025-03-29
+    POINT: 8.5° Aries, 4th House
+    CONFIGURATION: none
+    NATAL_CAUGHT: none
+  - TYPE: ECLIPSE
+    ID: lunar-eclipse-2025-09-07
+    KIND: lunar
+    DATE: 2025-09-07
+    POINT: 14.6° Virgo, 9th House
+    CONFIGURATION: none
+    NATAL_CAUGHT: none
+  - TYPE: ECLIPSE
+    ID: solar-eclipse-2025-09-21
+    KIND: solar
+    DATE: 2025-09-21
+    POINT: 28.3° Virgo, 9th House
+    CONFIGURATION: opposition Saturn
+    NATAL_CAUGHT: none
+  - TYPE: ECLIPSE
+    ID: solar-eclipse-2026-02-17
+    KIND: solar
+    DATE: 2026-02-17
+    POINT: 28.3° Aquarius, 2nd House
+    CONFIGURATION: none
+    NATAL_CAUGHT: none
+  - TYPE: ECLIPSE
+    ID: lunar-eclipse-2026-03-03
+    KIND: lunar
+    DATE: 2026-03-03
+    POINT: 12.4° Pisces, 3rd House
+    CONFIGURATION: none
+    NATAL_CAUGHT: none
+  - TYPE: ECLIPSE
+    ID: solar-eclipse-2026-08-12
+    KIND: solar
+    DATE: 2026-08-12
+    POINT: 19.3° Leo, 8th House
+    CONFIGURATION: none
+    NATAL_CAUGHT: none
+
+[counts] entries: 5 (5 NATAL_CONTACT, 0 SKY_CONTACT); activation facts: 0; eclipse-to-transit facts: 0
+
+==============================================================================
+End of assembled brief for Nodes. No API call made.
+==============================================================================

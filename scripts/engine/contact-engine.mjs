@@ -618,6 +618,15 @@ export function mintEclipseTransitActivationId(eclipseId, transitingBody) {
   return `${eclipseId}-activates-transiting-${slug(transitingBody)}`;
 }
 
+// Sky-pair activation fact ID (a third body B activating a slow-pair
+// SKY_CONTACT): {B-to-piece's-planet sky id}-activates-{host pair sky id}.
+// Both halves are already-minted aspect_calendar row ids, so this is a
+// direct concatenation -- no further slugging needed, and (like
+// mintActivationId) canonical regardless of which body's brief renders it.
+export function mintPairActivationId(candidateSkyId, hostSkyId) {
+  return `${candidateSkyId}-activates-${hostSkyId}`;
+}
+
 // passageCounts: { n, m } -- the PASSAGE-scoped pass index/count (see
 // filterAndGroupForPassage above), NOT the row's own within-window
 // crossing index. This is the STEP 4 semantic change: p{n}of{m} in the
