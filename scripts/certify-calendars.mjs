@@ -484,9 +484,10 @@ async function certifyStructuralGuardsAndBriefs() {
     try {
       const { text, counts } = await assembleBrief(body);
       const nonEmpty = typeof text === 'string' && text.trim().length > 0;
+      const eclipseComponent = body === 'Nodes' ? `, ${counts.eclipseEntryCount} ECLIPSE` : '';
       record(
         'structural guards + brief assembly', `${body}: recompute, both guards, and assembly all succeeded`, nonEmpty,
-        `${counts.totalEntries} entries (${counts.natalCount} NATAL_CONTACT, ${counts.skyCount} SKY_CONTACT); `
+        `${counts.totalEntries} entries (${counts.natalCount} NATAL_CONTACT, ${counts.skyCount} SKY_CONTACT${eclipseComponent}); `
         + `${counts.activationCount} activation fact(s); ${counts.eclipseFactCount} eclipse-to-transit fact(s)`,
       );
     } catch (err) {

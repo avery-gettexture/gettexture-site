@@ -324,15 +324,6 @@ function idFor(c, focusBody) {
 
 // ── Formatting helpers ────────────────────────────────────────────────────
 
-// Includes the year: a phase can span a year boundary (the Nodes passage is
-// ~19 months), and a same-body span can otherwise print as a false-looking
-// duplicate -- e.g. the Sun's Pisces transit in 2025 and again in 2026 both
-// read "Feb 19 - Mar 20" without a year to distinguish them.
-function shortDate(iso) {
-  const d = new Date(iso + 'T00:00:00Z');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-}
-
 function formatCopresentNatal(matches, risingKnown) {
   if (matches.length === 0) return 'none';
   return matches.map(p => `${p.name} ${p.degree.toFixed(1)}°${risingKnown ? ` (${p.house ?? 'house unknown'})` : ''}`).join(', ');
@@ -344,7 +335,7 @@ function formatCopresentSky(spansByBody, phaseStart, phaseEnd) {
     for (const sp of spans) {
       const label = sp.label ?? body;
       const full = sp.start <= phaseStart && sp.end >= phaseEnd;
-      entries.push(full ? `${label} (all phase)` : `${label} (${shortDate(sp.start)} – ${shortDate(sp.end)})`);
+      entries.push(full ? `${label} (all phase)` : `${label} (${sp.start} – ${sp.end})`);
     }
   }
   return entries.length ? entries.join(', ') : 'none';
@@ -753,6 +744,7 @@ export async function assembleBrief(focusBody) {
 
   // ── Assemble the message ──
   const lines = [];
+  let eclipseEntryCount = 0; // Nodes variant only -- TYPE: ECLIPSE entries, a counted entry type per docs/brief-template-nodes.md's own [counts] line
   if (focusBody === 'Nodes') {
     const nextNodesRow = await fetchNodesRowAtDate(passage.egressDate);
     lines.push(`PLANET: Nodes`);
@@ -776,6 +768,7 @@ export async function assembleBrief(focusBody) {
     timelineBlocks.forEach(b => lines.push(b.text));
 
     const eclipses = await fetchEclipsesInRange(passage.ingressDate, passage.egressDate);
+    eclipseEntryCount = eclipses.length;
     for (const e of eclipses) {
       const catches = eclipseCatches(e, natalPoints);
       const skyForEclipse = await fetchAspectCalendarForBody('Sun', e.exact_date, e.exact_date);
@@ -833,7 +826,13 @@ export async function assembleBrief(focusBody) {
   const activationCount = natalActivationCount + pairActivationCount;
   const eclipseFactCount = eclipseActivationEntries.length;
 
-  return { text: lines.join('\n'), counts: { natalCount, skyCount, activationCount, eclipseFactCount, totalEntries: natalCount + skyCount } };
+  return {
+    text: lines.join('\n'),
+    counts: {
+      natalCount, skyCount, activationCount, eclipseFactCount, eclipseEntryCount,
+      totalEntries: natalCount + skyCount + eclipseEntryCount,
+    },
+  };
 }
 
 async function main() {
@@ -846,7 +845,8 @@ async function main() {
     console.log(`\n${'='.repeat(78)}\nASSEMBLED CALL 1 INPUT -- ${focusBody}\n${'='.repeat(78)}\n`);
     const { text, counts } = await assembleBrief(focusBody);
     console.log(text);
-    console.log(`\n[counts] entries: ${counts.totalEntries} (${counts.natalCount} NATAL_CONTACT, ${counts.skyCount} SKY_CONTACT); activation facts: ${counts.activationCount}; eclipse-to-transit facts: ${counts.eclipseFactCount}`);
+    const eclipseComponent = focusBody === 'Nodes' ? `, ${counts.eclipseEntryCount} ECLIPSE` : '';
+    console.log(`\n[counts] entries: ${counts.totalEntries} (${counts.natalCount} NATAL_CONTACT, ${counts.skyCount} SKY_CONTACT${eclipseComponent}); activation facts: ${counts.activationCount}; eclipse-to-transit facts: ${counts.eclipseFactCount}`);
     console.log(`\n${'='.repeat(78)}\nEnd of assembled brief for ${focusBody}. No API call made.\n${'='.repeat(78)}`);
   }
 }
