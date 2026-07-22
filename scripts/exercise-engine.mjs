@@ -1,11 +1,12 @@
 // STEP D: engine-scale exercise. Everything validated so far has been one
 // chart, three bodies, one phase each -- every code branch those cases
 // don't hit has shipped unverified. This runs the assembler across all ten
-// bodies (Sun-Pluto + Nodes), across the real dogfood chart AND three
-// synthetic charts (including one with RISING_SIGN_KNOWN: false), across
-// each body's prior/current/future phase, and asserts the STEP C
-// structural differ on every result. No human reads the output -- the
-// differ is the judge.
+// bodies (Sun-Pluto + Nodes), across the real dogfood chart, three
+// synthetic charts (including one with RISING_SIGN_KNOWN: false), and five
+// cusp-geometry charts (STEP 4 -- see cuspChart() below), across each
+// body's prior/current/future phase, and asserts the STEP C structural
+// differ on every result. No human reads the output -- the differ is the
+// judge.
 //
 // Read-only: queries Supabase (sky_positions, transit_calendar,
 // aspect_calendar, and the real reading only for the "real chart" case),
@@ -122,6 +123,54 @@ const SYNTHETIC_CLUSTERED = {
   },
 };
 
+// STEP 4 (permanent test-matrix addition, SPEC.md's validation law): cusp
+// geometry is its own GEOMETRIC test class, separate from aspect-type
+// coverage -- the cusp-seam crossing-detection bug (SPEC.md's July 21,
+// 2026 decision-log entry) was invisible to aspect-type coverage because
+// it depends on how close a receiving point sits to a sign boundary, not
+// which aspect is involved. Five charts, one per degree-within-sign,
+// place EVERY receiving point at that same degree (spread across
+// different signs only for house variety) so the whole 13-point/9-body/
+// all-aspect surface gets swept at each distance from a cusp: exactly on
+// it (0.0), just off it (0.5), mid-sign (15.0 -- the control, should
+// behave identically to any other non-cusp chart), and approaching the
+// FAR cusp from the other side (29.5, 29.9).
+function cuspChart(name, degree) {
+  const s = ['Ari', 'Tau', 'Gem', 'Can', 'Leo', 'Vir', 'Lib', 'Sco', 'Sag', 'Cap', 'Aqu', 'Pis'];
+  const h = ['First_House', 'Second_House', 'Third_House', 'Fourth_House', 'Fifth_House', 'Sixth_House',
+    'Seventh_House', 'Eighth_House', 'Ninth_House', 'Tenth_House', 'Eleventh_House', 'Twelfth_House'];
+  return {
+    name,
+    birth_time_known: true,
+    chart_data: {
+      subject: {
+        sun: point(s[0], degree, h[0]),
+        moon: point(s[1], degree, h[1]),
+        mercury: point(s[2], degree, h[2]),
+        venus: point(s[3], degree, h[3]),
+        mars: point(s[4], degree, h[4]),
+        jupiter: point(s[5], degree, h[5]),
+        saturn: point(s[6], degree, h[6]),
+        uranus: point(s[7], degree, h[7]),
+        neptune: point(s[8], degree, h[8]),
+        pluto: point(s[9], degree, h[9]),
+        ascendant: point(s[0], degree),
+        medium_coeli: point(s[9], degree, h[9]),
+        mean_north_lunar_node: point(s[10], degree, h[10]),
+        mean_south_lunar_node: point(s[4], degree, h[4]), // opposite sign of the north node above
+      },
+    },
+  };
+}
+
+const CUSP_CHARTS = [
+  cuspChart('Cusp — 0.0°', 0.0),
+  cuspChart('Cusp — 0.5°', 0.5),
+  cuspChart('Cusp — mid-sign 15.0° (control)', 15.0),
+  cuspChart('Cusp — 29.5°', 29.5),
+  cuspChart('Cusp — 29.9°', 29.9),
+];
+
 async function fetchRealReading() {
   const { data, error } = await supabase.from('readings').select('chart_data, birth_time_known, name').eq('slug', 'hejkhjq1zns5').single();
   if (error || !data) throw new Error(`Could not load real reading: ${error?.message}`);
@@ -169,7 +218,7 @@ async function main() {
   console.log('Read-only. No writes, no AI/API calls. Synthetic charts are in-memory only.\n');
 
   const realReading = await fetchRealReading();
-  const charts = [realReading, SYNTHETIC_SPREAD, SYNTHETIC_NO_BIRTH_TIME, SYNTHETIC_CLUSTERED];
+  const charts = [realReading, SYNTHETIC_SPREAD, SYNTHETIC_NO_BIRTH_TIME, SYNTHETIC_CLUSTERED, ...CUSP_CHARTS];
 
   // One extra targeted case per the founder's explicit unusual-case list:
   // an eclipse hit on the piece's planet (Saturn, 2025-09-21 -- Solar

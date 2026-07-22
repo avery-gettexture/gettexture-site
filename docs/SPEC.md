@@ -716,6 +716,23 @@ reaffirming the spec's validation law: internal consistency cannot
 detect being consistently wrong; deterministic tables validate against
 external ground truth before anything downstream depends on them.
 
+**Extension (July 21, 2026 — cusp-seam bug, full record in §16's July
+21 entry):** the standing test-coverage rule required covering every
+ASPECT type (conjunction/sextile/square/trine/opposition); the
+cusp-seam crossing-detection bug was invisible to that rule because it
+belongs to a different axis entirely — a GEOMETRIC class (how close a
+receiving point sits to a sign boundary), orthogonal to which aspect is
+involved. The validation law now reads: coverage must sweep every
+independent axis a bug could hide along, not just the one a prior bug
+happened to teach us to check. Standing enforcement:
+`scripts/exercise-engine.mjs`'s charts now include five geometric-cusp
+charts (every receiving point placed at 0.0°, 0.5°, 15.0° [mid-sign
+control], 29.5°, and 29.9° of its sign), joining the existing dogfood
+and aspect/rising-unknown/no-contact synthetic charts in the standing
+exercise matrix — so this class of bug fails loudly if it ever
+recurs, rather than waiting for another founder-directed investigation
+to notice it.
+
 ### 11A.5 Eclipses (loaded & validated July 18, 2026)
 
 - Source: NASA Five Millennium Canon (Espenak & Meeus). 104 events
