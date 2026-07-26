@@ -12,6 +12,18 @@ interface TransitBodyConfig {
   background: string;
 }
 
+interface TimelineEntry {
+  id: string;
+  prose: string;
+}
+
+interface TransitPieceRow {
+  body: string;
+  synthesis_prose: string;
+  timeline_entries: TimelineEntry[];
+  phase_opened_date: string;
+}
+
 // ── Body config ────────────────────────────────────────────────────────────
 // Order per the build spec: Sun, Mercury, Venus, Mars, Jupiter, Saturn,
 // Uranus, Neptune, Pluto, Nodes. No ASC/MC windows; Nodes is one window.
@@ -34,7 +46,7 @@ const PLACEHOLDER_TIMELINE = 'Timeline entries will appear here once this piece 
 
 // ── Body Card Component ─────────────────────────────────────────────────────
 
-function TransitBodyCard({ body, customerName }: { body: TransitBodyConfig; customerName: string }) {
+function TransitBodyCard({ body, customerName, piece }: { body: TransitBodyConfig; customerName: string; piece?: TransitPieceRow }) {
   return (
     <>
       <div className="card-outer" />
@@ -50,7 +62,11 @@ function TransitBodyCard({ body, customerName }: { body: TransitBodyConfig; cust
             <span className="section-row-label">Synthesis</span>
           </div>
           <div className="section-body">
-            <p className="placeholder-text">{PLACEHOLDER_SYNTHESIS}</p>
+            {piece ? (
+              <p>{piece.synthesis_prose}</p>
+            ) : (
+              <p className="placeholder-text">{PLACEHOLDER_SYNTHESIS}</p>
+            )}
           </div>
 
           <div className="section-divider" />
@@ -59,7 +75,15 @@ function TransitBodyCard({ body, customerName }: { body: TransitBodyConfig; cust
             <span className="section-row-label">Timeline</span>
           </div>
           <div className="section-body">
-            <p className="placeholder-text">{PLACEHOLDER_TIMELINE}</p>
+            {piece ? (
+              piece.timeline_entries.length > 0 ? (
+                piece.timeline_entries.map(entry => <p key={entry.id}>{entry.prose}</p>)
+              ) : (
+                <p className="placeholder-text">No dated entries this phase.</p>
+              )
+            ) : (
+              <p className="placeholder-text">{PLACEHOLDER_TIMELINE}</p>
+            )}
           </div>
         </div>
 
@@ -76,6 +100,7 @@ function TransitBodyCard({ body, customerName }: { body: TransitBodyConfig; cust
 export default function TransitsPage() {
   const slug = DOGFOOD_READING_SLUG;
   const [customerName, setCustomerName] = useState('');
+  const [pieces, setPieces] = useState<Record<string, TransitPieceRow>>({});
 
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,6 +115,26 @@ export default function TransitsPage() {
       if (data?.name) setCustomerName(data.name);
     }
     fetchName();
+  }, [slug]);
+
+  useEffect(() => {
+    async function fetchPieces() {
+      const { data } = await supabase
+        .from('transit_pieces')
+        .select('body, synthesis_prose, timeline_entries, phase_opened_date')
+        .eq('reading_slug', slug)
+        .order('phase_opened_date', { ascending: false });
+      if (!data) return;
+      // Keep only the newest row per body -- prior phase editions are kept
+      // in the table (not overwritten), so this can return more than one
+      // row per body over time.
+      const byBody: Record<string, TransitPieceRow> = {};
+      for (const row of data as TransitPieceRow[]) {
+        if (!byBody[row.body]) byBody[row.body] = row;
+      }
+      setPieces(byBody);
+    }
+    fetchPieces();
   }, [slug]);
 
   const scrollToSection = useCallback((index: number) => {
@@ -122,7 +167,7 @@ export default function TransitsPage() {
             className="section-bg"
             style={{ backgroundImage: `url(${body.background})`, backgroundPosition: 'center center' }}
           />
-          <TransitBodyCard body={body} customerName={customerName} />
+          <TransitBodyCard body={body} customerName={customerName} piece={pieces[body.id]} />
           {index < TRANSIT_BODIES.length - 1 && (
             <button
               className="next-arrow"
