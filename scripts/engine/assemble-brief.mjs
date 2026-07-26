@@ -856,7 +856,7 @@ export async function assembleBrief(focusBody, options = {}) {
     if (activations.length) {
       block += `\n    ACTIVATIONS:\n${activations.map(formatActivationFact).join('\n')}`;
     }
-    timelineBlocks.push({ date: contactAnchorDate(c), text: block });
+    timelineBlocks.push({ date: contactAnchorDate(c), text: block, id: idFor(c, focusBody) });
   }
 
   for (const entry of skyContactEntries) {
@@ -887,11 +887,11 @@ export async function assembleBrief(focusBody, options = {}) {
     if (pairActivations.length) {
       block += `\n    ACTIVATIONS:\n${pairActivations.map(formatPairActivationFact).join('\n')}`;
     }
-    timelineBlocks.push({ date: anchor, text: block });
+    timelineBlocks.push({ date: anchor, text: block, id: sky.id });
   }
 
   for (const entry of eclipseActivationEntries) {
-    timelineBlocks.push({ date: entry.eclipse.exact_date, text: formatEclipseActivationEntry(entry) });
+    timelineBlocks.push({ date: entry.eclipse.exact_date, text: formatEclipseActivationEntry(entry), id: entry.id });
   }
 
   timelineBlocks.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -934,6 +934,7 @@ export async function assembleBrief(focusBody, options = {}) {
   // ── Assemble the message ──
   const lines = [];
   let eclipseEntryCount = 0; // Nodes variant only -- TYPE: ECLIPSE entries, a counted entry type per docs/brief-template-nodes.md's own [counts] line
+  const nodesEclipseIds = []; // Nodes variant only -- ids of the TYPE: ECLIPSE entries above, for entryIds below
   if (focusBody === 'Nodes') {
     const nextNodesRow = await fetchNodesRowAtDate(passage.egressDate);
     lines.push(`PLANET: Nodes`);
@@ -959,6 +960,7 @@ export async function assembleBrief(focusBody, options = {}) {
     const eclipses = await fetchEclipsesInRange(passage.ingressDate, passage.egressDate);
     eclipseEntryCount = eclipses.length;
     for (const e of eclipses) {
+      nodesEclipseIds.push(e.id);
       const catches = eclipseCatches(e, natalPoints);
       const skyForEclipse = await fetchAspectCalendarForBody('Sun', e.exact_date, e.exact_date);
       const config = skyForEclipse.filter(s => s.id !== e.id && s.exact_date === e.exact_date).map(s => `${s.event} ${s.body_1 === 'Sun' ? s.body_2 : s.body_1}`).join(', ') || 'none';
@@ -1014,12 +1016,43 @@ export async function assembleBrief(focusBody, options = {}) {
   const activationCount = natalActivationCount + pairActivationCount;
   const eclipseFactCount = eclipseActivationEntries.length;
 
+  // entryIds: every engine-minted id that appears as its own [ID: ...] /
+  // TIMELINE entry -- NATAL_CONTACT, SKY_CONTACT, and (planet pieces only)
+  // ECLIPSE_ACTIVATION via timelineBlocks, plus (Nodes only) the TYPE:
+  // ECLIPSE entries appended after TIMELINE. Excludes nested ACTIVATIONS
+  // facts, which are not standalone entries. This is the set Call 2's
+  // [ENTRY: {id}] tags must match exactly -- not counts.totalEntries, which
+  // (for planet pieces) omits ECLIPSE_ACTIVATION entries by construction.
+  const entryIds = [...timelineBlocks.map(b => b.id), ...nodesEclipseIds];
+
+  const meta = focusBody === 'Nodes'
+    ? {
+        trigger_id: currentRow.id,
+        phase_opened_date: phaseStart,
+        phase_end_date: phaseEnd,
+        sign: null,
+        motion: null,
+        north_sign: currentRow.north_sign,
+        south_sign: currentRow.south_sign,
+      }
+    : {
+        trigger_id: currentRow.id,
+        phase_opened_date: phaseStart,
+        phase_end_date: phaseEnd,
+        sign: currentRow.sign,
+        motion: motionForOpeningEvent(currentRow.event_type),
+        north_sign: null,
+        south_sign: null,
+      };
+
   return {
     text: lines.join('\n'),
     counts: {
       natalCount, skyCount, activationCount, eclipseFactCount, eclipseEntryCount,
       totalEntries: natalCount + skyCount + eclipseEntryCount,
     },
+    meta,
+    entryIds,
   };
 }
 
@@ -1031,10 +1064,12 @@ async function main() {
       throw new Error(`Unknown body ${focusBody}. Use Saturn, Mercury, Nodes, or all.`);
     }
     console.log(`\n${'='.repeat(78)}\nASSEMBLED CALL 1 INPUT -- ${focusBody}\n${'='.repeat(78)}\n`);
-    const { text, counts } = await assembleBrief(focusBody);
+    const { text, counts, meta, entryIds } = await assembleBrief(focusBody);
     console.log(text);
     const eclipseComponent = focusBody === 'Nodes' ? `, ${counts.eclipseEntryCount} ECLIPSE` : '';
     console.log(`\n[counts] entries: ${counts.totalEntries} (${counts.natalCount} NATAL_CONTACT, ${counts.skyCount} SKY_CONTACT${eclipseComponent}); activation facts: ${counts.activationCount}; eclipse-to-transit facts: ${counts.eclipseFactCount}`);
+    console.log(`[meta] ${JSON.stringify(meta)}`);
+    console.log(`[entryIds] (${entryIds.length}): ${entryIds.join(', ')}`);
     console.log(`\n${'='.repeat(78)}\nEnd of assembled brief for ${focusBody}. No API call made.\n${'='.repeat(78)}`);
   }
 }
