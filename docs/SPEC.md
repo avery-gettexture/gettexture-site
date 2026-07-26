@@ -13,8 +13,8 @@ Items marked **[PROPOSED LANGUAGE]** are rationale prose drafted from founder ru
 Companion references in repo / project knowledge:
 - `PROJECT_SUMMARY.md` — current product, stack, schema, natal pipeline
 - `BRAND_VOICE_AND_IDENTITY.md` — voice, tone, refusals
-- Natal prompts (current revisions): `SYNTHESIS_CALL_1_v11.md`, `SYNTHESIS_CALL_2_v1.md` (formerly Call 3 — see §10.1)
-- Transit prompts (current revisions): `TRANSIT_C_CALL_1_v2.md`, `TRANSIT_CALL_2_v1.md`
+- Natal prompts (current revisions): `SYNTHESIS_CALL_1_v12.md`, `SYNTHESIS_CALL_2_v1.md` (formerly Call 3 — see §10.1)
+- Transit prompts (current revisions): `TRANSIT_C_CALL_1_v4.md`, `TRANSIT_CALL_2_v3.md`
 - App-era transit prompts (archive/reference): `transit_a_c1/c3` (collective — archived, ignore), `transit_c_c1/c3` (chart-grounded — base of the current revision), `transit_c_sunmoon_c1/c3` (superseded — retired)
 - App-era `transit_calendar` table (Supabase) and app UI (`transits.tsx`, `detail.tsx`)
 - `create_sky_positions.sql` — the ephemeris table DDL (executed; see §11.1)
@@ -66,8 +66,8 @@ Rules:
 ### 3.1 Standing pieces (per subscriber, per body)
 Full standing pieces for: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, and **Nodes (one piece, axis treated as a unit — both ends, both houses)**. Moon is the ONLY body excluded (see §3.6).
 
-- **Length:** the 200–350 word target governs the **synthesis prose block only**; timeline entries scale with the sky (§10.2). Slow planets sit at the top of the prose range, inner planets at the bottom.
-- **Piece shape:** synthesis prose + timeline entries (the two-register output — §10.2). This supersedes the earlier uniform-prose skeleton.
+- **Length:** the synthesis prose targets ~200 words and may flex ~50 either way with the depth of the standing condition; timeline entries scale with the sky, governed by honest weight rather than a fixed count (§10.2).
+- **Piece shape:** synthesis prose + timeline entries (the two-layer output — §10.2). This supersedes the earlier uniform-prose skeleton.
 - **Itinerary-anchored, not degree-anchored:** the piece references dated events, never "current position," so it stays accurate for its whole lifespan.
 - **Regeneration triggers (the ONLY triggers):** sign ingress (incl. retrograde re-ingress), station retrograde, station direct. Every trigger = FULL rewrite. Nodes piece regenerates only on nodal sign change (~18 months).
 - **Eclipses:** NO eclipse-triggered generation. The Nodes piece bakes in the full eclipse itinerary for its lifespan at write time (dates, degrees, houses, configurations, any natal contacts within orb). Eclipse-day touch = notification + link into the eclipse's timeline entry by ID.
@@ -95,7 +95,7 @@ against this list):
 - **CONFIGURATION** — SUPERSEDED by the ACTIVATION restructure (founder
   ruling; see the ENTRY/ACTIVATION MODEL comment in
   scripts/engine/assemble-brief.mjs and the qualification rule at
-  §11.2 below). Entries are only NATAL_CONTACT and SKY_CONTACT; a
+  §11A.8). Entries are only NATAL_CONTACT and SKY_CONTACT; a
   qualifying sky aspect attaches as a dated ACTIVATION fact on the
   relevant NATAL_CONTACT rather than merging into a third entry type.
   Left here for history; do not build against this line.
@@ -107,7 +107,7 @@ Event standard:
 
 ### 3.4 Aspect policy — transits
 - All **14 natal points receive** transits: Sun–Pluto, ASC, MC, North Node, South Node. (The natal *reading* consolidates the nodes into one piece; the nodes remain two receiving points for transit math, delivered as axis-shaped contacts — §4.1.)
-- Orbs: **~3° active / 1° exact**, tighter for fast movers (exact values: execution tuning).
+- Orbs: **3° active / 1° exact**, flat for all bodies (see §11A.3).
 - **Applying weighted over separating** — stories enter loud, exit quiet (e.g., active 3° applying → 1–2° separating).
 - **Sign-consonant only.** An aspect exists only where the sign relationship supports it; out-of-sign contacts within orb are not aspects in this system. This makes the sign pre-filter exact rather than approximate, and is Hellenistic-grounded (aspects were sign relationships first, degrees second).
 - Significance is expressed through **notification tiering and honest weight-language in prose — never by omission.** Traditional weighting for tiering: transits to luminaries/angles heaviest; slow-to-fast heavier than fast-to-anything; outer-to-outer lightest.
@@ -237,7 +237,7 @@ Plain names for the instrument; the brand name is spent on the free page.
 Methodology page, product-spec posture. **Disclose:**
 - House system: **Whole Sign**. Zodiac: **tropical**.
 - **Natal aspects and orbs:** major aspects only; 8° conjunction/opposition/square/trine, 6° sextile, 10° when the Sun or Moon is involved (8° aspects only — the sextile stays 6°); sign-consonant only.
-- **Transit aspects and orbs:** ~3° active / 1° exact, tighter for fast movers; applying weighted over separating; sign-consonant only; all 14 natal points receive.
+- **Transit aspects and orbs:** 3° active / 1° exact, flat for all bodies (see §11A.3); applying weighted over separating; sign-consonant only; all 14 natal points receive.
 - **Decans:** Chaldean order. **Degree flags:** 29° anaretic, 0° ingress; no other per-degree meaning.
 - **Sect:** day/night, with the traditional team and benefic/malefic weighting.
 - **Node convention:** mean vs. true — OPEN (§12.6); whichever stands is disclosed here.
@@ -266,7 +266,7 @@ Methodology page, product-spec posture. **Disclose:**
 
 ## 9. NEW BUILD — THE GAPS
 
-1. **Aspect itinerary engine (largest genuinely new piece).** Per-chart computation of transit-to-natal contacts across all 14 receiving points — sign-consonant pre-filter, windows (3° applying → exact → separating), exactness dates, pass n-of-m across retrograde loops, plus sky-sky aspects, natal intersections, and configuration merging (§3.3). Deterministic math with ground truth: validate against a professional ephemeris before any generation depends on it. Feeds: timelines in standing pieces, Transit Calendar, notification triggers, Nodes eclipse itinerary.
+1. **Aspect itinerary engine (largest genuinely new piece).** Per-chart computation of transit-to-natal contacts across all 14 receiving points — sign-consonant pre-filter, windows (3° applying → exact → separating), exactness dates, pass n-of-m across retrograde loops, plus sky-sky aspects, natal intersections, and the activation model (§11A.8). Deterministic math with ground truth: validate against a professional ephemeris before any generation depends on it. Feeds: timelines in standing pieces, Transit Calendar, notification triggers, Nodes eclipse itinerary.
 2. **Eclipse dataset.** Precomputable years ahead: dates, kind, degree/sign, plus per-eclipse configuration (transiting planets aspecting the eclipse degree) and natal points caught. Feeds the Nodes piece + notifications.
 3. **Sky event stream.** Normalized ingress/station/eclipse events from `transit_calendar` + eclipse data; drives regeneration scheduling and Today's Texture.
 4. **Transit prompt revision.** DONE as drafts (§10). Remaining: founder's batch read; the reorder and reading-notes backlog (§10.5).
@@ -285,7 +285,7 @@ Methodology page, product-spec posture. **Disclose:**
 
 ### 10.1 Naming and inventory
 - **"Call 3" is retired across the board** — the legacy name from a pipeline that once had an intermediate step. The pipeline is Call 1 (interpretive brief) → Call 2 (prose construction), for both content types.
-- Documents: `SYNTHESIS_CALL_1_v11.md`, `SYNTHESIS_CALL_2_v1.md` (renamed from `SYNTHESIS_CALL_3_v3.md`), `TRANSIT_C_CALL_1_v2.md`, `TRANSIT_CALL_2_v1.md`.
+- Documents: `SYNTHESIS_CALL_1_v12.md`, `SYNTHESIS_CALL_2_v1.md` (renamed from `SYNTHESIS_CALL_3_v3.md`), `TRANSIT_C_CALL_1_v4.md`, `TRANSIT_CALL_2_v3.md`.
 - **The two-call split is load-bearing and stays:** Call 1 writes for a colleague (a journalist's notebook — notes for the writer, not the audience), which removes the performance incentive that produced flattening, pre-digestion, and performed significance when the brief knew its final audience. Call 2 translates for the reader and introduces no new interpretive claims, even accurate ones.
 - **Prompting philosophy (governs all prompt work):** the model knows astrology. Prompts supply frame, tradition-direction, and guardrails — never interpretation rubrics. Rubric-following reads dutiful and slightly dead; knowledge-reasoning reads like an astrologer. Sections say *which* tradition and *how to speak*; they never say what a placement means.
 - **Shared core:** the universal sections are byte-identical across documents by design and are maintained as one canonical block (assembly step or discipline — OPEN, §12.7). Editing shared-core language forks the core; flag before doing it.
@@ -300,38 +300,43 @@ Methodology page, product-spec posture. **Disclose:**
 <entry prose>
 [END]
 ```
-- **Two registers:** synthesis prose (the phase read whole) + entries (one dated event each, read closely). Same voice, different altitude.
-- **Source discipline:** prose ← [TERRITORY] + [QUALITY] + [THROUGHLINE] + [INTEGRATION]; each entry ← its own [TIMELINE] entry and nothing else. The prose never re-reports timeline events — they reach it only through [THROUGHLINE]'s synthesis, named generally. The prose is not a second timeline.
-- **Delimiters:** opening tags only; each entry ends where the next tag begins (fewer failure modes than paired tags). Prose block = everything between `[START]` and the first `[ENTRY:]`, or `[END]` when the phase has no entries. A quiet phase is prose-only and complete.
-- **Entry IDs** originate at the engine, ride through the Call 1 brief, and are echoed verbatim by Call 2 — never composed. The UI renders engine data joined by ID (always correct by construction); a programmatic gate verifies prose-stated dates against the engine record for that ID.
-- **Anchor sentence:** each entry's first sentence states the event as fact (aspect, dates, pass position); interpretation begins in sentence two. Two example constructions (active-through / approaching-separating), plain sentences, pass phrasing "the first of three passes while [planet] is transiting [sign]." Interrupted windows: "no exact this phase."
-- **Length:** synthesis prose 200–350 words (floor 170, ceiling 400 — hard stop, cut for compliance). Entries scale with the sky; minimum three sentences each.
+- **Two layers:** synthesis prose (the phase-durable standing condition, read whole) + entries (the dated events crossing it, each read closely). Same voice, different altitude — the prose is the terrain, the entries are the weather.
+- **Source discipline:** prose ← [TERRITORY] + [QUALITY] + [INTEGRATION]; each entry ← its own [TIMELINE] entry and nothing else. The prose never narrates a dated event — the events are the entries' work; the prose does not report, preview, or summarize them. The prose is not a second timeline.
+- **Delimiters:** opening tags only; each entry ends where the next tag begins. Prose block = everything between `[START]` and the first `[ENTRY:]`, or `[END]` when the phase has no entries. A quiet phase is prose-only and complete.
+- **Entry IDs** originate at the engine, ride through the Call 1 brief, and are echoed verbatim by Call 2 — never composed. An ID is provenance, not fact: it may carry a date belonging to another phase, and the DATES/WINDOW/PASS/STATUS fields are the only sources of fact. The UI renders engine data joined by ID; a programmatic gate verifies prose-stated dates against the engine record.
+- **The anchor:** each entry opens by stating the event as fact — the aspect, its dates, its pass and window position — before interpretation begins. Pass counts are passage-scoped ("the first of three passes while Saturn is transiting Pisces"); "no exact this phase" for a window that never perfects in-phase, with completion named as a pass reference, never an out-of-phase date.
+- **Length:** synthesis prose ~200 words, flexing ~50 either way with the depth of the standing condition. Entries scale with the sky under the count model in §10.3 — host floor plus per-activation — governed by honest weight, no fixed per-entry sentence minimum.
 - **Timeline ≠ brevity.** The timeline is a structure for completeness and chronology, never a license for thin treatment. Honest weight is expressed as length and register together.
 
-### 10.3 The transit brief (Call 1) — five sections
-`[TERRITORY]` 4–5 observations (orientation facts: phase + dated boundaries, house, natal copresences + event inventory, transiting copresences, sign contribution) · `[QUALITY]` 4–5 (the standing condition; each co-present natal and transiting point its own treatment; retrograde motion colors the whole section) · `[TIMELINE]` one entry per contact event, date order, 3–5 observations each, **minimum 3** ("no event is too light for three true things") · `[THROUGHLINE]` 3–4 (what the phase's activity amounts to; "disparate is a finding" — never manufacture a theme) · `[INTEGRATION]` 3–4 (what becomes available).
-- Priority order governs all sections except [TIMELINE], which runs in date order with weight inside entries.
-- Sections exist so Call 2's movements have research to draw from: three movements (Arrival ← [TERRITORY], Development ← [QUALITY] + [THROUGHLINE], Close ← [INTEGRATION]), with entries ← [TIMELINE]. Every brief section has exactly one home in the output.
-- **The arrival is factual.** Interpretation begins in Movement 2; no compressed reading of the planet or sign in the opening, no aphorism, no planet-as-agent framing (the planet wanting, asking, teaching, demanding).
+### 10.3 The transit brief (Call 1) — four sections
+`[TERRITORY]` 5–7 observations (orientation facts: phase + its place in the passage, house domain, natal copresences + a count of what the timeline holds, slow transiting company with spans, sign+house contribution) · `[QUALITY]` 7–10 (the standing condition at full depth — planet-in-sign-in-house-in-motion, each co-present natal point and each slow transiting body its own treatment, where the phase flows and where it grinds; retrograde motion colors the whole section) · `[TIMELINE]` one entry per contact event, date order, host floor 2–3 observations plus 1–2 per activation · `[INTEGRATION]` 4–6 (what becomes available).
+- The [TERRITORY]/[QUALITY]/[INTEGRATION] observation lists are the kinds of observation to draw from, weighted toward what the chart gives most — not a template filled one observation per listed item. [TIMELINE] runs in date order with weight expressed inside each entry.
+- The prose/entry division: the prose is the phase-durable layer (the standing condition, true for the whole stretch); the entries are the time-focused layer (the dated events). The prose never narrates an event. Three prose movements — Arrival ← [TERRITORY], Development ← [QUALITY], Close ← [INTEGRATION]; entries ← [TIMELINE].
+- **The arrival is factual.** Interpretation begins in the Development movement; no compressed reading of the planet or sign in the opening, no aphorism, no planet-as-agent framing.
+- **Copresence rule:** every co-present natal point is named (any speed — a natal placement in the sign is a stable condition); among transiting bodies, only a slow one (Jupiter or slower, including the transiting nodal axis) is named as standing company; a fast transiting body enters only as a dated event. A slow companion that also perfects a dated aspect gives its standing company to the prose and its dated event to the entry, never both.
+
+### 10.3a The entry model (Call 1 [TIMELINE] / Call 2 entries)
+- **Three entry types:** NATAL_CONTACT (the piece's planet aspecting one of the 13 natal points — the primary type), SKY_CONTACT (the piece's planet aspecting another transiting body, no natal point — a slow pair is a standing sky event, an atmospheric/TETHER pair is collective weather at honest weight), and ECLIPSE_ACTIVATION (an eclipse within 3° of the piece's planet on eclipse day). The Nodes variant additionally owns TYPE: ECLIPSE entries. CONFIGURATION as an entry type is removed (§11A.8).
+- **Activations live inside a host entry, never as their own entry:** another transiting body that configures with the host contact in a dated moment (for a natal contact, also contacting the same natal point; for a sky contact, also aspecting the pair's other member). The host contact is the subject and spine; activations are dated brightenings of it.
+- **Two role-axes that don't move together:** host/activator is structural (the host is always the piece's planet and always the subject); standing-condition/trigger is astrological and keyed to relative speed (the slower body holds the standing pressure, the faster is the trigger). Speed-weighting names the relationship truthfully; it never reassigns the subject. Vantage-symmetric: the same activation appears in both bodies' pieces with identical facts, each told as its own planet's story.
+- **Multi-activation entries have an arc:** activations narrated in date order across the host window, differentiated by weight, with directional honesty when a perfection falls outside the window ("before this contact begins" / "after it separates").
+- **Sky-contact placement by pair speed:** a slow pair (both Jupiter+) always gets its own entry and appears as an activation wherever it also intersects a natal point — two different facts, no hierarchy; a fast-involving pair appears in exactly one place (an activation if it intersects a natal point, otherwise its own atmospheric entry). A bare ingress or copresence with no aspect is not an entry.
+- **Count model:** host floor 2–3 observations, plus 1–2 per activation scaled to weight, no fixed ceiling — an activation-rich entry runs long because it holds more, a bare one stays short. Founder will assess word count against real output before tuning.
 
 ### 10.4 Named transits — DECIDED
 When the itinerary contains a contact carrying a traditional name, the content names it plainly: a planet conjunct its own natal position is a return (Saturn return, solar return, Jupiter return); the transiting axis aligning with the natal nodes is a nodal return. For a solar return, acknowledge that it falls near the birthday without claiming the dates align exactly. **The name comes from the contact in the input — never from cycle arithmetic** — and a named transit follows every register rule an unnamed one does (no drama, no urgency).
 
 ### 10.5 Prompt work status and backlog
-**Done (draft, pending founder's batch read):** transit Call 1 fully revised (product orientation, role/scope, component scope, TEMPORAL STRUCTURE replacing the transit-type matrix, personalization principle, five-section format + content requirements, transit register, transit-specific hard bans, quality checks, user message format, Nodes axis handling); transit Call 2 fully built (governing philosophy, role/scope, system parameters, opening lines, brief-is-research, safety, final check, content-type specific with the two-register contract, Nodes rendering); natal Call 1 v11 and natal Call 2 (nodes axis, angles, decans, degree flags, sect, copresence guarantee, widened orbs, orb-weight law, residue cleanups).
+All four prompts revised and delivered (pending founder's batch read):
 
-**Backlog — approved, to execute:**
-1. Remove Temperature from all four headers (no temp param on Opus).
-2. Canonical section order, all four documents: Header + OUTPUT RULE → PRODUCT ORIENTATION / GOVERNING PHILOSOPHY → the universal core as one contiguous block → ROLE AND SCOPE (opens the content-specific half) → WHAT THIS COMPONENT COVERS / CONTENT-TYPE SPECIFIC (the intention, before the craft it introduces) → craft sections → NODES / ANGLES handling → content-specific register and bans → QUALITY CHECKS / FINAL CHECK → **USER MESSAGE FORMAT last** (adjacent to the arriving input). Renumber sequentially; convert all cross-references to section **names**. Call 2's User Message Format subsection extracts to the standalone final section.
-3. Next-destination rule (§3.2 last bullet) — TEMPORAL STRUCTURE + Invented Astronomy ban + Call 2 close rule + check lines.
-4. Named-transits rule (§10.4) — transit register.
-5. 29° urgency clarification (§4.4) — both natal documents' degree-flag parameter.
-6. Section 10 (TEMPORAL REGISTER) formatting: the "Transiting planets belong to the collective sky…" paragraph has no bold header in the pristine source — add one for parity with the surrounding paragraphs.
-7. Luminary-orb line in both natal documents: the extension applies to the 8° aspects only; the sextile stays 6°.
+- `SYNTHESIS_CALL_1_v12.md` / `SYNTHESIS_CALL_2_v1.md` — the natal sweep: nodes as one axis piece, angle handling, Chaldean decans, degree flags (29° anaretic with urgency-framing banned, 0° ingress), sect, copresence guarantee, widened sign-consonant orbs (8°/6°/10°, sextile stays 6°), four-section structure, USER MESSAGE FORMAT with DECAN/DEGREE_FLAG/SECT and the Nodes + angles variants.
+- `TRANSIT_C_CALL_1_v4.md` / `TRANSIT_CALL_2_v3.md` — the transit redesign: activation model (three entry types, host-as-subject, speed-weighting, multi-activation arc, cross-piece symmetry, sky-contact placement rules), four-section brief with the throughline section removed, prose/entry two-layer division, copresence durability rules, Nodes handling against the real brief, USER MESSAGE FORMAT matching the finalized brief contract (§11A.8) — ACTIVATIONS, WINDOW/PASS, TETHER, ECLIPSE_ACTIVATION, ID-as-provenance, both variants.
 
-**Not yet drafted:** Moon blocks (12+12).
+**Executed and verified across all four (prior backlog, now closed):** temperature removed from all headers; canonical section order with sequential renumbering and name-based cross-references; USER MESSAGE FORMAT last; next-destination rule; named-transits rule; 29° urgency clarification; TEMPORAL REGISTER bold-header parity; luminary-sextile orb fix. Verification standard: body-level snapshot diff (sections split, headings stripped, bodies asserted byte-identical except ruled edits) — catches the heading-glue failure a line-diff cannot.
 
-**Founder reading notes on the natal pair (captured, unapplied):** see items 1, 5, 6, 7 above — these came from the natal read. Additional natal notes may follow the batch read.
+**Not yet drafted:** Moon blocks (12+12 static sign blocks + rising-sign closes, adapting the archived transit_a collective prompt — §3.6).
+
+**Section-number caveat for future edits:** section numbers in all four prompts are positional, not identities — any reorder renumbers them, which is why every cross-reference inside the prompts is name-based. Adding or moving a section renumbers the rest; nothing breaks.
 
 ---
 
@@ -358,7 +363,7 @@ PK (body, date); index on date; RLS on, server-only reads.
 - **Mean vs. true node: OPEN (§12.6).** Founder leans **mean**. Required finding **before the fill**: which node the proxy library computes for natal charts, and whether both are available — `sky_positions` MUST match the natal-side computation. If the proxy computes true node, founder discussion on updating the proxy for consistency happens **before any rows are written**.
 
 ### 11.2 Computations the engine owes
-- **Transit side:** sign-consonant pre-filter (in Whole Sign, sign-to-sign relationships are fixed, so a planet's candidate receiving points are known before any degree math); contact windows (3° applying → exact → separating) via threshold crossings + interpolation; pass n-of-m (free — `ORDER BY date` on the crossings); natal copresence (points where sign = transited sign); sky copresence with spans; sky-sky aspects (chart-independent, computed once, shared by all subscribers); natal intersections; **configuration merge** (a sky aspect absorbs a natal contact when the natal point appears in its intersection set AND the windows overlap in time — never merge across non-overlapping windows; never merge two independent natal contacts that merely coincide, which is [THROUGHLINE]'s job, not the timeline's); stable **entry IDs**; the `PASSAGE_CONTACTS` undated summaries; eclipse dataset (base data loaded — §11A.5; per-eclipse configurations and natal points caught remain downstream per-user work); phase detection (ingress/station boundaries) and the regeneration schedule.
+- **Transit side:** sign-consonant pre-filter (in Whole Sign, sign-to-sign relationships are fixed, so a planet's candidate receiving points are known before any degree math); contact windows (3° applying → exact → separating) via threshold crossings + interpolation; pass n-of-m (free — `ORDER BY date` on the crossings); natal copresence (points where sign = transited sign); sky copresence with spans; sky-sky aspects (chart-independent, computed once, shared by all subscribers); natal intersections; stable **entry IDs**; eclipse dataset (base data loaded — §11A.5; per-eclipse configurations and natal points caught remain downstream per-user work); phase detection (ingress/station boundaries) and the regeneration schedule.
 - **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7.
 - **Shared:** the sky event stream (normalized ingresses, stations, eclipses) feeding triggers, calendar, notifications, and Today's Texture.
 
