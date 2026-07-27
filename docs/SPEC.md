@@ -240,7 +240,7 @@ Methodology page, product-spec posture. **Disclose:**
 - **Transit aspects and orbs:** 3° active / 1° exact, flat for all bodies (see §11A.3); applying weighted over separating; sign-consonant only; all 14 natal points receive.
 - **Decans:** Chaldean order. **Degree flags:** 29° anaretic, 0° ingress; no other per-degree meaning.
 - **Sect:** day/night, with the traditional team and benefic/malefic weighting.
-- **Node convention:** mean vs. true — OPEN (§12.6); whichever stands is disclosed here.
+- **Node convention:** mean node (CLOSED — §11A.1, §12 item 6). The system uses the mean lunar node, not the true node; the two can differ by up to ~3 weeks at a sign change — e.g. the 2026 Pisces→Aquarius shift is 2026-08-18 by mean node vs. ~2026-07-26 by true node. **PENDING, not yet built:** disclosure of this choice on the methodology page itself.
 - Bodies covered; notable-event criteria; what the buyer gets, stated as a product spec.
 - **Unknown birth time:** what that version includes and omits (no houses, no ASC/MC receiving, no natal Moon contacts; Moon sign ambiguity where applicable).
 - **AI paragraph:** discloses the two-call pipeline (structured astrological brief → constrained prose render), the guardrails (tradition-referenced constraints, voice control, policy of translating phenomena vs. making claims about reality), and the why: the specificity this method unlocks IS the product; disclosure is honest marketing. "If someone won't read this because it's AI, this isn't for them."
@@ -434,6 +434,10 @@ conventions recorded here. Nothing downstream reads these tables yet.
   been mean-node; sky_positions matches. Methodology page discloses
   "mean node." Nodes are retrograde=true on every row (constant
   backward motion) — consistent with mean-node behavior.
+- **PENDING (not yet built):** (a) disclosing the mean-node choice on
+  the methodology page (§7); (b) a future reference-section entry
+  explaining mean vs. true node to subscribers (education layer, §9
+  item 9).
 - Validation (passed July 15): 103,356 rows, zero gaps; longitudes and
   sign_degrees in range; sign/longitude consistency 103,356/103,356
   after one correction (Pluto 2024-09-02: rounding artifact at exactly
