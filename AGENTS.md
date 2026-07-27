@@ -42,6 +42,19 @@ plan and every change in plain, non-technical language.
 - Never produce visual design mockups, UI comps, or rendered design
   artifacts unless Avery explicitly requests one.
 - Commit once per approved task with a plain-English message.
+- SPEC IS PART OF DONE. No task is complete until docs/SPEC.md
+  reflects every change the task made to the architecture,
+  data model, ratified rulings, file/table inventory, or the
+  shape of the app. The SPEC update is included in the same
+  commit that makes the change — never deferred to "later."
+  This applies whether or not the individual task brief
+  mentions it: if a brief changes something real and does not
+  call for a SPEC update, update SPEC anyway and flag that the
+  brief omitted it. A change that lives only in code, or only
+  in chat, and not in SPEC, is an unfinished change. When a
+  task only investigates or decides (no code change) but
+  produces a ruling that alters how the system is understood,
+  record that ruling in SPEC as well.
 
 ## Hard rules
 - Prices are placeholders. Never hardcode a price; use config values.
