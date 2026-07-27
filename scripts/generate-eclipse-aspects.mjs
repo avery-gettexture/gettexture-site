@@ -1,29 +1,23 @@
-// Computes the ECLIPSED body's own sign-consonant aspects at each eclipse
-// instant and loads them into eclipse_aspects. Fixes the CONFIGURATION
-// field's current bug: it's computed from the Sun's aspects for every
-// eclipse, which is wrong for a Lunar Eclipse (the eclipsed body there is
-// the Moon, 180 degrees away, so its aspects differ). See docs/SPEC.md and
-// scripts/create_eclipse_aspects.sql for the full ground rules.
+// Computes the ECLIPSED body's own sign-consonant aspects at each eclipse's
+// TRUE INSTANT (docs/SPEC.md §11A.10) and loads them into eclipse_aspects.
 //
 // ANCHOR (the eclipsed body): Moon for a Lunar Eclipse, Sun for a Solar
-// Eclipse. Its sign/degree at the eclipse instant is read STRAIGHT FROM the
-// eclipse's own aspect_calendar row (body_1_sign/exact_degree for solar;
-// body_2_sign/exact_degree for lunar -- body_2_sign is already the derived
-// opposite sign, per load-eclipses.mjs) -- never re-derived from
-// sky_positions. This matters concretely: two eclipses (2031-05-21,
-// 2039-06-21) have hand-corrected signs/degrees in their aspect_calendar
-// row (see BOUNDARY_CORRECTIONS in load-eclipses.mjs); reading from the
-// eclipse row, not recomputing, carries those corrections through
-// automatically. NO new positions are computed anywhere in this script.
+// Eclipse. Its sign/degree is read from the eclipse's own aspect_calendar
+// row (body_1_sign/exact_degree for solar; body_2_sign/exact_degree for
+// lunar) -- that row is itself now written at the true instant by
+// scripts/load-eclipses.mjs, so this stays a single source of truth for the
+// anchor rather than a second, possibly-drifting computation of the same
+// number.
 //
 // OTHER BODIES: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune,
-// Pluto -- the same 8 for every eclipse. (aspect_calendar tracks Sun-Pluto;
-// the anchor itself and the OTHER luminary are excluded -- the other
-// luminary because that pairing is the eclipse's own defining axis, not a
-// configuration. Since the anchor is always one luminary and the excluded
-// body is always the other, this always nets out to the same 8 bodies.)
-// Their real sign/degree/longitude/retrograde come from their own
-// sky_positions row on the eclipse date.
+// Pluto -- the same 8 for every eclipse (the anchor and the OTHER luminary
+// are excluded; see header note in create_eclipse_aspects.sql). TRUE-INSTANT
+// BASIS: their sign/degree/longitude/retrograde now come fresh from
+// scripts/lib/eclipse-true-instant.mjs at the eclipse's exact syzygy
+// instant, NOT from their 00:00 UT sky_positions snapshot -- a snapshot up
+// to ~1 degree off the true instant is exactly what can flip a near-orb-edge
+// aspect (docs/SPEC.md §11A.10; two real cases already found: 2027-08-02 and
+// 2045-08-12, both Sun-Neptune).
 //
 // ASPECT STANDARD: identical to aspect_calendar -- sign-consonant only (the
 // same SIGN_DIST_TO_ASPECT map), 3 degree active orb, no separate "exact"
@@ -34,24 +28,29 @@
 // A body with no qualifying aspect gets no row -- no "none" placeholder
 // rows, matching aspect_calendar's own pattern.
 //
-// Deterministic and idempotent: identical aspect_calendar/sky_positions
-// data always produces identical rows and IDs. Re-running upserts on id.
-// No API calls of any kind -- pure Supabase reads, local math, one
-// Supabase write.
+// WRITE MODEL -- delete-then-insert, not upsert (changed from the prior
+// version of this script): the true-instant recompute can make a
+// PREVIOUSLY qualifying aspect stop qualifying (position shifts past 3
+// degrees) as well as make a new one start qualifying. A plain upsert can
+// only add/update rows -- it would leave a stale row behind for an aspect
+// that no longer exists. This script instead deletes every existing
+// eclipse_aspects row for the eclipses it's about to recompute, then
+// inserts the freshly computed set, so the table always reflects exactly
+// the current qualifying aspects, nothing stale.
+//
+// Deterministic: identical aspect_calendar/true-instant engine output
+// always produces identical rows and IDs. No API calls of any kind -- pure
+// Supabase reads, local math (astronomy-engine), one delete + one insert.
 //
 // Usage: node --env-file=.env.local scripts/generate-eclipse-aspects.mjs
 
 import { createClient } from '@supabase/supabase-js';
+import { recomputeEclipse, SIGNS } from './lib/eclipse-true-instant.mjs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
-
-const SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
-];
 
 const OTHER_BODIES = [
   'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
@@ -76,8 +75,7 @@ function angularSeparation(lon1, lon2) {
 }
 
 // Anchor longitude is RECONSTRUCTED from the eclipse row's own sign+degree
-// (no sky_positions lookup for the anchor -- see header comment). This is
-// the "frozen instant" value the ground rules specify.
+// (read from aspect_calendar, itself true-instant -- see header comment).
 function longitudeFromSignDegree(sign, degree) {
   return SIGNS.indexOf(sign) * 30 + degree;
 }
@@ -92,42 +90,21 @@ async function fetchEclipses() {
   return data;
 }
 
-async function fetchOtherBodyPositions(dates) {
-  const PAGE_SIZE = 1000;
-  const rows = [];
-  let offset = 0;
-  for (;;) {
-    const { data, error } = await supabase
-      .from('sky_positions')
-      .select('date, body, sign, sign_degree, longitude, retrograde')
-      .in('body', OTHER_BODIES)
-      .in('date', dates)
-      .range(offset, offset + PAGE_SIZE - 1);
-    if (error) throw new Error(`Read failed for sky_positions: ${error.message}`);
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-  // Map: date -> body -> row
-  const map = new Map();
-  for (const r of rows) {
-    if (!map.has(r.date)) map.set(r.date, new Map());
-    map.get(r.date).set(r.body, r);
-  }
-  return map;
-}
-
-function computeEclipseAspects(eclipse, positionsOnDate) {
+function computeEclipseAspects(eclipse) {
   const isLunar = eclipse.event === 'Lunar Eclipse';
   const anchorBody = isLunar ? 'Moon' : 'Sun';
   const anchorSign = isLunar ? eclipse.body_2_sign : eclipse.body_1_sign;
   const anchorDegree = eclipse.exact_degree; // identical value for both eclipse types, per load-eclipses.mjs
   const anchorLon = longitudeFromSignDegree(anchorSign, anchorDegree);
 
+  // Fresh true-instant positions for all 10 tracked bodies; only the 8
+  // OTHER_BODIES are used here (the anchor comes from aspect_calendar, per
+  // the header comment).
+  const { positions } = recomputeEclipse(eclipse.exact_date, isLunar ? 'lunar' : 'solar');
+
   const rows = [];
   for (const otherBody of OTHER_BODIES) {
-    const pos = positionsOnDate.get(otherBody);
-    if (!pos) throw new Error(`Missing sky_positions row for ${otherBody} on ${eclipse.exact_date}`);
+    const pos = positions[otherBody];
 
     const dist = signDistance(anchorSign, pos.sign);
     const aspect = SIGN_DIST_TO_ASPECT[dist] ?? null;
@@ -147,7 +124,7 @@ function computeEclipseAspects(eclipse, positionsOnDate) {
       anchor_degree: anchorDegree,
       other_body: otherBody,
       other_body_sign: pos.sign,
-      other_body_degree: pos.sign_degree,
+      other_body_degree: pos.degree,
       other_body_retrograde: pos.retrograde,
       aspect,
       orb,
@@ -158,24 +135,28 @@ function computeEclipseAspects(eclipse, positionsOnDate) {
 
 async function main() {
   const eclipses = await fetchEclipses();
-  const dates = [...new Set(eclipses.map((e) => e.exact_date))];
-  const positions = await fetchOtherBodyPositions(dates);
+  const eclipseIds = eclipses.map((e) => e.id);
 
   const allRows = [];
   for (const eclipse of eclipses) {
-    const positionsOnDate = positions.get(eclipse.exact_date);
-    if (!positionsOnDate) throw new Error(`Missing sky_positions for date ${eclipse.exact_date}`);
-    allRows.push(...computeEclipseAspects(eclipse, positionsOnDate));
+    allRows.push(...computeEclipseAspects(eclipse));
   }
 
-  console.log(`Computed ${allRows.length} eclipse-aspect rows across ${eclipses.length} eclipses (${eclipses.filter(e => e.event === 'Solar Eclipse').length} solar, ${eclipses.filter(e => e.event === 'Lunar Eclipse').length} lunar).`);
+  console.log(`Computed ${allRows.length} eclipse-aspect rows across ${eclipses.length} eclipses (${eclipses.filter(e => e.event === 'Solar Eclipse').length} solar, ${eclipses.filter(e => e.event === 'Lunar Eclipse').length} lunar), at the true syzygy instant.`);
 
-  const { error } = await supabase
+  const { error: deleteError, count: deletedCount } = await supabase
     .from('eclipse_aspects')
-    .upsert(allRows, { onConflict: 'id' });
-  if (error) throw new Error(`Supabase write failed: ${error.message}`);
+    .delete({ count: 'exact' })
+    .in('eclipse_id', eclipseIds);
+  if (deleteError) throw new Error(`Supabase delete failed: ${deleteError.message}`);
+  console.log(`Deleted ${deletedCount ?? 'unknown-count'} existing eclipse_aspects row(s) for these ${eclipseIds.length} eclipses.`);
 
-  console.log('Write complete.');
+  const { error: insertError } = await supabase
+    .from('eclipse_aspects')
+    .insert(allRows);
+  if (insertError) throw new Error(`Supabase insert failed: ${insertError.message}`);
+
+  console.log(`Inserted ${allRows.length} row(s). Write complete.`);
 }
 
 // Guard against running on import: this script writes to a live table.

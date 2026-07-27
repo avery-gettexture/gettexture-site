@@ -1,35 +1,42 @@
-// Loads the 104 eclipse rows (2023-01-01 through 2046-07-31) into
+// Writes the 104 eclipse rows (2023-01-01 through 2046-07-31) into
 // aspect_calendar. Source: NASA's Five Millennium Canon of Solar/Lunar
 // Eclipses (eclipse.gsfc.nasa.gov), cross-checked against USNO (exact match,
 // 2023-2026) and against sky_positions itself via
 // scripts/verify-eclipse-dates.mjs (all 104 dates passed the lunation/node
 // geometry check -- see that script's output for the margins).
 //
-// SIGN/DEGREE CONVENTION (ratified -- deliberate exception, do not "fix"):
-// both body_1_sign and exact_degree always come from the SUN's own
-// sky_positions row on the eclipse date, never the Moon's. The Sun moves
-// under 1 degree/day, so its daily snapshot sits within about half a degree
-// of the true eclipse moment; the Moon moves 13+ degrees/day, so its
-// snapshot can be many degrees off and even land on the wrong side of a
-// sign boundary. For a Solar Eclipse (conjunction), body_2_sign is the same
-// as body_1_sign. For a Lunar Eclipse (opposition), body_2_sign is DERIVED
-// as the sign exactly opposite body_1_sign -- never read from the Moon's
-// row.
+// TRUE-INSTANT BASIS (docs/SPEC.md §11A.10, ratified and built): every
+// eclipse's body_1_sign/body_2_sign/exact_degree is computed at the exact
+// Sun-Moon syzygy instant (conjunction for solar, opposition for lunar),
+// not the 00:00 UT daily sky_positions snapshot -- see
+// scripts/lib/eclipse-true-instant.mjs for the self-contained engine
+// (astronomy-engine) and the syzygy solver. This SUPERSEDES the earlier
+// "read the Sun's daily snapshot, it's close enough" approach: the midnight
+// snapshot can sit up to ~1 degree off the true instant, which is enough to
+// flip a near-orb-edge aspect or, rarely, land on the wrong side of a sign
+// boundary.
 //
-// SIGN-BOUNDARY VERIFICATION (ratified, one-time pass documented here so a
-// re-run stays deterministic): any eclipse whose Sun-derived sign_degree
-// comes out within 1 degree of a sign boundary (>29.0 or <1.0) is at risk of
-// the Sun actually crossing that boundary later the same UTC day the 00:00
-// snapshot was taken from -- which would mean the snapshot's sign is wrong
-// for the true eclipse moment. All 104 rows were checked: 9 fell in that
-// range, of which 5 genuinely straddle a sign change within their day (the
-// other 4 were close to a boundary crossed on a different day, so no risk).
-// Of those 5, each was checked against NASA's published TD time of greatest
-// eclipse against the interpolated crossing time within that day: 3 landed
-// before the crossing (stored sign already correct) and 2 landed after
-// (2031-05-21 and 2039-06-21, both corrected below -- see
-// BOUNDARY_CORRECTIONS). If the eclipse list ever changes, any newly
-// boundary-adjacent event needs this same manual check repeated.
+// BOUNDARY_CORRECTIONS RETIRED (was here, now removed -- do not re-add): a
+// prior version of this script carried two hand-verified overrides
+// (2031-05-21 -> Gemini 0.0715 deg; 2039-06-21 -> Cancer 0.2085 deg) for
+// eclipses that fell right on a sign boundary the same UTC day, found by a
+// one-time manual check against NASA's published time of greatest eclipse.
+// The true-instant computation below reproduces both corrections
+// independently (within arcseconds), and was itself cross-validated against
+// an independent second ephemeris (sweph / Swiss Ephemeris, Moshier mode --
+// see scripts/validate-eclipse-instants-sweph.mjs). Three-way agreement
+// (hand-check, astronomy-engine, sweph) is why the override table is gone
+// rather than kept alongside the computation it used to patch around.
+//
+// SIGN/DEGREE MEANING: body_1_sign is always the Sun's sign at the true
+// instant. For a Solar Eclipse (conjunction), body_2_sign equals
+// body_1_sign. For a Lunar Eclipse (opposition), body_2_sign is the Moon's
+// own true-instant sign (not derived as "the opposite sign" -- at an exact
+// syzygy the two are the same thing, but computing it directly is more
+// honest about what's actually being measured). exact_degree is the
+// degree-within-sign shared by both bodies at exactness (Sun and Moon land
+// on the identical degree number, opposite signs, by construction of an
+// exact syzygy).
 //
 // Deterministic and idempotent: upserts on id. Writes nothing until this
 // script is run.
@@ -37,16 +44,12 @@
 // Usage: node --env-file=.env.local scripts/load-eclipses.mjs
 
 import { createClient } from '@supabase/supabase-js';
+import { recomputeEclipse } from './lib/eclipse-true-instant.mjs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
-
-const SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
-];
 
 const SOLAR_DATES = [
   '2023-04-20', '2023-10-14', '2024-04-08', '2024-10-02', '2025-03-29', '2025-09-21',
@@ -72,32 +75,6 @@ const LUNAR_DATES = [
   '2044-09-07', '2045-03-03', '2045-08-27', '2046-01-22', '2046-07-18',
 ];
 
-function oppositeSign(sign) {
-  return SIGNS[(SIGNS.indexOf(sign) + 6) % 12];
-}
-
-// Manually verified against NASA's published TD-of-greatest-eclipse time,
-// for the two boundary-adjacent eclipses where the eclipse moment fell
-// AFTER the Sun's sign crossing that day (see the header comment). Applied
-// as a direct override of the Sun-snapshot-derived sign/degree.
-const BOUNDARY_CORRECTIONS = new Map([
-  ['solar-eclipse-2031-05-21', { sign: 'Gemini', degree: 0.0715 }],
-  ['solar-eclipse-2039-06-21', { sign: 'Cancer', degree: 0.2085 }],
-]);
-
-async function fetchSunOnDates(dates) {
-  const { data, error } = await supabase
-    .from('sky_positions')
-    .select('date, sign, sign_degree')
-    .eq('body', 'Sun')
-    .in('date', dates);
-  if (error) throw new Error(`Read failed for Sun: ${error.message}`);
-  const map = new Map(data.map((r) => [r.date, r]));
-  const missing = dates.filter((d) => !map.has(d));
-  if (missing.length > 0) throw new Error(`Sun missing sky_positions rows for: ${missing.join(', ')}`);
-  return map;
-}
-
 function printSample(rows) {
   for (const r of rows) {
     console.log(`${r.exact_date}  ${r.event.padEnd(13)} ${r.body_1_sign}/${r.body_2_sign} @ ${r.exact_degree.toFixed(2)} deg   id=${r.id}`);
@@ -105,24 +82,17 @@ function printSample(rows) {
 }
 
 async function main() {
-  const allDates = [...new Set([...SOLAR_DATES, ...LUNAR_DATES])];
-  const sun = await fetchSunOnDates(allDates);
-
   const rows = [];
 
   for (const date of SOLAR_DATES) {
-    const s = sun.get(date);
-    const id = `solar-eclipse-${date}`;
-    const override = BOUNDARY_CORRECTIONS.get(id);
-    const sign = override?.sign ?? s.sign;
-    const degree = override?.degree ?? s.sign_degree;
+    const { positions } = recomputeEclipse(date, 'solar');
     rows.push({
-      id,
+      id: `solar-eclipse-${date}`,
       event: 'Solar Eclipse',
       body_1: 'Sun',
       body_2: 'Moon',
-      body_1_sign: sign,
-      body_2_sign: sign, // conjunction -- same sign
+      body_1_sign: positions.Sun.sign,
+      body_2_sign: positions.Sun.sign, // conjunction -- same sign
       window_start: null,
       window_end: null,
       exact_date: date,
@@ -130,23 +100,19 @@ async function main() {
       pass_m: null,
       body_1_retrograde: null,
       body_2_retrograde: null,
-      exact_degree: degree,
+      exact_degree: positions.Sun.degree,
     });
   }
 
   for (const date of LUNAR_DATES) {
-    const s = sun.get(date);
-    const id = `lunar-eclipse-${date}`;
-    const override = BOUNDARY_CORRECTIONS.get(id);
-    const sign = override?.sign ?? s.sign;
-    const degree = override?.degree ?? s.sign_degree;
+    const { positions } = recomputeEclipse(date, 'lunar');
     rows.push({
-      id,
+      id: `lunar-eclipse-${date}`,
       event: 'Lunar Eclipse',
       body_1: 'Sun',
       body_2: 'Moon',
-      body_1_sign: sign,
-      body_2_sign: oppositeSign(sign), // opposition -- derived, never read from Moon's row
+      body_1_sign: positions.Sun.sign,
+      body_2_sign: positions.Moon.sign, // computed directly at the true instant
       window_start: null,
       window_end: null,
       exact_date: date,
@@ -154,13 +120,13 @@ async function main() {
       pass_m: null,
       body_1_retrograde: null,
       body_2_retrograde: null,
-      exact_degree: degree,
+      exact_degree: positions.Sun.degree, // identical to Moon's degree by construction (opposite sign)
     });
   }
 
   rows.sort((a, b) => (a.exact_date < b.exact_date ? -1 : a.exact_date > b.exact_date ? 1 : 0));
 
-  console.log(`Writing ${rows.length} eclipse rows (${SOLAR_DATES.length} solar + ${LUNAR_DATES.length} lunar) to aspect_calendar.\n`);
+  console.log(`Writing ${rows.length} eclipse rows (${SOLAR_DATES.length} solar + ${LUNAR_DATES.length} lunar) to aspect_calendar, computed at the true syzygy instant.\n`);
 
   const { error } = await supabase
     .from('aspect_calendar')

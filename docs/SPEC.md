@@ -267,7 +267,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 9. NEW BUILD — THE GAPS
 
 1. **Aspect itinerary engine (largest genuinely new piece).** Per-chart computation of transit-to-natal contacts across all 14 receiving points — sign-consonant pre-filter, windows (3° applying → exact → separating), exactness dates, pass n-of-m across retrograde loops, plus sky-sky aspects, natal intersections, and the activation model (§11A.8). Deterministic math with ground truth: validate against a professional ephemeris before any generation depends on it. Feeds: timelines in standing pieces, Transit Calendar, notification triggers, Nodes eclipse itinerary.
-2. **Eclipse dataset.** Precomputable years ahead: dates, kind, degree/sign, plus per-eclipse configuration (the eclipsed body's own aspects — Moon for lunar, Sun for solar; the earlier Sun-only version was a BUG, not an accepted limitation, now fixed by `eclipse_aspects` (§11A.9), pending its own true-instant recompute — §11A.10) and natal points caught (lunar-eclipse display anchor and NATAL_CAUGHT re-anchor ratified, pending a display-fix brief — §11A.5, §11A.8). Feeds the Nodes piece + notifications.
+2. **Eclipse dataset.** Precomputable years ahead: dates, kind, degree/sign, plus per-eclipse configuration (the eclipsed body's own aspects — Moon for lunar, Sun for solar; the earlier Sun-only version was a BUG, not an accepted limitation, fixed by `eclipse_aspects` (§11A.9), now computed at the true eclipse instant — §11A.10, BUILT) and natal points caught (lunar-eclipse display anchor and NATAL_CAUGHT re-anchor ratified, pending a display-fix brief — §11A.5, §11A.8). Feeds the Nodes piece + notifications.
 3. **Sky event stream.** Normalized ingress/station/eclipse events from `transit_calendar` + eclipse data; drives regeneration scheduling and Today's Texture.
 4. **Transit prompt revision.** DONE as drafts (§10). Remaining: founder's batch read; the reorder and reading-notes backlog (§10.5).
 5. **Subscription lifecycle.** Stripe subscription mode, webhook extensions (attach-to-row, lapse gating at period end, resubscribe), monthly batch kickoff on payment confirmation, customer portal link.
@@ -944,7 +944,7 @@ extension), and multiple phases per body (prior/current/future) —
 currently 271 briefs, asserted against the differ, no human reading the
 output.
 
-### 11A.9 `eclipse_aspects` (built July 26, 2026 — PENDING true-instant recompute, §11A.10)
+### 11A.9 `eclipse_aspects` (built July 26, 2026 — true-instant recompute applied July 26, 2026, §11A.10)
 
 One row per (eclipse, other body) qualifying aspect: the ECLIPSED body's
 own sign-consonant aspects to the other 8 tracked bodies (Mercury–Pluto),
@@ -965,33 +965,111 @@ at the eclipse instant.
   gets no row.
 - **Fixes:** replaces the Sun-only CONFIGURATION previously computed
   for eclipse entries, which was wrong for lunar eclipses (§9 gap 2).
-- **Status:** table created and populated — 79 rows across 55 of 104
-  eclipses, verified against a fresh table read. Externally validated
-  against an independent ephemeris (Swiss Ephemeris / Moshier); that
-  validation confirmed the aspect logic (e.g. 2025-03-14 Moon trine
-  Uranus, correcting the old Sun-based sextile) but revealed that
-  positions read from the 00:00 UT snapshot flip near-orb-edge aspects
-  at the true instant — corrected by the recompute in §11A.10, which
-  these rows are pending. Display code does not read this table yet.
+  **RESOLVED (July 26, 2026):** the positions-flip-near-orb-edge-
+  aspects issue this section originally flagged as pending is now
+  closed by the §11A.10 true-instant recompute — this is no longer an
+  open gap, it is the CURRENT, correct state of the table.
+- **Status:** table recomputed at the true eclipse instant (§11A.10) —
+  78 rows across 54 of 104 eclipses (was 79 rows / 55 eclipses on the
+  00:00 UT snapshot basis; net -1 from 6 aspects newly qualifying and 7
+  no longer qualifying at the true instant), verified against a fresh
+  table read after write (row count, all 7 disappeared rows confirmed
+  absent, all 6 appeared rows confirmed present with matching orb).
+  Write model is delete-then-insert per eclipse (an upsert alone cannot
+  remove a row for an aspect that stops qualifying). Externally
+  validated against an independent ephemeris (sweph / Swiss Ephemeris,
+  Moshier mode) across the full 104-eclipse x 10-body dataset — max
+  discrepancy between the two engines 12.78 arcseconds, zero
+  disagreements. Display code does not read this table yet.
 
-### 11A.10 True-instant recompute — RATIFIED, NOT YET BUILT
+### 11A.10 True-instant recompute — BUILT (July 26, 2026)
 
 Eclipse positions and aspects (both aspect_calendar's eclipse rows and
-eclipse_aspects, §11A.9) are to be recomputed at the exact eclipse
-(syzygy) instant, replacing today's 00:00 UT daily-snapshot basis for
-eclipses specifically — a deliberate, disclosed exception to the 00:00
-UT convention that governs sky_positions generally (§11A.1). Rationale:
-the midnight snapshot can sit up to ~1° off the true eclipse instant,
-which is enough to flip a near-orb-edge aspect or a boundary sign.
+eclipse_aspects, §11A.9) are computed at the exact eclipse (syzygy)
+instant — exact Sun-Moon conjunction for a solar eclipse, exact
+opposition for a lunar eclipse — replacing the 00:00 UT daily-snapshot
+basis for eclipses specifically. This is a deliberate, disclosed
+exception to the 00:00 UT convention that governs sky_positions
+generally (§11A.1): sky_positions itself is untouched by this task and
+remains 00:00 UT throughout. Rationale: the midnight snapshot can sit
+up to ~1° off the true eclipse instant, which is enough to flip a
+near-orb-edge aspect or a boundary sign.
 
-External validation (Swiss Ephemeris / Moshier) has already found two
-cases where a Sun–Neptune aspect flips between the snapshot-basis and
-the true instant: 2027-08-02 and 2045-08-12.
+**Engines:** generation via `astronomy-engine` (npm, MIT license, pure
+JS, no external data files, no network calls) — geocentric apparent
+ecliptic longitude, true equinox of date, for all 10 tracked bodies
+(Sun, Moon, Mercury-Pluto), computed uniformly via GeoVector + Ecliptic
+conversion. The exact syzygy instant is found by bisection on the
+signed Sun-Moon longitude difference, bracketed within +/-36 hours of
+each eclipse's previously-stored date. Independent validation via
+`sweph` (Swiss Ephemeris, Moshier analytic mode — also no external data
+files, fully offline) — a separately written, separately maintained
+codebase from a different theoretical lineage. Both engines run from
+`scripts/lib/eclipse-true-instant.mjs` (the shared generation engine)
+and `scripts/validate-eclipse-instants-sweph.mjs` (the validation
+script) respectively; neither makes any API call. Cross-checked across
+the full dataset (104 eclipses x 10 bodies = 1,040 position pairs, not
+a sample): max discrepancy between the two engines 12.78 arcseconds
+(Neptune, 2023-10-14 solar eclipse), zero disagreements above a
+3-arcminute flag threshold, zero retrograde-direction mismatches.
 
-**Status: DECIDED, NOT BUILT.** The recompute is pending — the next
-planned eclipse-engine task. Do not treat eclipse_aspects (§11A.9) or
-the eclipse rows in aspect_calendar (§11A.5) as final until this
-recompute lands.
+External validation (Swiss Ephemeris / Moshier) had already found two
+cases where a Sun-Neptune aspect flips between the snapshot-basis and
+the true instant: 2027-08-02 and 2045-08-12. Both confirmed by this
+build: in both cases the aspect (trine / square) drops from just inside
+3° orb to just outside — the aspect disappears entirely at the true
+instant, it does not change into a different aspect type. Across the
+full recompute: 0 of 104 eclipses changed sign (the two historical
+boundary corrections below were already right); 6 aspects newly
+qualify, 7 stop qualifying, 0 change type, 72 keep the same type at a
+different orb — every orb change is fully explained by the anchor's own
+position shift plus the other body's own movement between the old
+snapshot and the true instant (no unexplained changes).
+
+**BOUNDARY_CORRECTIONS retired.** The two hand-verified overrides
+carried in a prior version of `scripts/load-eclipses.mjs`
+(2031-05-21 -> Gemini 0.0715°; 2039-06-21 -> Cancer 0.2085°, §11A.5)
+are removed, not layered on top of the true-instant computation. The
+true-instant recompute independently reproduces both signs (0.0731° and
+0.2147° respectively, within arcseconds of the hand-verified values) —
+three-way agreement (hand-check, astronomy-engine, sweph) is why the
+override table was retired rather than kept as a second, competing
+source of truth. `scripts/load-eclipses.mjs` now computes
+body_1_sign/body_2_sign/exact_degree directly from the true-instant
+engine for every eclipse, so this stays correct on any future
+regeneration (e.g. a date-range extension) without needing a new
+manual override pass.
+
+**eclipse_aspects write model changed to delete-then-insert** (per
+eclipse_id), superseding the prior upsert-only approach in
+`scripts/generate-eclipse-aspects.mjs` — an upsert can only add or
+update rows, so it could never remove a row for an aspect that stops
+qualifying at the true instant. The 7 disappearing aspects
+(§11A.9) required this fix to actually take effect.
+
+**Certification extended to cover eclipse data.** Before this build,
+`scripts/certify-calendars.mjs` excluded eclipse rows from every real
+content check (only counted them) and never read `eclipse_aspects` at
+all — a green run could not have caught a wrong eclipse position or
+aspect. It now also checks: every eclipse anchor position matches a
+fresh true-instant recompute; `eclipse_aspects` row count; FK integrity
+(every row maps to a real eclipse); anchor body/sign/degree matches the
+eclipsed body's own aspect_calendar row; the other luminary is never
+present; sign-consonance and orb match the stored sign/degree on every
+row; every row is within the 3° active orb; one row per (eclipse, other
+body) pair. It does not re-run the two-engine cross-validation itself
+(that stays a one-time independence check, in
+`scripts/validate-eclipse-instants-sweph.mjs`) — the certifier is a
+fast standing drift/corruption guard, not a from-scratch validation.
+
+**Status: BUILT.** `eclipse_aspects` (§11A.9) and the eclipse rows in
+aspect_calendar (§11A.5) are both current, true-instant data, verified
+by fresh live-table reads after write and by a full
+`scripts/certify-calendars.mjs` run (39/39 checks passed). The
+DISPLAY-ANCHOR ruling and NATAL_CAUGHT re-anchor (§11A.5, §11A.8)
+remain a separate, still-pending display-fix brief — this task changed
+stored data only, no display/render code and no
+`scripts/engine/assemble-brief.mjs`.
 
 ---
 
@@ -1215,3 +1293,32 @@ itself calls for a SPEC update.
 still read "mean vs. true — OPEN (§12.6)" after the ruling had already
 closed to mean node during the §11A.1 build; corrected to match
 §11A.1 / §12 item 6.
+
+**July 26, 2026 (eclipse true-instant recompute — closes §11A.10):**
+both aspect_calendar's 104 eclipse rows and all 78 eclipse_aspects rows
+recomputed at the exact Sun-Moon syzygy instant (conjunction for solar,
+opposition for lunar), replacing the 00:00 UT daily-snapshot basis used
+since the original July 18 load. Generation via `astronomy-engine`
+(MIT, offline, no data files); independent validation via `sweph`
+(Swiss Ephemeris, Moshier mode, also offline) across the full
+104-eclipse x 10-body dataset — max discrepancy 12.78 arcsec, zero
+disagreements. `BOUNDARY_CORRECTIONS` (the two hand-verified overrides
+from the July 18 boundary-verification pass) retired entirely — the
+true-instant computation independently reproduces both signs, and
+`scripts/load-eclipses.mjs` now computes positions from the true-instant
+engine directly rather than the Sun's 00:00 UT snapshot, so this stays
+correct on any future regeneration. Zero sign changes found (the two
+historical boundary cases were already right); 6 aspects newly qualify,
+7 stop qualifying (net 79 -> 78 rows) — including the two previously-
+flagged Sun-Neptune flips (2027-08-02, 2045-08-12), both confirmed.
+`eclipse_aspects` write model changed from upsert-only to
+delete-then-insert per eclipse, since upsert alone can't remove a row
+for an aspect that stops qualifying. `scripts/certify-calendars.mjs`
+extended (separate commit) to actually check eclipse content — true-
+instant position match, eclipse_aspects rule set, FK integrity — since
+it previously only counted eclipse rows and never read eclipse_aspects
+at all; full 39-check run passes clean. Live-table state verified by
+fresh reads after write, not by script logs. Display/render code and
+`scripts/engine/assemble-brief.mjs` untouched — the DISPLAY-ANCHOR and
+NATAL_CAUGHT re-anchor rulings (§11A.5, §11A.8) remain a separate,
+still-pending brief.
