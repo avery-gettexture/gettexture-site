@@ -336,6 +336,10 @@ All four prompts revised and delivered (pending founder's batch read):
 
 **Not yet drafted:** Moon blocks (12+12 static sign blocks + rising-sign closes, adapting the archived transit_a collective prompt — §3.6).
 
+**Parked — flagged, not yet addressed:**
+- The prose rendering an opposition to natal Jupiter as "crossing its own natal position" — the aspect word itself gets dropped in favor of a paraphrase. Needs a prompt fix.
+- Nodes contact entries under-name the sign and house of the contact, leaning almost entirely on the aspect's angular relationship. Needs prompt attention.
+
 **Section-number caveat for future edits:** section numbers in all four prompts are positional, not identities — any reorder renumbers them, which is why every cross-reference inside the prompts is name-based. Adding or moving a section renumbers the rest; nothing breaks.
 
 ---
