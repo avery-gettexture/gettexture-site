@@ -1155,3 +1155,14 @@ future regeneration (caught during this same regeneration — a first
 draft of the cleanup query itself had an unpaginated Supabase read
 silently capped at the default 1,000-row limit, leaving 167 orphans
 behind briefly before being caught and corrected).
+
+**July 26, 2026 (governance):** adopted "spec is part of done" as a
+standing rule in AGENTS.md — no task is complete until docs/SPEC.md
+reflects every architecture/data-model/ruling/inventory change a task
+made, included in the same commit, whether or not the task brief
+itself calls for a SPEC update.
+
+**July 26, 2026 (spec drift correction):** §7's node-convention line
+still read "mean vs. true — OPEN (§12.6)" after the ruling had already
+closed to mean node during the §11A.1 build; corrected to match
+§11A.1 / §12 item 6.
