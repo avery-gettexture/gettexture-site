@@ -1,7 +1,11 @@
 // Standing certification script for the deterministic sky-math layer.
 // Read-only: makes no writes to any table and no AI/API calls. Prints a
 // plain-language pass/fail report covering all four tables (sky_positions,
-// transit_calendar, aspect_calendar, transit_pieces), the ratified passage
+// transit_calendar, aspect_calendar, transit_pieces) plus eclipse data
+// (aspect_calendar's eclipse rows and eclipse_aspects, docs/SPEC.md
+// 11A.9/11A.10 -- true-instant position + aspect-rule checks, added
+// alongside the true-instant recompute so this script can no longer pass
+// green on a wrong eclipse position or aspect), the ratified passage
 // model (docs/SPEC.md 11A.2), the two standing structural guards
 // (sign-consonance, passage-consonance) re-run over a live recompute rather
 // than trusted from stored rows, and a full re-assembly of the three
@@ -36,6 +40,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { assembleBrief } from './engine/assemble-brief.mjs';
 import { checkConformance } from './template-conformance.mjs';
+import { recomputeEclipse } from './lib/eclipse-true-instant.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -69,7 +74,12 @@ const EXPECTED = {
   TRANSIT_STATION_TYPE: 429,
   ASPECT_CALENDAR_ASPECT_ROWS: 4607,
   ASPECT_CALENDAR_ECLIPSE_ROWS: 104,
+  ECLIPSE_ASPECTS_TOTAL: 78, // set by the true-instant recompute, docs/SPEC.md §11A.10 -- was 79 before
 };
+
+const ECLIPSE_OTHER_BODIES = new Set(['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']);
+const ECLIPSE_ASPECT_ANGLES = { conjunction: 0, sextile: 60, square: 90, trine: 120, opposition: 180 };
+const ECLIPSE_ACTIVE_ORB = 3;
 
 // ── report bookkeeping ─────────────────────────────────────────────────
 
@@ -466,6 +476,116 @@ async function certifyAspectCalendar() {
   console.log(`\n  Coverage: earliest relevant date ${dates[0]}, latest ${dates[dates.length - 1]}`);
 }
 
+// ── 3B. eclipse data (aspect_calendar eclipse rows + eclipse_aspects) ──
+//
+// Added alongside the true-instant recompute (docs/SPEC.md §11A.10): prior
+// to this, eclipse rows were excluded from every content check above (only
+// counted), and eclipse_aspects was never read by this script at all -- a
+// green run couldn't have caught a wrong eclipse position or aspect.
+// Tightly scoped to what would actually break: position drift from the
+// true-instant computation, the eclipse_aspects rule set (anchor,
+// sign-consonance, orb, one row per pair), and FK integrity. Does NOT
+// re-run the two-engine (astronomy-engine vs sweph) cross-validation done
+// once in scripts/validate-eclipse-instants-sweph.mjs -- that's a one-time
+// independence check, not a standing regression guard.
+
+function longitudeFromSignDegree(sign, degree) {
+  return SIGNS.indexOf(sign) * 30 + degree;
+}
+
+async function certifyEclipseData() {
+  console.log('\n=== ECLIPSE DATA (aspect_calendar eclipse rows + eclipse_aspects) ===');
+
+  const { data: eclipseRows, error: eclipseErr } = await supabase
+    .from('aspect_calendar')
+    .select('id, event, exact_date, body_1_sign, body_2_sign, exact_degree')
+    .in('event', ['Solar Eclipse', 'Lunar Eclipse'])
+    .order('exact_date', { ascending: true });
+  if (eclipseErr) throw new Error(eclipseErr.message);
+
+  // -- Position check: every eclipse row matches a fresh true-instant
+  // recompute (same engine, same method as scripts/load-eclipses.mjs).
+  let positionMismatches = 0;
+  for (const row of eclipseRows) {
+    const isLunar = row.event === 'Lunar Eclipse';
+    const { positions } = recomputeEclipse(row.exact_date, isLunar ? 'lunar' : 'solar');
+    const expectedBody2Sign = isLunar ? positions.Moon.sign : positions.Sun.sign;
+    const degreeOk = Math.abs(row.exact_degree - positions.Sun.degree) < 0.001;
+    if (row.body_1_sign !== positions.Sun.sign || row.body_2_sign !== expectedBody2Sign || !degreeOk) {
+      positionMismatches++;
+      console.log(`    ${row.id}: stored ${row.body_1_sign}/${row.body_2_sign} @ ${row.exact_degree}, true-instant recompute gives ${positions.Sun.sign}/${expectedBody2Sign} @ ${positions.Sun.degree}`);
+    }
+  }
+  record('eclipse data', 'Eclipse anchor positions match a fresh true-instant recompute (all 104)', positionMismatches === 0, positionMismatches === 0 ? 'all correct' : `${positionMismatches} mismatch(es)`);
+
+  const eclipseIds = new Set(eclipseRows.map((r) => r.id));
+  const eclipseById = new Map(eclipseRows.map((r) => [r.id, r]));
+
+  const aspectRows = await fetchAll('eclipse_aspects', 'id, eclipse_id, eclipse_event, anchor_body, anchor_sign, anchor_degree, other_body, other_body_sign, other_body_degree, orb, aspect');
+  record('eclipse data', 'eclipse_aspects total row count', aspectRows.length === EXPECTED.ECLIPSE_ASPECTS_TOTAL, `${aspectRows.length} rows (expected ${EXPECTED.ECLIPSE_ASPECTS_TOTAL})`);
+
+  // -- FK integrity: every eclipse_aspects row points at a real eclipse row.
+  const orphaned = aspectRows.filter((r) => !eclipseIds.has(r.eclipse_id));
+  record('eclipse data', 'eclipse_aspects.eclipse_id -> aspect_calendar FK integrity', orphaned.length === 0, orphaned.length === 0 ? `all ${aspectRows.length} rows map to a real eclipse` : `${orphaned.length} orphaned row(s)`);
+
+  // -- Anchor correctness: Moon for Lunar Eclipse, Sun for Solar Eclipse,
+  // and anchor_sign/anchor_degree match the eclipse's own aspect_calendar
+  // row exactly (single source of truth, never re-derived).
+  let anchorErrors = 0;
+  for (const r of aspectRows) {
+    const eclipse = eclipseById.get(r.eclipse_id);
+    if (!eclipse) continue; // already reported as orphaned above
+    const isLunar = r.eclipse_event === 'Lunar Eclipse';
+    const expectedAnchorBody = isLunar ? 'Moon' : 'Sun';
+    const expectedAnchorSign = isLunar ? eclipse.body_2_sign : eclipse.body_1_sign;
+    if (r.anchor_body !== expectedAnchorBody || r.anchor_sign !== expectedAnchorSign || Math.abs(r.anchor_degree - eclipse.exact_degree) > 0.0005) {
+      anchorErrors++;
+      console.log(`    ${r.id}: anchor ${r.anchor_body}/${r.anchor_sign}/${r.anchor_degree}, expected ${expectedAnchorBody}/${expectedAnchorSign}/${eclipse.exact_degree}`);
+    }
+  }
+  record('eclipse data', 'Anchor body/sign/degree matches the eclipsed body\'s own aspect_calendar row', anchorErrors === 0, anchorErrors === 0 ? 'all correct' : `${anchorErrors} error(s)`);
+
+  // -- Other-body domain: never Sun or Moon (the other luminary is always
+  // omitted -- also enforced by the table's own CHECK constraint, verified
+  // here against live data too).
+  const badOtherBody = aspectRows.filter((r) => !ECLIPSE_OTHER_BODIES.has(r.other_body));
+  record('eclipse data', 'other_body is always one of the 8 non-luminary bodies (other luminary omitted)', badOtherBody.length === 0, badOtherBody.length === 0 ? 'all correct' : `${badOtherBody.length} violation(s)`);
+
+  // -- Sign-consonance + orb: stored aspect/orb match what the stored
+  // anchor and other-body sign/degree actually produce.
+  let aspectMathErrors = 0;
+  for (const r of aspectRows) {
+    const dist = signDistance(r.anchor_sign, r.other_body_sign);
+    const expectedAspect = SIGN_DIST_TO_ASPECT[dist] ?? null;
+    if (expectedAspect !== r.aspect) {
+      aspectMathErrors++;
+      console.log(`    ${r.id}: stored aspect ${r.aspect}, sign distance ${dist} implies ${expectedAspect}`);
+      continue;
+    }
+    const anchorLon = longitudeFromSignDegree(r.anchor_sign, r.anchor_degree);
+    const otherLon = longitudeFromSignDegree(r.other_body_sign, r.other_body_degree);
+    const sep = angularSeparation(anchorLon, otherLon);
+    const expectedOrb = Math.abs(sep - ECLIPSE_ASPECT_ANGLES[r.aspect]);
+    if (Math.abs(expectedOrb - r.orb) > 0.001) {
+      aspectMathErrors++;
+      console.log(`    ${r.id}: stored orb ${r.orb}, recomputed from sign/degree gives ${expectedOrb}`);
+    }
+  }
+  record('eclipse data', 'Sign-consonance and orb match stored sign/degree (every row)', aspectMathErrors === 0, `${aspectRows.length} rows checked, ${aspectMathErrors} mismatch(es)`);
+
+  const outOfOrb = aspectRows.filter((r) => r.orb < 0 || r.orb > ECLIPSE_ACTIVE_ORB);
+  record('eclipse data', `Every row within the ${ECLIPSE_ACTIVE_ORB}° active orb`, outOfOrb.length === 0, outOfOrb.length === 0 ? 'all correct' : `${outOfOrb.length} out-of-orb row(s)`);
+
+  // -- One row per qualifying aspect: no duplicate (eclipse_id, other_body).
+  const pairCounts = new Map();
+  for (const r of aspectRows) {
+    const key = `${r.eclipse_id}|${r.other_body}`;
+    pairCounts.set(key, (pairCounts.get(key) ?? 0) + 1);
+  }
+  const duplicates = [...pairCounts.entries()].filter(([, n]) => n > 1);
+  record('eclipse data', 'One row per (eclipse, other body) -- no duplicates', duplicates.length === 0, duplicates.length === 0 ? 'all unique' : `${duplicates.length} duplicate pair(s)`);
+}
+
 // ── 4. transit_pieces ────────────────────────────────────────────────────
 
 async function certifyTransitPieces() {
@@ -557,6 +677,7 @@ async function main() {
   await certifySkyPositions();
   await certifyTransitCalendar();
   await certifyAspectCalendar();
+  await certifyEclipseData();
   await certifyTransitPieces();
   await certifyStructuralGuardsAndBriefs();
   await certifyTemplateConformance();
