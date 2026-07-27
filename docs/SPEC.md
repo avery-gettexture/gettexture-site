@@ -944,6 +944,36 @@ extension), and multiple phases per body (prior/current/future) —
 currently 271 briefs, asserted against the differ, no human reading the
 output.
 
+### 11A.9 `eclipse_aspects` (built July 26, 2026 — PENDING true-instant recompute, §11A.10)
+
+One row per (eclipse, other body) qualifying aspect: the ECLIPSED body's
+own sign-consonant aspects to the other 8 tracked bodies (Mercury–Pluto),
+at the eclipse instant.
+
+- **Anchor:** Moon for a Lunar Eclipse, Sun for a Solar Eclipse — the
+  eclipsed body, not always the Sun. Read from the eclipse's own
+  aspect_calendar row, never re-derived from sky_positions.
+- **Aspects:** the five majors, sign-consonant only, 3° active / 1°
+  exact — the same standard as aspect_calendar (§11A.3).
+- **The OTHER luminary is omitted:** Moon dropped on a solar eclipse,
+  Sun dropped on a lunar eclipse — that pairing is the eclipse's own
+  defining axis, not a configuration. The comparison set is the same 8
+  bodies for every eclipse.
+- Stores whether the aspecting planet was retrograde on the eclipse
+  date.
+- One row per qualifying aspect only — a body with no qualifying aspect
+  gets no row.
+- **Fixes:** replaces the Sun-only CONFIGURATION previously computed
+  for eclipse entries, which was wrong for lunar eclipses (§9 gap 2).
+- **Status:** table created and populated — 79 rows across 55 of 104
+  eclipses, verified against a fresh table read. Externally validated
+  against an independent ephemeris (Swiss Ephemeris / Moshier); that
+  validation confirmed the aspect logic (e.g. 2025-03-14 Moon trine
+  Uranus, correcting the old Sun-based sextile) but revealed that
+  positions read from the 00:00 UT snapshot flip near-orb-edge aspects
+  at the true instant — corrected by the recompute in §11A.10, which
+  these rows are pending. Display code does not read this table yet.
+
 ---
 
 ## 12. OPEN — FOUNDER RULINGS NEEDED (do not assume)
