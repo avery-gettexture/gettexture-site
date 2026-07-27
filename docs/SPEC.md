@@ -782,6 +782,14 @@ to notice it.
   spot-checks against Astro-Seek eclipse listings — 8-sample
   degree/sign check (all within 1°) plus all 9 boundary-flagged rows
   individually confirmed.
+- **DISPLAY-ANCHOR RULING (DECIDED, NOT YET BUILT — a pending
+  display-fix brief covers this and the NATAL_CAUGHT relabel at
+  §11A.8):** downstream, a lunar eclipse's PRESENTED position
+  (degree/sign/house) is the eclipsed MOON's — opposite the Sun —
+  never the Sun's; solar eclipses stay Sun-anchored. This governs
+  display/rendering only; it does not change the DEGREE/SIGN
+  CONVENTION above, which remains the precision-driven storage rule
+  for aspect_calendar's own eclipse rows.
 
 ### 11A.6 Old `transit_calendar` — RETIRED (July 17, 2026)
 
@@ -910,6 +918,13 @@ a planet piece's ECLIPSE_ACTIVATION) names HOW each point is caught —
 "conjunct the eclipse degree" (within 3° of the eclipse point itself) or
 "opposite the eclipse degree" (within 3° of the far end of the lunation
 axis); an end with nothing caught is omitted, "none" if nothing at all.
+
+**NATAL_CAUGHT re-anchor (DECIDED, NOT YET BUILT — same pending
+display-fix brief as §11A.5):** the conjunct/opposite label for a
+natal point caught by an eclipse re-anchors to the eclipsed body —
+Moon for a lunar eclipse, Sun for a solar eclipse — so a natal point
+sitting with the eclipsed body itself reads "conjunct." This
+supersedes the wording above once the pending display-fix brief lands.
 
 **Validation practice.** Two standing tools, both read-only, no writes,
 no AI/API calls: `scripts/template-conformance.mjs`, a mechanical
