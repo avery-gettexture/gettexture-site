@@ -974,6 +974,25 @@ at the eclipse instant.
   at the true instant — corrected by the recompute in §11A.10, which
   these rows are pending. Display code does not read this table yet.
 
+### 11A.10 True-instant recompute — RATIFIED, NOT YET BUILT
+
+Eclipse positions and aspects (both aspect_calendar's eclipse rows and
+eclipse_aspects, §11A.9) are to be recomputed at the exact eclipse
+(syzygy) instant, replacing today's 00:00 UT daily-snapshot basis for
+eclipses specifically — a deliberate, disclosed exception to the 00:00
+UT convention that governs sky_positions generally (§11A.1). Rationale:
+the midnight snapshot can sit up to ~1° off the true eclipse instant,
+which is enough to flip a near-orb-edge aspect or a boundary sign.
+
+External validation (Swiss Ephemeris / Moshier) has already found two
+cases where a Sun–Neptune aspect flips between the snapshot-basis and
+the true instant: 2027-08-02 and 2045-08-12.
+
+**Status: DECIDED, NOT BUILT.** The recompute is pending — the next
+planned eclipse-engine task. Do not treat eclipse_aspects (§11A.9) or
+the eclipse rows in aspect_calendar (§11A.5) as final until this
+recompute lands.
+
 ---
 
 ## 12. OPEN — FOUNDER RULINGS NEEDED (do not assume)
