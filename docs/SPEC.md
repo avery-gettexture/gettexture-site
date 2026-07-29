@@ -1122,6 +1122,17 @@ stored data only, no display/render code and no
 5. **Transit surface URL form** — `/reading/[slug]/transits` vs. a tab. *Ruled before any UI build; discussion scheduled.*
 6. ~~Mean vs. true node~~ — **CLOSED: mean** (details in §11A.1). Still open: the Nodes background-asset decision (two node images → one).
 7. **Shared-core maintenance** — build-time assembly of the universal block vs. discipline across four documents.
+8. **Eclipse-specific orb** — OPEN, leaning wider. NATAL_CAUGHT
+   currently uses the standard 3° orb. Because an eclipse is a
+   far more significant event than an ordinary transit, a wider
+   eclipse-specific orb is under consideration (e.g. an eclipse
+   opposing natal Jupiter at 7.75° currently goes unnamed — the
+   2026-08-12 case). To be decided during the content pass,
+   looking at real eclipse output across the chart. If widened:
+   touches eclipseCatches, surfaces more natal contacts per
+   eclipse, and requires regenerate + validate (confirm what
+   newly appears, nothing spurious). Founder leaning toward wider
+   given eclipse significance; not yet ruled.
 
 ## 13. DEFERRED — DO NOT BUILD, DO NOT FORECLOSE
 
