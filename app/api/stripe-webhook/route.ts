@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { randomInt } from 'crypto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -12,7 +13,7 @@ const supabase = createClient(
 
 function generateSlug(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return Array.from({ length: 12 }, () => chars[randomInt(chars.length)]).join('');
 }
 
 export async function POST(req: NextRequest) {
