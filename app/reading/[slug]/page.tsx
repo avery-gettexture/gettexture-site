@@ -246,7 +246,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
     async function fetchReading() {
       const { data, error } = await supabase
         .from('readings')
-        .select('*')
+        .select('slug, name, birth_date, birth_time, birth_location, birth_lat, birth_lng, birth_time_known, chart_data, sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto, asc_reading, mc, north_node, south_node')
         .eq('slug', slug)
         .single();
       if (error || !data) {
