@@ -267,7 +267,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 9. NEW BUILD — THE GAPS
 
 1. **Aspect itinerary engine (largest genuinely new piece).** Per-chart computation of transit-to-natal contacts across all 14 receiving points — sign-consonant pre-filter, windows (3° applying → exact → separating), exactness dates, pass n-of-m across retrograde loops, plus sky-sky aspects, natal intersections, and the activation model (§11A.8). Deterministic math with ground truth: validate against a professional ephemeris before any generation depends on it. Feeds: timelines in standing pieces, Transit Calendar, notification triggers, Nodes eclipse itinerary.
-2. **Eclipse dataset.** Precomputable years ahead: dates, kind, degree/sign, plus per-eclipse configuration (the eclipsed body's own aspects — Moon for lunar, Sun for solar; the earlier Sun-only version was a BUG, not an accepted limitation, fixed by `eclipse_aspects` (§11A.9), now computed at the true eclipse instant — §11A.10, BUILT) and natal points caught (lunar-eclipse display anchor and NATAL_CAUGHT re-anchor ratified, pending a display-fix brief — §11A.5, §11A.8). Feeds the Nodes piece + notifications.
+2. **Eclipse dataset.** Precomputable years ahead: dates, kind, degree/sign, plus per-eclipse configuration (the eclipsed body's own aspects — Moon for lunar, Sun for solar; the earlier Sun-only version was a BUG, not an accepted limitation, fixed by `eclipse_aspects` (§11A.9), now computed at the true eclipse instant — §11A.10, BUILT — and now wired into display — §11A.9, BUILT) and natal points caught (lunar-eclipse display anchor and NATAL_CAUGHT re-anchor — §11A.5, §11A.8, BUILT). Feeds the Nodes piece + notifications.
 3. **Sky event stream.** Normalized ingress/station/eclipse events from `transit_calendar` + eclipse data; drives regeneration scheduling and Today's Texture.
 4. **Transit prompt revision.** DONE as drafts (§10). Remaining: founder's batch read; the reorder and reading-notes backlog (§10.5).
 5. **Subscription lifecycle.** Stripe subscription mode, webhook extensions (attach-to-row, lapse gating at period end, resubscribe), monthly batch kickoff on payment confirmation, customer portal link.
@@ -786,14 +786,35 @@ to notice it.
   spot-checks against Astro-Seek eclipse listings — 8-sample
   degree/sign check (all within 1°) plus all 9 boundary-flagged rows
   individually confirmed.
-- **DISPLAY-ANCHOR RULING (DECIDED, NOT YET BUILT — a pending
-  display-fix brief covers this and the NATAL_CAUGHT relabel at
-  §11A.8):** downstream, a lunar eclipse's PRESENTED position
-  (degree/sign/house) is the eclipsed MOON's — opposite the Sun —
-  never the Sun's; solar eclipses stay Sun-anchored. This governs
-  display/rendering only; it does not change the DEGREE/SIGN
-  CONVENTION above, which remains the precision-driven storage rule
-  for aspect_calendar's own eclipse rows.
+- **DISPLAY-ANCHOR RULING (BUILT July 29, 2026 — display-fix brief;
+  see §11A.8 for the NATAL_CAUGHT relabel built in the same brief):**
+  downstream, a lunar eclipse's PRESENTED position (degree/sign/house)
+  is the eclipsed MOON's — opposite the Sun — never the Sun's; solar
+  eclipses stay Sun-anchored. This governs display/rendering only; it
+  does not change the DEGREE/SIGN CONVENTION above, which remains the
+  precision-driven storage rule for aspect_calendar's own eclipse
+  rows. Implemented via one shared pair of helpers in
+  `scripts/engine/contact-engine.mjs` — `eclipseAnchorBody` (Moon for
+  a Lunar Eclipse, Sun for a Solar Eclipse, keyed off the row's own
+  stored `event` kind) and `eclipseAnchorSign` (reads `body_2_sign`
+  for lunar, `body_1_sign` for solar) — used by every place an eclipse
+  position is printed: the Nodes TYPE: ECLIPSE entry's POINT field,
+  the planet-piece ECLIPSE_ACTIVATION entry's ECLIPSE line (both in
+  `scripts/engine/assemble-brief.mjs`), and the debug tool
+  `scripts/engine/print-itinerary.mjs`. One rule, one implementation,
+  applied everywhere — never reimplemented per call site.
+- **INSTANT, NOT WINDOW (confirmed, no code change needed):** an
+  eclipse is a single instant with one frozen geometry, never a
+  window — no orb-open/separation dates, no WINDOW/PASS counters, no
+  applying/separating language, wherever an eclipse enters a brief in
+  any role. Audited July 29, 2026 across every path an eclipse fact
+  reaches a brief (the Nodes ECLIPSE entry, the ECLIPSE_ACTIVATION
+  entry, print-itinerary.mjs): already instant-clean going in — the
+  ECLIPSE_ACTIVATION entry's DATES line already read as a single-date
+  spike ("eclipse falls within 3° of the piece's planet on {date}"),
+  never blended with the planet's own transit's window language.
+  Recorded here as the binding presentation rule so it stays true
+  under future changes, not just as a one-time finding.
 
 ### 11A.6 Old `transit_calendar` — RETIRED (July 17, 2026)
 
@@ -923,12 +944,20 @@ a planet piece's ECLIPSE_ACTIVATION) names HOW each point is caught —
 "opposite the eclipse degree" (within 3° of the far end of the lunation
 axis); an end with nothing caught is omitted, "none" if nothing at all.
 
-**NATAL_CAUGHT re-anchor (DECIDED, NOT YET BUILT — same pending
-display-fix brief as §11A.5):** the conjunct/opposite label for a
-natal point caught by an eclipse re-anchors to the eclipsed body —
-Moon for a lunar eclipse, Sun for a solar eclipse — so a natal point
-sitting with the eclipsed body itself reads "conjunct." This
-supersedes the wording above once the pending display-fix brief lands.
+**NATAL_CAUGHT re-anchor (BUILT July 29, 2026 — same display-fix
+brief as §11A.5):** the conjunct/opposite label for a natal point
+caught by an eclipse re-anchors to the eclipsed body — Moon for a
+lunar eclipse, Sun for a solar eclipse — so a natal point sitting with
+the eclipsed body itself reads "conjunct." Implemented by keying
+`eclipseCatches` (contact-engine.mjs) off the shared `eclipseAnchorSign`
+helper (§11A.5) instead of always reading the Sun's sign; since both
+the Nodes ECLIPSE entry and the planet-piece ECLIPSE_ACTIVATION entry
+call the same `eclipseCatches` function, the fix applies identically
+in both places by construction. Verified against the dogfood chart's
+2025-09-07 lunar eclipse: South Node (sitting with the eclipsed Moon)
+now reads "conjunct the eclipse degree"; North Node (sitting with the
+Sun) now reads "opposite" — reversed from the pre-fix output, as
+ruled.
 
 **Validation practice.** Two standing tools, both read-only, no writes,
 no AI/API calls: `scripts/template-conformance.mjs`, a mechanical
@@ -980,7 +1009,18 @@ at the eclipse instant.
   validated against an independent ephemeris (sweph / Swiss Ephemeris,
   Moshier mode) across the full 104-eclipse x 10-body dataset — max
   discrepancy between the two engines 12.78 arcseconds, zero
-  disagreements. Display code does not read this table yet.
+  disagreements. **Display code now reads this table (BUILT July 29,
+  2026, display-fix brief):** the Nodes TYPE: ECLIPSE entry's
+  CONFIGURATION field is read directly from `eclipse_aspects`
+  (`scripts/engine/assemble-brief.mjs`), replacing the old homemade
+  computation that always queried the Sun's own aspect_calendar rows
+  regardless of eclipse kind. Not wired into the ECLIPSE_ACTIVATION
+  entry — that entry type has no CONFIGURATION field in
+  `docs/brief-template-planet.md`, so there was nothing to fix there.
+  Verified against the dogfood chart's 2025-03-14 lunar eclipse: now
+  shows "opposition Saturn, trine Uranus" (both stored eclipse_aspects
+  rows, Moon-anchored), replacing the old single, wrong "sextile
+  Uranus" (Sun-anchored).
 
 ### 11A.10 True-instant recompute — BUILT (July 26, 2026)
 
@@ -1322,3 +1362,55 @@ fresh reads after write, not by script logs. Display/render code and
 `scripts/engine/assemble-brief.mjs` untouched — the DISPLAY-ANCHOR and
 NATAL_CAUGHT re-anchor rulings (§11A.5, §11A.8) remain a separate,
 still-pending brief.
+
+**July 29, 2026 (eclipse presentation display-fix brief — closes the
+pending DISPLAY-ANCHOR and NATAL_CAUGHT-re-anchor rulings, §11A.5 /
+§11A.8; wires CONFIGURATION into display, §11A.9):** diagnosed every
+path an eclipse fact reaches a brief in `scripts/engine/assemble-brief.mjs`
+and `scripts/engine/print-itinerary.mjs` before any edit; confirmed no
+window-vocabulary leak anywhere (an eclipse is a single instant, never
+a window — no orb dates, no WINDOW/PASS, no applying/separating —
+already true going in, now recorded as a binding rule in §11A.5). Three
+real bugs found and fixed, all Sun-anchored regardless of eclipse kind:
+(1) POSITION — a lunar eclipse's printed degree/sign/house was always
+the Sun's, never the eclipsed Moon's; (2) NATAL_CAUGHT — the
+conjunct/opposite label was always anchored to the Sun's sign, so a
+natal point sitting with the eclipsed Moon on a lunar eclipse
+misread as "opposite"; (3) CONFIGURATION (Nodes ECLIPSE entry only) —
+computed live and always from the Sun's own aspect_calendar rows,
+never reading the true-instant `eclipse_aspects` table (§11A.9) built
+July 26. Fixed via one shared anchor rule — `eclipseAnchorBody` /
+`eclipseAnchorSign` in `scripts/engine/contact-engine.mjs`, keyed off
+each eclipse row's own stored `event` kind (Lunar Eclipse → Moon,
+else → Sun), consumed identically by the Nodes TYPE: ECLIPSE entry,
+the planet-piece ECLIPSE_ACTIVATION entry, and print-itinerary.mjs —
+rather than three separate implementations. `eclipseCatches` now
+reads this shared anchor instead of hand-deriving the Sun's sign, so
+the NATAL_CAUGHT fix applies to both entry types by construction, not
+by separate edits. CONFIGURATION wiring applies to the Nodes entry
+only — ECLIPSE_ACTIVATION has no CONFIGURATION field in
+`docs/brief-template-planet.md`. Verified on the dogfood chart's real
+Supabase data (read-only assembly path, no writes, no AI/API calls):
+the 2025-03-14 lunar eclipse now shows POINT Virgo/9th (was Pisces/
+3rd) and CONFIGURATION "opposition Saturn, trine Uranus" (was the
+single, wrong "sextile Uranus"); the 2025-09-07 lunar eclipse's
+NATAL_CAUGHT now reads South Node conjunct / North Node opposite
+(reversed from pre-fix). No ECLIPSE_ACTIVATION entry exists in either
+tracked planet piece's (Saturn, Mercury) *current* live phase as of
+today, so the entry type is unverified on the live brief; confirmed
+instead against genuine historical hits found by scanning real
+eclipse/sky_positions data (not fabricated) — Saturn's own
+`assembleBrief({referenceDate})` output for both a real lunar hit
+(2025-03-14, correctly Moon-anchored to Virgo/9th) and a real solar
+hit (2025-09-21, correctly Sun-anchored to Virgo/9th, unchanged) —
+confirming the fix engages correctly in ECLIPSE_ACTIVATION for both
+eclipse kinds — independently corroborated by `scripts/exercise-
+engine.mjs`'s own built-in extra case (`eclipse-hit-2025-09-21`),
+which exercises this exact real ECLIPSE_ACTIVATION scenario and now
+passes. Full `scripts/exercise-engine.mjs` run (271 briefs against the
+structural differ): 271 passed, 0 failed, clean after the change.
+Runtime note for future reference: this run took ~55 minutes
+wall-clock (mostly sequential Supabase round-trips, not computation —
+CPU time was only ~2.5 minutes) with no progress output until the
+process exited, so a run in progress can look stalled when it isn't;
+budget for it accordingly rather than assuming a hang.

@@ -39,7 +39,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   SIGNS, extractNatalPoints, computeContactWindows, contactAnchorDate,
   windowOverlaps, natalCopresence, skyCopresenceSpans, eclipseCatches,
-  mintContactId, mintAxisContactId, labelAxisContact, houseOfSign,
+  eclipseAnchorSign, mintContactId, mintAxisContactId, labelAxisContact, houseOfSign,
   isSlowPair, SLOW_BODIES, mintActivationId, mintPairActivationId, mintEclipseTransitActivationId,
   assertSignConsonant, filterAndGroupForPassage, findActivationAnchor,
   computeShapeSegments, skyWindowPassageIndex,
@@ -170,6 +170,15 @@ async function fetchEclipsesInRange(start, end) {
   const { data, error } = await supabase.from('aspect_calendar').select('*')
     .in('event', ['Solar Eclipse', 'Lunar Eclipse']).gte('exact_date', start).lt('exact_date', end)
     .order('exact_date', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// CONFIGURATION (Nodes ECLIPSE entry only): the eclipsed body's own real
+// aspects, read from eclipse_aspects (SPEC.md §11A.9) -- replaces the old
+// homemade Sun-only computation, which was wrong for lunar eclipses.
+async function fetchEclipseAspects(eclipseId) {
+  const { data, error } = await supabase.from('eclipse_aspects').select('*').eq('eclipse_id', eclipseId);
   if (error) throw new Error(error.message);
   return data;
 }
@@ -579,7 +588,7 @@ function formatEclipseActivationEntry(entry) {
   return (
 `  - ID: ${id}
     TYPE: ECLIPSE_ACTIVATION
-    ECLIPSE: ${eclipse.event}, ${eclipse.exact_date}, ${eclipse.exact_degree.toFixed(1)}° ${eclipse.body_1_sign}${houseText}
+    ECLIPSE: ${eclipse.event}, ${eclipse.exact_date}, ${eclipse.exact_degree.toFixed(1)}° ${eclipseAnchorSign(eclipse)}${houseText}
     DATES: eclipse falls within 3° of the piece's planet on ${eclipse.exact_date}
     NATAL_CAUGHT: ${formatNatalCaughtField(catches, risingKnown)}`
   );
@@ -824,7 +833,7 @@ export async function assembleBrief(focusBody, options = {}) {
       const id = mintEclipseTransitActivationId(ec.id, focusBody);
       const catches = eclipseCatches(ec, natalPoints);
       eclipseActivationEntries.push({
-        id, eclipse: ec, catches, risingKnown, house: houseOfSign(ec.body_1_sign, ascSign),
+        id, eclipse: ec, catches, risingKnown, house: houseOfSign(eclipseAnchorSign(ec), ascSign),
       });
     }
   }
@@ -962,14 +971,19 @@ export async function assembleBrief(focusBody, options = {}) {
     for (const e of eclipses) {
       nodesEclipseIds.push(e.id);
       const catches = eclipseCatches(e, natalPoints);
-      const skyForEclipse = await fetchAspectCalendarForBody('Sun', e.exact_date, e.exact_date);
-      const config = skyForEclipse.filter(s => s.id !== e.id && s.exact_date === e.exact_date).map(s => `${s.event} ${s.body_1 === 'Sun' ? s.body_2 : s.body_1}`).join(', ') || 'none';
+      const anchorSign = eclipseAnchorSign(e);
+      const aspectRows = await fetchEclipseAspects(e.id);
+      const config = aspectRows
+        .slice()
+        .sort((a, b) => ALL_BODIES.indexOf(a.other_body) - ALL_BODIES.indexOf(b.other_body))
+        .map(a => `${a.aspect} ${a.other_body}`)
+        .join(', ') || 'none';
       lines.push(
 `  - TYPE: ECLIPSE
     ID: ${e.id}
     KIND: ${e.event === 'Solar Eclipse' ? 'solar' : 'lunar'}
     DATE: ${e.exact_date}
-    POINT: ${e.exact_degree.toFixed(1)}° ${e.body_1_sign}${risingKnown ? `, ${houseOfSign(e.body_1_sign, ascSign)}` : ''}
+    POINT: ${e.exact_degree.toFixed(1)}° ${anchorSign}${risingKnown ? `, ${houseOfSign(anchorSign, ascSign)}` : ''}
     CONFIGURATION: ${config}
     NATAL_CAUGHT: ${formatNatalCaughtField(catches, risingKnown)}`);
     }

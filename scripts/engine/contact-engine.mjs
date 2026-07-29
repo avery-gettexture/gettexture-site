@@ -628,13 +628,34 @@ export function skyCopresenceSpans(otherBodySeries, transitedSign) {
   return spans;
 }
 
+// ── Eclipse display anchor (SPEC.md §11A.5 DISPLAY-ANCHOR RULING, §11A.8
+// NATAL_CAUGHT re-anchor) ──────────────────────────────────────────────
+//
+// Single source of truth for "which luminary is this eclipse's real,
+// presented position": Solar eclipses anchor to the Sun (unchanged), Lunar
+// eclipses anchor to the eclipsed Moon. Keyed off the eclipse row's own
+// stored `event` kind, never hand-derived. Every place that prints an
+// eclipse's position or labels a natal catch as conjunct/opposite must
+// route through these two functions -- one rule, applied everywhere,
+// not reimplemented per call site.
+export function eclipseAnchorBody(eclipseRow) {
+  return eclipseRow.event === 'Lunar Eclipse' ? 'Moon' : 'Sun';
+}
+
+export function eclipseAnchorSign(eclipseRow) {
+  return eclipseAnchorBody(eclipseRow) === 'Moon' ? eclipseRow.body_2_sign : eclipseRow.body_1_sign;
+}
+
 // ── Eclipse-to-natal catch ────────────────────────────────────────────
 //
 // RULING: a natal point is caught if within 3 degrees of the eclipse
 // degree in EITHER the eclipse's own sign OR the directly opposite sign
 // (the eclipse is a lunation on the axis). Reports which end caught it.
+// conjunct/opposite re-anchors to the eclipsed body (Moon for lunar, Sun
+// for solar) -- a point sitting with the eclipsed body itself reads
+// "conjunct."
 export function eclipseCatches(eclipseRow, natalPoints, orb = 3) {
-  const signA = eclipseRow.body_1_sign; // Sun-derived sign, both eclipse types
+  const signA = eclipseAnchorSign(eclipseRow); // eclipsed body's own sign
   const signB = SIGNS[(SIGNS.indexOf(signA) + 6) % 12];
   const deg = eclipseRow.exact_degree;
   const catches = [];

@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   SIGNS, extractNatalPoints, computeContactWindows, contactAnchorDate,
   windowOverlaps, natalCopresence, skyCopresenceSpans, eclipseCatches,
-  mintContactId, mintAxisContactId, labelAxisContact, computeShape,
+  eclipseAnchorSign, mintContactId, mintAxisContactId, labelAxisContact, computeShape,
 } from './contact-engine.mjs';
 
 const supabase = createClient(
@@ -303,7 +303,7 @@ async function reportBody(focusBody, natalPoints, seriesFull) {
     const eclipses = await fetchEclipses(passage.ingressDate, passage.egressDate);
     console.log(`\nECLIPSES in this passage (${eclipses.length}):`);
     eclipses.forEach(e => {
-      console.log(`  ${e.event} ${e.exact_date}: ${e.exact_degree.toFixed(2)}° ${e.body_1_sign} (id: ${e.id})`);
+      console.log(`  ${e.event} ${e.exact_date}: ${e.exact_degree.toFixed(2)}° ${eclipseAnchorSign(e)} (id: ${e.id})`);
       const catches = eclipseCatches(e, natalPoints);
       if (catches.length === 0) {
         console.log('    natal points caught: none');
