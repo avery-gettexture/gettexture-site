@@ -188,6 +188,7 @@ Event standard:
 
 ### 5.1 Identity, URLs, access
 - **No login, no passwords, no magic links at launch.** The reading slug URL is the address of the chart's whole texture.
+- **The slug is a real key at the database level (Stage Two, July 29, 2026), not just an app-level filter.** `readings` and `transit_pieces` are locked to the public (anon) role — no direct table read is possible, filtered or not. The only access path is two SECURITY DEFINER functions, `get_reading_by_slug(p_slug)` and `get_transit_pieces_by_slug(p_reading_slug)`, each of which requires the slug as an input and returns nothing without a match. A plain RLS policy can't express "filtered reads succeed, unfiltered reads return nothing" — a policy has no way to see whether a request named a slug, only whether a given row is visible at all — so the lock-table-plus-gate-function pattern is used instead. `readings.email` is excluded from `get_reading_by_slug`'s columns. Full record: §16.
 - Natal reading: `/reading/[slug]` — permanent, shareable, unchanged.
 - Transit surface: same slug address — **un-gated while subscription is active.** Sharing is fine: what's priced is generation, not access. **Path vs. tab form: OPEN (§12.5) — ruled before any UI build.**
 - Subscription attaches to the existing `readings` row (new relationship fields: stripe subscription id, status, paid-through). No separate account object.
@@ -255,7 +256,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 8. EXISTING INFRASTRUCTURE (build on, don't rebuild)
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
-- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. (Interpretation columns become 13 with the nodes consolidation — migration note, §9.)
+- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. (Interpretation columns become 13 with the nodes consolidation — migration note, §9.) **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
@@ -1463,3 +1464,45 @@ project's own never-hardcode-prices rule — needs to move to a config
 value. Noted in passing: that same line's comment says `// $30.00` but
 the actual amount is $29.00 — a stale/incorrect comment, left as-is
 since pricing is explicitly out of scope for this task.
+
+**July 29, 2026 (Stage Two — the lock, DONE, deploy pending
+separate authorization):** closes the exposure Stage One found.
+Design finding: a plain RLS `USING(...)` policy cannot express
+"a slug-filtered read succeeds, an unfiltered read returns
+nothing" — RLS decides row-by-row visibility and has no way to see
+whether the caller's request named a slug at all, so any policy
+permissive enough to let a real slug through is equally permissive
+to an unfiltered scan. Used instead: lock the tables outright
+(`ALTER TABLE ... ENABLE ROW LEVEL SECURITY` + `REVOKE SELECT ...
+FROM anon`, and the transit_pieces temporary open policy
+(`scripts/add_transit_pieces_anon_select_policy.sql`, `USING(true)`)
+dropped) and expose two SECURITY DEFINER functions that require
+the slug as an explicit argument: `get_reading_by_slug(p_slug)`
+(the same 23 columns the reading page already used, `email` and
+`stripe_session_id` excluded) and `get_transit_pieces_by_slug
+(p_reading_slug)`. Migration: `scripts/lock_readings_and_transit_
+pieces.sql`, run against Supabase's SQL editor (no direct DB/CLI
+connection available to run it programmatically) and verified live
+with the public anon key, both directions: a real slug returns the
+correct row(s) through the functions; a missing/wrong slug returns
+zero rows; a direct table read — filtered or not — is refused
+outright (`permission denied for table readings` /
+`transit_pieces`), closing the Stage One exposure. Code changed to
+match: `app/reading/[slug]/page.tsx` and `app/reading/[slug]/
+transits/page.tsx` now call the two functions instead of querying
+the tables directly; no other code path reads either table with the
+anon key (everything else — the Stripe webhook, session-lookup and
+generation routes, all admin/dev scripts — uses the service-role
+key, which bypasses RLS and is unaffected). The transits page still
+reads a hardcoded dogfood slug rather than its own URL parameter;
+this is pre-existing, unrelated to the lock, and left as-is (known
+state, not a bug, pending the real per-slug wiring).
+**Accurate Stage Three scope, recorded here so it isn't
+mis-stated:** Stage Two does not split any table or move any data.
+Stage Three moves `email` — the one sensitive field still in
+`readings` — into a new locked table, and adds `full_name` there as
+a NEW, currently-nonexistent, initially-empty column for future
+billing/identity capture. `readings.name` is NOT part of Stage
+Three: it's already the reader-facing display name (optional,
+free-form, deliberately not the legal name, not what Stripe holds)
+and correctly stays in `readings`, slug-gated, as-is.

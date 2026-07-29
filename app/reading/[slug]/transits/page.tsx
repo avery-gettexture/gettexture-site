@@ -108,11 +108,10 @@ export default function TransitsPage() {
   useEffect(() => {
     async function fetchName() {
       const { data } = await supabase
-        .from('readings')
-        .select('name')
-        .eq('slug', slug)
+        .rpc('get_reading_by_slug', { p_slug: slug })
         .single();
-      if (data?.name) setCustomerName(data.name);
+      const name = (data as { name: string | null } | null)?.name;
+      if (name) setCustomerName(name);
     }
     fetchName();
   }, [slug]);
@@ -120,10 +119,7 @@ export default function TransitsPage() {
   useEffect(() => {
     async function fetchPieces() {
       const { data } = await supabase
-        .from('transit_pieces')
-        .select('body, synthesis_prose, timeline_entries, phase_opened_date')
-        .eq('reading_slug', slug)
-        .order('phase_opened_date', { ascending: false });
+        .rpc('get_transit_pieces_by_slug', { p_reading_slug: slug });
       if (!data) return;
       // Keep only the newest row per body -- prior phase editions are kept
       // in the table (not overwritten), so this can return more than one

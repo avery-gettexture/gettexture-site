@@ -245,14 +245,12 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
   useEffect(() => {
     async function fetchReading() {
       const { data, error } = await supabase
-        .from('readings')
-        .select('slug, name, birth_date, birth_time, birth_location, birth_lat, birth_lng, birth_time_known, chart_data, sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto, asc_reading, mc, north_node, south_node')
-        .eq('slug', slug)
+        .rpc('get_reading_by_slug', { p_slug: slug })
         .single();
       if (error || !data) {
         setNotFound(true);
       } else {
-        setReading(data);
+        setReading(data as Reading);
       }
       setLoading(false);
     }
