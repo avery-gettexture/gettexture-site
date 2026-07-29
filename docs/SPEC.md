@@ -1425,3 +1425,41 @@ wall-clock (mostly sequential Supabase round-trips, not computation —
 CPU time was only ~2.5 minutes) with no progress output until the
 process exited, so a run in progress can look stalled when it isn't;
 budget for it accordingly rather than assuming a hang.
+
+**July 29, 2026 (Stage One security cleanup — DONE):** three fixes
+landed, no database tables touched, no customer data moved (that's
+stage two, separately authorized). (1) Live check before any change:
+using the site's own public anon key, a no-filter query against
+`readings` returned rows and a table-wide count with no slug named at
+all, confirming what a migration-file comment had only asserted —
+`readings` has no real row-level security; any visitor can currently
+list the whole table, not just look up a reading they already have
+the address for. `transit_pieces` behaved the same way, matching its
+known-temporary anon-SELECT-all policy
+(`scripts/add_transit_pieces_anon_select_policy.sql`). This is exactly
+the gap stage two is scoped to close; nothing was changed by this
+check. (2) `app/admin/page.tsx` — the manual reading-creation tool —
+deleted. It held a plaintext password (`'tx-9k2mR#vQ'`, compared
+client-side) and wrote to `readings` directly from the browser using
+the public anon key; obsolete now that the Stripe webhook creates
+readings automatically. Confirmed nothing else in the app imported or
+linked to it before removal; the routes/helper it called (`/api/chart`,
+`/api/generate`, `lib/supabase.ts`) are shared with the live purchase
+flow and were left untouched. (3) `app/reading/[slug]/page.tsx`'s
+Supabase query narrowed from `select('*')` to the 23 columns the page
+actually renders, dropping `email` and `stripe_session_id` out of the
+browser payload (they were fetched but never displayed). The 23 names
+were checked against the live database's real columns, not just the
+page's TypeScript type, before the change shipped — no mismatch found.
+(4) The webhook's `generateSlug()` (the only copy left once the admin
+tool was deleted — it had its own separate copy) switched from
+`Math.random()` to Node's `crypto.randomInt`, same 36-character
+alphabet and 12-character length, so the existing collision-check loop
+and slug shape are unchanged. Existing slugs were left as issued, not
+reissued. **KNOWN CLEANUP, logged but NOT fixed here (not a security
+item, separate task):** `app/api/checkout/route.ts:27` hardcodes the
+reading's price (`unit_amount: 2900`), which conflicts with the
+project's own never-hardcode-prices rule — needs to move to a config
+value. Noted in passing: that same line's comment says `// $30.00` but
+the actual amount is $29.00 — a stale/incorrect comment, left as-is
+since pricing is explicitly out of scope for this task.
