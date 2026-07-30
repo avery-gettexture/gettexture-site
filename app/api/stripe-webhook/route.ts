@@ -68,22 +68,36 @@ export async function POST(req: NextRequest) {
     const chartJson = chartRes.ok ? await chartRes.json() : null;
     const chartData = chartJson?.chart_data ?? chartJson;
 
-    // Create reading in Supabase
-    const { error: insertError } = await supabase.from('readings').insert({
-      slug,
-      name: meta.name,
-      email: meta.email,
-      birth_date: meta.birth_date,
-      birth_time: meta.birth_time,
-      birth_location: meta.birth_location,
-      birth_lat: parseFloat(meta.birth_lat),
-      birth_lng: parseFloat(meta.birth_lng),
-      birth_time_known: true,
-      chart_data: chartData,
-      stripe_session_id: session.id,
-    });
+    // Create reading in Supabase (email no longer lives here — Stage Three)
+    const { data: newReading, error: insertError } = await supabase
+      .from('readings')
+      .insert({
+        slug,
+        name: meta.name,
+        birth_date: meta.birth_date,
+        birth_time: meta.birth_time,
+        birth_location: meta.birth_location,
+        birth_lat: parseFloat(meta.birth_lat),
+        birth_lng: parseFloat(meta.birth_lng),
+        birth_time_known: true,
+        chart_data: chartData,
+        stripe_session_id: session.id,
+      })
+      .select('id')
+      .single();
 
     if (insertError) throw new Error(`Supabase insert error: ${insertError.message}`);
+
+    // Email lives in reading_contacts now, keyed by the reading's internal
+    // id (never the slug) — this must run after the insert above, since
+    // the id doesn't exist until the reading is created. full_name is left
+    // empty; a future billing/identity capture flow would populate it here.
+    const { error: contactError } = await supabase.from('reading_contacts').insert({
+      reading_id: newReading.id,
+      email: meta.email,
+    });
+
+    if (contactError) throw new Error(`Supabase reading_contacts insert error: ${contactError.message}`);
 
     const readingUrl = `https://gettexture.app/reading/${slug}`;
 

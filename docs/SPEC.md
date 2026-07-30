@@ -1587,3 +1587,20 @@ matching `reading_contacts` row. Next: Step 3 (rewire the Stripe
 webhook to write email into `reading_contacts` instead of
 `readings`) and Step 4 (drop `readings.email` once nothing reads it
 from there).
+
+**July 30, 2026 (Stage Three, Step 3 — webhook rewired, DONE, not
+tested against live Stripe):** `app/api/stripe-webhook/route.ts`'s
+`readings` insert no longer writes `email`; it now selects the new
+row's `id` back (`.select('id').single()`) immediately after
+inserting. A second insert into `reading_contacts`
+(`{reading_id: newReading.id, email: meta.email}`) follows,
+`full_name` left unset (null) with a comment noting where a future
+billing/identity capture flow would populate it. Write order is
+load-bearing and enforced by the code shape, not just convention:
+the `reading_contacts` insert is textually and causally after the
+`readings` insert's `await`, since `newReading.id` doesn't exist
+until that insert returns — a new purchase cannot produce a
+`reading_contacts` row without first producing its parent `readings`
+row. `npx tsc --noEmit` run clean, zero errors. Not exercised against
+a real Stripe event (explicitly out of scope for this step); logic
+reviewed instead of live-tested.
