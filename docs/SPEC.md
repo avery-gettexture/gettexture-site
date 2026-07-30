@@ -256,7 +256,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 8. EXISTING INFRASTRUCTURE (build on, don't rebuild)
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
-- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. (Interpretation columns become 13 with the nodes consolidation — migration note, §9.) **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three.
+- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. (Interpretation columns become 13 with the nodes consolidation — migration note, §9.) **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
@@ -1604,3 +1604,24 @@ until that insert returns — a new purchase cannot produce a
 row. `npx tsc --noEmit` run clean, zero errors. Not exercised against
 a real Stripe event (explicitly out of scope for this step); logic
 reviewed instead of live-tested.
+
+**July 30, 2026 (Stage Three, Step 4 — readings.email dropped,
+VERIFIED):** audited every file touching `readings` before drafting
+the migration: no code path read `email` from it any longer (the
+reading page/functions excluded it since Stage One/Two; the webhook
+was rewired off it in Step 3; `/api/generate` selects `readings.*`
+but only ever reads `chart_data` and `birth_time_known`;
+`/api/checkout` reads `email` only from the incoming request body,
+never from the table). Migration `scripts/drop_readings_email.sql`
+(`ALTER TABLE readings DROP COLUMN email`) run by the founder in the
+Supabase SQL editor. Verified live afterward, not assumed: the
+database's own schema description shows 22 columns on `readings`
+with no `email` among them; all 7 live rows confirmed to have no
+`email` key; `reading_contacts` independently confirmed unaffected
+(still 7 rows, all with email intact); the actual public-facing
+function the reading page calls, `get_reading_by_slug`, called live
+with the anon key against a real slug, still returns correctly.
+Email now lives exclusively in `reading_contacts`. Stage Three's
+data-model work (Steps 1-4) is complete; only Step 5 (this SPEC
+entry plus the changelog note, then the founder's explicit
+go-ahead to deploy) remains.
