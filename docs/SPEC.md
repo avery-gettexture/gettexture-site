@@ -1506,3 +1506,35 @@ billing/identity capture. `readings.name` is NOT part of Stage
 Three: it's already the reader-facing display name (optional,
 free-form, deliberately not the legal name, not what Stripe holds)
 and correctly stays in `readings`, slug-gated, as-is.
+
+**July 29, 2026 (Stage Three, Step 0 — join key confirmed):**
+`readings.id` (uuid, primary key, default `gen_random_uuid()` —
+confirmed against the live database's own schema description, not
+inferred from a sample value) never reaches the browser: it is
+absent from `get_reading_by_slug`'s return columns and from every
+JSON response any route sends client-side. By contrast,
+`readings.stripe_session_id` DOES reach the browser — Stripe's own
+checkout session ID is stored there (`stripe-webhook/route.ts`) and
+that same value rides in the post-checkout redirect
+(`/success?session_id={CHECKOUT_SESSION_ID}`, `app/api/checkout/
+route.ts`), landing in the address bar and browser history on every
+purchase, and `app/api/reading-by-session/route.ts` accepts it as a
+public lookup parameter. `id` is therefore the join key; founder
+approved.
+
+**July 29, 2026 (Stage Three, Step 1 — reading_contacts table
+created, schema committed):** new table `reading_contacts`, 1:1
+keyed on `reading_id uuid PRIMARY KEY REFERENCES readings(id) ON
+DELETE CASCADE` (cascade is a founder privacy ruling: deleting a
+reading should take its email with it, no orphaned contact data),
+plus `email text NOT NULL` and `full_name text` (nullable, left
+empty — new column, not backfilled from any prior data). RLS
+enabled with zero policies and no exposing function of any kind —
+stricter than `readings`/`transit_pieces` (which have one
+slug-required function door): `reading_contacts` has no public path
+in at all, direct or indirect; only the service-role key can reach
+it. Migration: `scripts/create_reading_contacts.sql`, to be run
+once against Supabase's SQL editor (no direct DB/CLI connection
+available), same route as every prior migration. Live anon-key
+verification of the lock is Step 1's closing requirement, pending
+the founder running the migration.
