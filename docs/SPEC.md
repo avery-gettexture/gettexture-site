@@ -188,7 +188,7 @@ Event standard:
 
 ### 5.1 Identity, URLs, access
 - **No login, no passwords, no magic links at launch.** The reading slug URL is the address of the chart's whole texture.
-- **The slug is a real key at the database level (Stage Two, July 29, 2026), not just an app-level filter.** `readings` and `transit_pieces` are locked to the public (anon) role — no direct table read is possible, filtered or not. The only access path is two SECURITY DEFINER functions, `get_reading_by_slug(p_slug)` and `get_transit_pieces_by_slug(p_reading_slug)`, each of which requires the slug as an input and returns nothing without a match. A plain RLS policy can't express "filtered reads succeed, unfiltered reads return nothing" — a policy has no way to see whether a request named a slug, only whether a given row is visible at all — so the lock-table-plus-gate-function pattern is used instead. `readings.email` is excluded from `get_reading_by_slug`'s columns. Full record: §16.
+- **The slug is a real key at the database level (Stage Two, July 29, 2026), not just an app-level filter.** `readings` and `transit_pieces` are locked to the public (anon) role — no direct table read is possible, filtered or not. The only access path is two SECURITY DEFINER functions, `get_reading_by_slug(p_slug)` and `get_transit_pieces_by_slug(p_reading_slug)`, each of which requires the slug as an input and returns nothing without a match. A plain RLS policy can't express "filtered reads succeed, unfiltered reads return nothing" — a policy has no way to see whether a request named a slug, only whether a given row is visible at all — so the lock-table-plus-gate-function pattern is used instead. `readings` no longer has an `email` column at all (Stage Three, July 30, 2026) — email lives in the separate `reading_contacts` table, keyed on `readings.id`, with no anon path of any kind (stricter than the slug-gated functions here). Full record: §16.
 - Natal reading: `/reading/[slug]` — permanent, shareable, unchanged.
 - Transit surface: same slug address — **un-gated while subscription is active.** Sharing is fine: what's priced is generation, not access. **Path vs. tab form: OPEN (§12.5) — ruled before any UI build.**
 - Subscription attaches to the existing `readings` row (new relationship fields: stripe subscription id, status, paid-through). No separate account object.
@@ -1625,3 +1625,40 @@ Email now lives exclusively in `reading_contacts`. Stage Three's
 data-model work (Steps 1-4) is complete; only Step 5 (this SPEC
 entry plus the changelog note, then the founder's explicit
 go-ahead to deploy) remains.
+
+**July 30, 2026 (Stage Three — CLOSED):** the security/data-separation
+work opened at Stage One is complete. Summary for future reference:
+- New table `reading_contacts` (`scripts/create_reading_contacts.sql`):
+  `reading_id uuid PRIMARY KEY REFERENCES readings(id) ON DELETE
+  CASCADE`, `email text NOT NULL`, `full_name text` (nullable, added
+  empty, not backfilled — reserved for future billing/identity
+  capture), `created_at timestamptz DEFAULT now()`. RLS enabled with
+  zero policies and no exposing function of any kind — no public path
+  in at all, stricter than `readings`/`transit_pieces` (which each
+  have one slug-required function door). Verified live with the anon
+  key both before and after the email-column drop.
+- Join key: `readings.id` (uuid, internal primary key, never sent to
+  the browser — confirmed against every route/page in the app).
+  `stripe_session_id` was considered and ruled out: it rides in the
+  post-checkout redirect URL and is therefore browser-visible.
+- Founder ruling, folded into this stage: prelaunch data hygiene —
+  `readings` held 15 test/founder rows, no real customers; kept only
+  the 7 rows complete across `email` + `chart_data` + all 14
+  interpretation columns (birth-time fields exempt). Backed up first
+  (`backups/readings_backup_2026-07-30T03-52-57-715Z.json`,
+  gitignored, verified by reading it back against a fresh live read)
+  before deleting the 8 incomplete rows.
+- Stripe webhook (`app/api/stripe-webhook/route.ts`) rewired: new
+  purchases write email to `reading_contacts` keyed by the new
+  reading's id, never to `readings`. Write order is enforced by the
+  code shape (the id doesn't exist until the `readings` insert
+  returns).
+- `readings.email` column dropped entirely after confirming no
+  remaining code path read it. Live-verified after the drop: schema
+  has no `email` column, no live row has the key, `reading_contacts`
+  unaffected, `get_reading_by_slug` still returns correctly through
+  the anon key.
+- `readings.name` (the reader-facing display name) was explicitly
+  out of scope throughout and was not touched.
+- Deploy: gated on the founder's explicit go-ahead, tracked
+  separately below once pushed.
