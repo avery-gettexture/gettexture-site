@@ -1538,3 +1538,52 @@ once against Supabase's SQL editor (no direct DB/CLI connection
 available), same route as every prior migration. Live anon-key
 verification of the lock is Step 1's closing requirement, pending
 the founder running the migration.
+
+**July 29–30, 2026 (Stage Three, Step 1 verified + Step 2, email
+migration — DONE):** Step 1's lock verified live with the public
+anon key after the founder ran the migration: a direct select on
+`reading_contacts` is refused outright (`permission denied for
+table reading_contacts`, code 42501) and the table doesn't appear
+anywhere in the anon key's own view of the API surface — no path
+in at all, stricter than `readings`/`transit_pieces`'s one
+function door.
+
+**Founder ruling (prelaunch data hygiene, folded into this step):**
+no real customers exist yet — the `readings` table was ~15 rows of
+test/founder data, not production data to protect. Ruling:
+completeness, not who paid, decides what stays. A row is kept only
+if `email`, `chart_data`, and all 14 interpretation columns
+(`sun`..`pluto`, `asc_reading`, `mc`, `north_node`, `south_node`)
+are populated; `birth_time`/`birth_time_known`/`birth_lat`/`birth_lng`
+are explicitly exempt (a reading can legitimately lack a birth
+time). Backup taken first and verified by reading it back (not
+trusting the write log): `backups/readings_backup_2026-07-
+30T03-52-57-715Z.json` (gitignored — real emails/birth data, never
+committed), 15/15 rows, all 27 columns, byte-identical to a fresh
+live re-read at verification time. Completeness scan found 7 fully
+complete rows and 8 incomplete (6 missing only `email` — throwaway
+test rows; 2 — `010kct0s3g2g`, `t6bklk2cq3b8` — had an email but no
+chart_data/interpretations, i.e. purchases that never finished
+generating). Founder confirmed the keep/delete list before any
+delete ran. The 8 incomplete rows were deleted from `readings`
+(re-matched by slug immediately before deleting, count checked
+against the confirmed list before the delete executed). Verified
+by fresh read after: exactly 7 rows remain, all 7 pass the same
+completeness check with zero empty columns.
+
+Email migration then ran on the 7 surviving rows: one
+`reading_contacts` row per reading (upsert keyed on `reading_id`),
+`full_name` left null. `readings.email` was NOT touched — it still
+holds email in both places, per plan, until Step 4 drops it.
+Verified by fresh read: `readings` count (7) == `reading_contacts`
+count (7), zero orphans either direction, every row's email in
+`reading_contacts` matches its `readings` row exactly, `full_name`
+null on all 7.
+
+Stage Three now stands at: locked table built and verified, live
+row count in `readings` is 7 (down from 15, all test-quality rows
+removed by founder ruling above, backup preserved), all 7 have a
+matching `reading_contacts` row. Next: Step 3 (rewire the Stripe
+webhook to write email into `reading_contacts` instead of
+`readings`) and Step 4 (drop `readings.email` once nothing reads it
+from there).

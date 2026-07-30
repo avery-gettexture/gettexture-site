@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 public/backgrounds/
 .next/
+
+# local data backups (may contain customer PII -- never commit)
+/backups/
