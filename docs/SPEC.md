@@ -1662,3 +1662,22 @@ work opened at Stage One is complete. Summary for future reference:
   out of scope throughout and was not touched.
 - Deploy: gated on the founder's explicit go-ahead, tracked
   separately below once pushed.
+
+**July 30, 2026 (Stage Three — DEPLOYED):** founder gave the
+go-ahead; pushed to `origin/main` (`1603963..9574b12`), triggering
+Vercel's production build. Post-deploy verification against the live
+site and the live database (not assumed from the push alone):
+`https://gettexture.app` and `https://gettexture.app/reading/
+hejkhjq1zns5` and its `/transits` page all resolve 200 (following the
+apex→www redirect). Using the public anon key against production:
+direct unfiltered reads on `readings`, `transit_pieces`, and
+`reading_contacts` all refused outright (`permission denied for
+table ...`, matching pre-deploy behavior) — all three locks hold
+post-deploy. `get_reading_by_slug('hejkhjq1zns5')` returns correctly
+with chart_data intact; `get_transit_pieces_by_slug('hejkhjq1zns5')`
+returns its 3 rows; a bogus slug returns zero rows rather than an
+error, as designed. Browser-rendered visual confirmation of the
+reading page and transits page (the client-side data fetch/render,
+which an API-level check can't see) was left to the founder to
+eyeball directly, since no browser-automation tool was available
+this session. Stage Three is closed.
