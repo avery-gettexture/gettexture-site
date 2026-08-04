@@ -514,6 +514,18 @@ body {
   width: 62.16%; /* 84% content width * 74% zone */
 }
 
+/* Reading-rectangle backdrop — a SECOND image, visible only behind the
+   cream card (never under the rail). Sits between the full-page
+   .reading-stage-bg and .reading-zone-card. */
+.reading-zone-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
 .reading-zone-card {
   position: absolute;
   top: 6.5%;

@@ -3,10 +3,17 @@ import NavBar, { NavKey } from './NavBar';
 interface ReadingLayoutProps {
   slug: string;
   active: NavKey;
-  /** Full-page backdrop image path (e.g. /sky-background.png for natal,
-   * /transits-background.png for transits/reference). Omit for the
-   * settings "no backdrop" variant. */
+  /** Full-page backdrop image path — sits behind BOTH the rail and the
+   * reading zone (e.g. /sky-background.png). Omit for the settings "no
+   * backdrop" variant. */
   background?: string;
+  /** Reading-rectangle backdrop — a separate image visible only behind the
+   * cream card inside the reading zone (e.g. /transits-background.png for
+   * Reference), never extending under the rail. Per-screen mocks show the
+   * full-page image and the rectangle's own backdrop as two different
+   * images — this is the second one. Omit if the zone sits directly on
+   * `background` with no separate backdrop. */
+  zoneBackground?: string;
   /** 'normal' = the ratified 6.5%/8% inset cream rectangle over the
    * backdrop (natal/transits/reference). 'full' = the settings variant,
    * where the doc says the rectangle "flexes to fill more of the zone"
@@ -26,6 +33,7 @@ export default function ReadingLayout({
   slug,
   active,
   background,
+  zoneBackground,
   inset = 'normal',
   rail,
   children,
@@ -42,6 +50,12 @@ export default function ReadingLayout({
         )}
         <div className="reading-rail-slot">{rail}</div>
         <div className="reading-zone">
+          {zoneBackground && (
+            <div
+              className="reading-zone-bg"
+              style={{ backgroundImage: `url(${zoneBackground})` }}
+            />
+          )}
           <div
             className={`reading-zone-card${inset === 'full' ? ' reading-zone-card--full' : ''}`}
           >

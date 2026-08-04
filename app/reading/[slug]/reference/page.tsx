@@ -23,7 +23,8 @@ export default function ReferenceHomePage({ params }: { params: Promise<{ slug: 
     <ReadingLayout
       slug={slug}
       active="reference"
-      background="/transits-background.png"
+      background="/sky-background.png"
+      zoneBackground="/transits-background.png"
       rail={
         <Rail
           title="Reference"
