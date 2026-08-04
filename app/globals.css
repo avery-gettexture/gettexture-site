@@ -433,10 +433,15 @@ body {
 
 .home-panel {
   position: absolute;
-  top: 0;
-  height: 100%;
+  /* Inset from the top of the (unchanged, ratified) 85dvh band so the
+     sticker label has room to straddle the panel's own top edge — see
+     docs/mocks/home.png. Bottom is untouched (still the band's bottom). */
+  top: 6%;
+  height: 94%;
   width: 44.5%;
-  overflow: hidden;
+  /* No overflow:hidden here — the sticker (a child, straddling this box's
+     top edge via translateY(-50%)) must not be clipped. .home-panel-slot
+     below still clips the scrolling body content. */
 }
 
 .home-panel-left {
