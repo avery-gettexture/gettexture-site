@@ -464,9 +464,16 @@ The frame never moves between states.
 ### Chart zone contents (percent of the reading zone)
 
 - **No cream rectangle.** The wheel sits directly on the backdrop.
-  - NATAL: a RADIAL-GRADIENT circle behind the wheel (over the dark page);
-    wheel painted on top, rendered last.
-  - TRANSITS: wheel sits on the DARK GRADIENT (no radial-gradient circle).
+  - NATAL: a RADIAL-GRADIENT circle behind the wheel (over the dark page) —
+    **CONFIRMED by the founder (SPEC §16, Aug 3 2026): this is a real image,
+    `public/chart-radial-new.png`, not a literal CSS gradient**, same
+    pattern as the sky/transits background images. Not wired into any
+    component yet (chart wheel is Phase 3); wheel painted on top, rendered
+    last.
+  - TRANSITS: wheel sits on the DARK GRADIENT (no radial-gradient circle) —
+    **not yet confirmed** whether this means a specific image or a literal
+    treatment; don't assume either way, ask the founder when this gets
+    built.
 - **Wheel diameter: ~62% of the zone width** (circle; height = width). Carried
   from app where the wheel is centered on the gradient circle.
 - **Vertical placement: slightly above center** — wheel center at **~44% of

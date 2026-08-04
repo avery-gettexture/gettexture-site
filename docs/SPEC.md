@@ -2002,15 +2002,15 @@ both panels now show the images' actual soft radial-glow texture instead of
 a flat wash. `docs/TEXTURE_LAYOUT_PROPORTIONS.md`'s HOME "Panels" section
 annotated in place with this ruling so it isn't misread a third time.
 
-**Flagging, not resolved — do not assume:** the doc also uses
-"gradient" language in two other places not yet built (so not fixed in
-code this pass, only noted): the mobile home CTA zone ("Teal / CTA zone...
-Teal gradient with a cream rectangle") almost certainly means the same
-`/transits-background.png`, by the same pattern as desktop. Separately,
-the CHART WHEEL sections describe a "RADIAL-GRADIENT circle" behind the
-natal wheel and a "DARK GRADIENT" behind the transits wheel — these read as
-a literal, wheel-specific visual effect (a circular glow immediately behind
-the wheel graphic) rather than a reference to either named image, but that
-is this session's inference, not a confirmed founder ruling like the Home
-panels above. Whoever builds the chart wheel (Phase 3) should confirm with
-the founder before assuming either reading.
+**Chart wheel "RADIAL-GRADIENT circle" — CONFIRMED by the founder (same
+day):** it's a real image, not a literal CSS gradient — `chart-radial-new`
+(`public/chart-radial-new.png`, added to the repo this session), same
+pattern as the sky/transits images above. Not wired into any component yet
+(the chart wheel is Phase 3, not built) — this records the asset for
+whoever builds it next.
+
+**Still flagged, not resolved — do not assume:** the doc's mobile home CTA
+zone ("Teal / CTA zone... Teal gradient with a cream rectangle") almost
+certainly means `/transits-background.png`, by the same pattern as
+desktop, but that's this session's inference, not a confirmed ruling —
+confirm with the founder before building it.
