@@ -199,11 +199,21 @@ Sum: 8 + 3 + 85 + 4 = 100.
 
 - The two panels are **equal size** (same width, same height). The symmetry is
   the concept: static self (left) vs. moving sky (right).
-- **Left panel:** dark gradient (natal). Holds the person's placements.
-- **Right panel:** teal gradient with a cream rectangle on top of the teal (the
-  cream rectangle holds the current-sky content). The teal is the immersive/sky
-  surface; it is a considered surface, not a plain gradient — it frames the sky
-  content the way the dark gradient frames the natal content.
+- **"Gradient" naming, clarified (founder ruling, confirmed against the mocks
+  — two build passes read this literally and used flat CSS
+  `linear-gradient()` washes instead, which is wrong):** everywhere this doc
+  says "dark gradient" or "teal gradient" for a panel/page background, it
+  means one of the two site-wide sky images — `/sky-background.png` (the
+  "dark gradient") or `/transits-background.png` (the "teal gradient") — not
+  a literal CSS gradient. The mocks show these images with real content
+  layered on top, which is why the texture can be hard to spot at a glance.
+- **Left panel:** dark gradient = `/sky-background.png` (natal). Holds the
+  person's placements.
+- **Right panel:** teal gradient = `/transits-background.png`, with a cream
+  rectangle on top of it (the cream rectangle holds the current-sky content).
+  The teal is the immersive/sky surface; it is a considered surface, not a
+  plain gradient — it frames the sky content the way the dark gradient
+  frames the natal content.
 - Each panel has a **cream "sticker label"** straddling its top edge (like a
   label stuck on a sheet of paper), title in **Geist Mono**. Left label: "My
   Chart". Right label: "Today's Sky".

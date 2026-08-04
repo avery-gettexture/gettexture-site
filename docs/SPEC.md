@@ -1981,3 +1981,36 @@ eyeballing) confirmed sticker centering and color token. No screenshots
 were committed (scratchpad only); no throwaway scripts committed. One
 commit, not pushed, per the task's no-push instruction. Hard stop for
 founder review.
+
+**August 3, 2026 (terminology correction, ruled by the founder — Home
+panel backgrounds):** "gradient" in `docs/TEXTURE_LAYOUT_PROPORTIONS.md`
+("dark gradient", "teal gradient" — e.g. the HOME "Panels" section) does
+NOT mean a literal CSS gradient. It names the two site-wide sky images
+already used on Reference: `/sky-background.png` (the "dark gradient") and
+`/transits-background.png` (the "teal gradient"). Two build passes
+(the original Phase 2 skeleton and the Phase 2 correction #2 pass earlier
+this same day) both read it literally and rendered the Home panels as flat
+`linear-gradient()` color washes — visually close enough at a glance (a
+dark navy panel, a teal panel) that it went unnoticed until the founder
+looked directly at the rendered panels vs. the mocks. Fixed:
+`.home-panel-left`/`.home-panel-right` in `app/globals.css` now use
+`background-image: url('/sky-background.png')` /
+`url('/transits-background.png')` (`background-size: cover`, matching the
+pattern already used by `.reading-stage-bg`/`.reading-zone-bg`), replacing
+the two `linear-gradient()` declarations entirely. Verified by screenshot:
+both panels now show the images' actual soft radial-glow texture instead of
+a flat wash. `docs/TEXTURE_LAYOUT_PROPORTIONS.md`'s HOME "Panels" section
+annotated in place with this ruling so it isn't misread a third time.
+
+**Flagging, not resolved — do not assume:** the doc also uses
+"gradient" language in two other places not yet built (so not fixed in
+code this pass, only noted): the mobile home CTA zone ("Teal / CTA zone...
+Teal gradient with a cream rectangle") almost certainly means the same
+`/transits-background.png`, by the same pattern as desktop. Separately,
+the CHART WHEEL sections describe a "RADIAL-GRADIENT circle" behind the
+natal wheel and a "DARK GRADIENT" behind the transits wheel — these read as
+a literal, wheel-specific visual effect (a circular glow immediately behind
+the wheel graphic) rather than a reference to either named image, but that
+is this session's inference, not a confirmed founder ruling like the Home
+panels above. Whoever builds the chart wheel (Phase 3) should confirm with
+the founder before assuming either reading.

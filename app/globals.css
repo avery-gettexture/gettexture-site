@@ -444,14 +444,26 @@ body {
      below still clips the scrolling body content. */
 }
 
+/* CORRECTION (per founder, Aug 3 2026 — SPEC §16): "dark gradient" /
+   "teal gradient" in docs/TEXTURE_LAYOUT_PROPORTIONS.md are NOT literal CSS
+   gradients — they name the two site-wide sky images, /sky-background.png
+   (dark) and /transits-background.png (teal), the same two images already
+   used on Reference. Two build passes read "gradient" literally and used
+   flat linear-gradient() color washes instead; fixed here. */
 .home-panel-left {
   left: 4%;
-  background: linear-gradient(180deg, #1c1a30 0%, var(--indigo) 100%);
+  background-image: url('/sky-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .home-panel-right {
   left: 51.5%;
-  background: linear-gradient(180deg, #2f6f6a 0%, #1d4a47 100%);
+  background-image: url('/transits-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .home-panel-sticker {
