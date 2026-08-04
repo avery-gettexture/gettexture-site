@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     if (contactError) throw new Error(`Supabase reading_contacts insert error: ${contactError.message}`);
 
-    const readingUrl = `https://gettexture.app/reading/${slug}`;
+    const readingUrl = `https://gettexture.app/reading/${slug}/natal`;
 
     // Trigger content generation in background (don't await — let it run async)
     fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/generate`, {

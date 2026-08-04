@@ -15,7 +15,7 @@ export default function SuccessPage({ searchParams }: { searchParams: Promise<{ 
       const res = await fetch(`/api/reading-by-session?session_id=${params.session_id}`);
       const data = await res.json();
       if (data.slug) {
-        setReadingUrl(`/reading/${data.slug}`);
+        setReadingUrl(`/reading/${data.slug}/natal`);
         setLoading(false);
       } else {
         setTimeout(findReading, 2000);
