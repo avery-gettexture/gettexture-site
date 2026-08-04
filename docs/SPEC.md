@@ -1810,3 +1810,81 @@ left to the founder to eyeball directly, same limitation noted in the
 Stage Three record above. One commit, not pushed, per the task's
 no-push instruction. Hard stop for founder review before Phase 3, per
 the task's instruction.
+
+**August 3, 2026 (Phase 2 correction — match the reference mocks,
+`docs/mocks/*.png`, no API calls, not deployed):** the Phase 2 skeleton
+above was structurally correct per the doc but rendered differently
+from the founder's mocks; this pass fixed the four components' CSS/
+markup, leaving every ratified number in
+`docs/TEXTURE_LAYOUT_PROPORTIONS.md` untouched. Changes:
+
+- **Sticker-label clipping (home):** `.home-panel` had `overflow:
+  hidden`, clipping the sticker label's top half (it straddles the
+  panel's top edge via `translateY(-50%)`). Removed — `.home-panel-slot`
+  already clips the scrolling body content on its own, so nothing else
+  was relying on the panel-level clip.
+- **Home panels shortened from the top:** `.home-panel` now insets
+  `top: 6%` / `height: 94%` *inside* the unchanged, ratified 85dvh
+  two-panel band (nav 8% / gap 3% / body 85% / bottom margin 4% are
+  untouched) — bottom stays put, top moves down to leave clearance for
+  the sticker, per `home.png`. Eyeballed value (not a doc-pinned
+  number), flagged for the founder's visual sign-off.
+- **Reference backgrounds:** `ReadingLayout` gained a second prop,
+  `zoneBackground`, rendered as its own layer inside `.reading-zone`
+  (`.reading-zone-bg`), behind `.reading-zone-card` only — never under
+  the rail. `background` is now specifically the full-page backdrop.
+  `/reading/[slug]/reference` updated to
+  `background="/sky-background.png"` (full page, dark) +
+  `zoneBackground="/transits-background.png"` (the reading rectangle's
+  own backdrop) — previously a single `/transits-background.png` covered
+  the whole stage, which put teal behind the rail too. **New general
+  pattern, worth recording:** a screen's full-page backdrop and its
+  reading-rectangle's own backdrop are two independent images; match
+  each mock's pair, don't assume one image covers both.
+- **Rail restructure (structural — the material change):** title and
+  the view-control links (List/Chart/Calendar) moved OUT of the cream
+  rectangle onto the screen's own background, per `natal-page.png` /
+  `transits-page.png` — this changes the component `docs/SPEC.md` §5.1
+  describes as "the reusable table-of-contents list." New markup:
+  `.rail-header` (title + controls, cream color now that it's off the
+  cream box, sits in normal document flow near the column's top) then
+  `.rail-rect` (cream, rows only, no header inside it, the red
+  `.rail-rule` separator removed — neither mock shows one once the
+  header moved off the box). `.rail-rect`'s height is content-driven
+  (never a fixed constant): it's bottom-anchored at `bottom: 6.5%` of
+  the rail column — the same inset percentage `.reading-zone-card` uses
+  for its own bottom, and since the rail column and the reading zone
+  share an identical height, this lands the rectangle's bottom exactly
+  on the reading pane's bottom edge with no separate magic number. Row
+  height is a tuned `dvh` constant (`.rail-row { height: 5.3dvh }`,
+  eyeballed against `natal-page.png` so 13 rows bring the rectangle's
+  top up to just overlap the reading pane's top edge); the same row
+  height applied to 11 rows (transits) naturally computes a shorter
+  rectangle whose top sits lower and whose bottom sits a bit higher than
+  the reading pane's bottom — matching `transits-page.png` — with no
+  per-screen CSS branch. Kept the existing red/bold "active" treatment
+  for view-control links (base color cream, matching the mocks) since
+  neither mock shows one control toggled active; flagged for the
+  founder to confirm that reading is correct.
+- **Active nav item enlarged:** `.nav-link.active` font-size raised from
+  `clamp(20px, 2.2vw, 30px)` to `clamp(26px, 5.2dvh, 46px)` — sized
+  against the nav bar's own height rather than viewport width, per
+  `home.png`'s "TRANSITS" scale. Eyeballed, not doc-pinned.
+- **Checked, no change needed:** no placeholder titles were found
+  rendered inside `.reading-zone-card` (fix item 7 in the task brief) —
+  likely already addressed or a stale preview; and Anton/Questrial/Geist
+  Mono were already wired correctly on every element checked (fix item
+  8) — no wrong font-family assignment found.
+
+Verification: both wired routes (`/reading/[slug]`,
+`/reading/[slug]/reference`) confirmed 200 via local dev server (no
+Supabase calls on either — consistent with the task's no-API-calls
+instruction); rendered HTML confirmed the new class structure
+(`rail-header`/`rail-rect` present, old `rail-rule` gone) and the two
+distinct background URLs on Reference. No browser-automation tool was
+available this session (same limitation as the original Phase 2 entry
+above) — pixel-level fidelity against the mocks was not visually
+confirmed; the founder should eyeball the actual render, particularly
+the eyeballed spacing values called out above (home-panel top inset,
+rail row height, active-nav size). Commits per fix, not pushed, per the
+task's no-push instruction.

@@ -503,9 +503,15 @@ looping planet/sky list.
 
 ### Rail header
 
+**Sits outside/above the cream list rectangle, directly on the screen's own
+background** (dark for natal, teal for transits/reference) — confirmed
+against the founder's mocks August 3, 2026 (Phase 2 correction, SPEC §16).
+Title and controls are cream-colored there, not dark ink. The cream
+rectangle below holds only the row list.
+
 Two distinct jobs, kept visually separated:
-1. **Title** (a label): **Anton, on every screen** (matches the mobile list
-   title — corrected from an earlier Geist-Mono note). NATAL: "Planets".
+1. **Title** (a label): **Anton, small, cream, on every screen** (matches
+   the mobile list title — corrected from an earlier Geist-Mono note). NATAL: "Planets".
    TRANSITS: "Sky". REFERENCE: "Reference". SETTINGS: "Settings".
 2. **View controls** (the List/Chart[/Calendar] cluster): **always show the FULL
    set with the active view marked** — active = **red, slightly bolder/larger**;
@@ -536,6 +542,13 @@ Two distinct jobs, kept visually separated:
 - Sized to fit the full count with **NO scroll** (the 2-line row below makes 13 /
   11 fit a 23%-width rail comfortably at the Figma 14pt reference); contained
   loop-scroll only as a fallback on short viewports.
+- **The cream rectangle's height is content-driven, never a fixed
+  constant** (confirmed against the founder's mocks, Phase 2 correction,
+  SPEC §16): it's bottom-anchored at the same inset percentage the reading
+  pane's own cream card uses for its bottom, so a taller list (natal, 13
+  rows) lands its top nearly overlapping the reading pane's top, while a
+  shorter list (transits, 11 rows) lands its bottom a bit higher than the
+  reading pane's bottom and its top lower, with no per-screen override.
 
 ### Rail row = TWO lines (from mock, fits no-scroll at 13/11)
 
@@ -551,7 +564,12 @@ Two distinct jobs, kept visually separated:
 ### Reading zone backdrop VARIES by screen (rail is identical on all)
 
 The rail is always the same (Anton title + cream rectangle behind the list).
-Only the READING ZONE's backdrop differs:
+Only the READING ZONE's backdrop differs. **A screen's full-page background
+and its reading rectangle's own backdrop are two independent images**
+(confirmed via the Reference mock, Phase 2 correction, SPEC §16: full page
+= `/sky-background.png`, dark; the rectangle's own backdrop, behind the
+cream only, never under the rail = `/transits-background.png`, teal) — do
+not assume one image covers both regions; match each mock's pair:
 - **NATAL:** dark background; the reading rectangle sits on the placement's
   planet background.
 - **TRANSITS:** teal/sky background; cream rectangle inset over it.
