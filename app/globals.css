@@ -415,7 +415,10 @@ body {
 
 .nav-link.active {
   font-family: var(--font-anton), sans-serif;
-  font-size: clamp(20px, 2.2vw, 30px);
+  /* Much larger than a normal nav label — scaled against the nav bar's
+     own height (it's dvh-based) rather than viewport width, per
+     docs/mocks/home.png ("TRANSITS") — eyeballed against the mock scale. */
+  font-size: clamp(26px, 5.2dvh, 46px);
   letter-spacing: 0.5px;
 }
 
