@@ -189,7 +189,22 @@ Event standard:
 ### 5.1 Identity, URLs, access
 - **No login, no passwords, no magic links at launch.** The reading slug URL is the address of the chart's whole texture.
 - **The slug is a real key at the database level (Stage Two, July 29, 2026), not just an app-level filter.** `readings` and `transit_pieces` are locked to the public (anon) role — no direct table read is possible, filtered or not. The only access path is two SECURITY DEFINER functions, `get_reading_by_slug(p_slug)` and `get_transit_pieces_by_slug(p_reading_slug)`, each of which requires the slug as an input and returns nothing without a match. A plain RLS policy can't express "filtered reads succeed, unfiltered reads return nothing" — a policy has no way to see whether a request named a slug, only whether a given row is visible at all — so the lock-table-plus-gate-function pattern is used instead. `readings` no longer has an `email` column at all (Stage Three, July 30, 2026) — email lives in the separate `reading_contacts` table, keyed on `readings.id`, with no anon path of any kind (stricter than the slug-gated functions here). Full record: §16.
-- Natal reading: `/reading/[slug]` — permanent, shareable, unchanged.
+- **URL map (routing restructure, August 3, 2026 — Phase 1, §16):**
+  - `/` — pre-purchase home (entry point; unchanged this phase, full
+    build in Phase 3).
+  - `/reading/[slug]` — post-purchase home (shell only as of Phase 1;
+    the built 2-column My Chart / Transiting home is Phase 3).
+  - `/reading/[slug]/natal` — the natal reading (moved here from
+    `/reading/[slug]` in Phase 1; component itself unchanged).
+  - `/reading/[slug]/transits` — transits (unchanged path; shell only
+    until transit generation is live).
+  - `/reading/[slug]/reference` — reference (shell as of Phase 1;
+    content is Phase 3).
+  - `/reading/[slug]/settings` — settings (shell as of Phase 1;
+    content is Phase 3).
+  - The slug is still the sole address — no login. Everything below
+    this point in this section describes behavior once the pages are
+    built out; Phase 1 only made the routes resolve.
 - Transit surface: same slug address — **un-gated while subscription is active.** Sharing is fine: what's priced is generation, not access. **Path vs. tab form: OPEN (§12.5) — ruled before any UI build.**
 - Subscription attaches to the existing `readings` row (new relationship fields: stripe subscription id, status, paid-through). No separate account object.
 - **Door B → subscribe later:** checkout is initiated FROM the reading page; slug rides into the Stripe session; webhook attaches subscription to the existing row. This is the linking mechanism — no matching problem.
@@ -1681,3 +1696,30 @@ reading page and transits page (the client-side data fetch/render,
 which an API-level check can't see) was left to the founder to
 eyeball directly, since no browser-automation tool was available
 this session. Stage Three is closed.
+
+**August 3, 2026 (Phase 1 — URL restructure, routing only, not
+deployed):** established the URL map recorded in §5.1. The natal
+reading page moved unchanged from `/reading/[slug]` to
+`/reading/[slug]/natal` (`git mv`, no component changes); the two
+post-purchase "here's your reading" links (`app/success/page.tsx` and
+the Stripe webhook confirmation email in
+`app/api/stripe-webhook/route.ts`) were updated to point at the new
+`/natal` path so a paying customer still lands on their actual
+reading rather than the new placeholder. New minimal placeholder
+pages were added at `/reading/[slug]` (post-purchase home),
+`/reading/[slug]/reference`, and `/reading/[slug]/settings` — shells
+only, no layout or content; those are Phase 3 work.
+`/reading/[slug]/transits` was already at its target path and needed
+no file move; it was left exactly as-is, including its pre-existing
+bug of ignoring the URL's slug and always rendering the hardcoded
+dogfood chart (`DOGFOOD_READING_SLUG` in `lib/config.ts`) — flagged to
+the founder during planning and explicitly deferred to whenever
+transit generation is built for real, not fixed here. The founder
+explicitly ruled out touching `/`: the live pre-purchase marketing
+and Stripe checkout flow currently at the site root is not a
+placeholder — it's the working purchase path — and stays untouched
+this phase; the Phase 3 two-panel pre-purchase home redesign replaces
+it later, separately. All six routes (`/`, `/reading/[slug]`,
+`/natal`, `/transits`, `/reference`, `/settings`) verified resolving
+200 locally after each step. Not pushed to `origin/main` — local
+commits only, per the task's no-push instruction.
