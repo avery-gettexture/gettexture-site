@@ -547,68 +547,93 @@ body {
   right: 2%;
 }
 
-/* ── Rail (doc: THE LIST RAIL) ── */
+/* ── Rail (doc: THE LIST RAIL; restructured per docs/mocks/natal-page.png,
+   transits-page.png — title/controls moved OUT of the cream box onto the
+   screen background; the cream box is now rows-only and content-driven). ── */
 .rail {
+  position: relative;
   width: 100%;
   height: 100%;
-  background: var(--cream);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
+/* Title + view controls — on the background, NOT inside the cream box.
+   Sits near the top of the column in normal flow, independent of the
+   rectangle below (whose position/height varies with row count). */
 .rail-header {
-  flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 16px 6%;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2% 6% 0;
 }
 
 .rail-title {
   font-family: var(--font-anton), sans-serif;
-  font-size: clamp(20px, 2vw, 28px);
-  color: var(--dark);
-  letter-spacing: 1px;
+  font-size: clamp(14px, 1.4vw, 19px);
+  color: var(--cream);
+  letter-spacing: 0.5px;
 }
 
 .rail-controls {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .rail-control {
   font-family: var(--font-geist-mono), monospace;
-  font-size: clamp(11px, 1vw, 13px);
-  color: var(--dark-muted);
+  font-size: clamp(10px, 0.85vw, 12px);
+  color: var(--cream);
   letter-spacing: 0.5px;
 }
 
 .rail-control.active {
   color: var(--red-strong);
   font-weight: 700;
-  font-size: clamp(12px, 1.15vw, 15px);
+  font-size: clamp(11px, 0.95vw, 13px);
 }
 
-.rail-rule {
-  height: 1.5px;
-  background: var(--red-rule);
-  margin: 0 6%;
-  flex-shrink: 0;
+/* The cream list rectangle. HEIGHT IS CONTENT-DRIVEN (sum of .rail-row
+   heights) — never fixed to a constant. Bottom-anchored at the SAME 6.5%
+   inset .reading-zone-card uses for its own bottom; since this column and
+   .reading-zone share an identical height, that lands this rectangle's
+   bottom exactly on the reading pane's bottom edge for the natural
+   (natal, 13-row) case. Fewer rows (transits, 11) compute a shorter
+   rectangle whose bottom sits a bit higher and whose top sits lower —
+   no per-screen CSS needed, it falls out of the row math. max-height +
+   the flex/min-height:0 pairing below is a fallback for short viewports
+   only (scrolls instead of colliding with the header).  */
+.rail-rect {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6.5%;
+  max-height: 100%;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .rail-list {
-  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 6%;
+  padding: 4px 6%;
 }
 
 .rail-row {
   position: relative;
-  padding: 10px 12px;
+  /* Row height in dvh (not %, since the parent's height is intrinsic —
+     derived FROM this value, not the other way round). Tuned so 13 rows
+     (natal) bring the rectangle's top up to just overlap the reading
+     pane's top edge, per docs/mocks/natal-page.png — eyeballed, not a
+     doc-pinned number; flag if it reads wrong on screen. */
+  height: 5.3dvh;
+  min-height: 34px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 12px;
   border-bottom: 0.5px solid var(--dark-faint);
   cursor: pointer;
 }
