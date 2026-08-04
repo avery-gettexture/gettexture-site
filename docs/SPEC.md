@@ -205,6 +205,17 @@ Event standard:
   - The slug is still the sole address — no login. Everything below
     this point in this section describes behavior once the pages are
     built out; Phase 1 only made the routes resolve.
+- **Shared layout components (Phase 2, August 3, 2026, §16):** four
+  reusable components in `app/components/` now supply the frame every
+  screen above inherits: `NavBar` (the permanent cream top nav),
+  `HomeLayout` (the two-panel home template), `ReadingLayout` (the
+  rail + reading-zone template, including the reading zone's cream
+  rectangle chrome), and `Rail` (the reusable table-of-contents list).
+  Phase 2 wired only `/reading/[slug]` (via `HomeLayout`) and
+  `/reading/[slug]/reference` (via `ReadingLayout` + `Rail`) as a
+  rendering proof, both still placeholder content — `/natal`,
+  `/transits`, and `/settings` are untouched. Real screen content
+  (panel interiors, reading-zone interiors, live data) is Phase 3.
 - Transit surface: same slug address — **un-gated while subscription is active.** Sharing is fine: what's priced is generation, not access. **Path vs. tab form: OPEN (§12.5) — ruled before any UI build.**
 - Subscription attaches to the existing `readings` row (new relationship fields: stripe subscription id, status, paid-through). No separate account object.
 - **Door B → subscribe later:** checkout is initiated FROM the reading page; slug rides into the Stripe session; webhook attaches subscription to the existing row. This is the linking mechanism — no matching problem.
@@ -1723,3 +1734,79 @@ it later, separately. All six routes (`/`, `/reading/[slug]`,
 `/natal`, `/transits`, `/reference`, `/settings`) verified resolving
 200 locally after each step. Not pushed to `origin/main` — local
 commits only, per the task's no-push instruction.
+
+**August 3, 2026 (Phase 2 — reusable layout skeleton, no shader, no
+API calls, not deployed):** built the shared frame every screen
+inherits, per `docs/TEXTURE_LAYOUT_PROPORTIONS.md`, as four
+components in `app/components/`: `NavBar.tsx` (permanent cream top
+bar, TEXTURE wordmark pinned left, the 5 top-level links evenly
+distributed to its right — flex-basis-by-content plus
+`justify-content: space-evenly` so the active link's larger Anton
+lettering never overlaps its neighbors, the whole row's spacing
+rebalances instead), `HomeLayout.tsx` (the two-panel home template:
+nav, then a full-bleed backdrop with two 44.5%-wide floating panels at
+4% side margins / 3% center gutter, each with its cream sticker label
+straddling the top edge and an open content slot for Phase 3),
+`ReadingLayout.tsx` (the rail + reading-zone template: nav, an 8%
+content margin split 23% rail / 3% gutter / 74% reading zone, with the
+reading zone's cream rectangle built as shared chrome per founder
+ruling — the ratified 6.5%/8% inset reused from the existing
+`.card-inner` numbers — while its interior stays an open slot for
+Phase 3; takes an `inset: 'normal' | 'full'` prop so the eventual
+settings "no backdrop, cream rectangle fills more of the zone"
+variant has a hook to build against, though the doc doesn't ratify
+exact numbers for that case so `--full` ships as an explicitly-flagged
+placeholder inset), and `Rail.tsx` (title, view-control cluster, rule
+line, and the 2-line row shape — glyph/name/degree/optional-R then
+sign-glyph/sign/house — with a red left bar on the active row;
+structure only, row-click scroll-snap behavior is Phase 3). All
+vertical math uses `dvh` units directly and horizontal math uses `%`
+of the viewport-width stage, matching the doc's own arithmetic exactly
+(e.g. rail `left:8%/width:19.32%`, zone `left:29.84%/width:62.16%` —
+84% content width split 23/3/74) rather than nested percentages, which
+would have compounded rounding error. New CSS is additive-only in
+`app/globals.css`; none of the existing classes used by the natal,
+transits, or (pre-existing) reference/settings placeholder markup were
+touched.
+
+Wired as a rendering proof only (not real screens): `/reading/[slug]`
+now renders `<HomeLayout>` with filler panel text, and
+`/reading/[slug]/reference` now renders `<ReadingLayout>` + `<Rail>`
+with three dummy rows (Sun/Moon/Mercury, one marked active, one marked
+retrograde) — `/natal`, `/transits`, and `/settings` are untouched.
+`/reading/[slug]/reference`'s backdrop uses `/transits-background.png`
+(teal, per the doc's reference-screen backdrop rule);
+`/sky-background.png` (dark) is confirmed serving from `/public` but
+has no call site yet since natal's reading page isn't touched this
+phase. `HomeLayout`'s full-bleed background is
+`MorphBackgroundPlaceholder.tsx`, an isolated one-file stand-in for
+the future `<texture-morph-bg>` shader (`docs/texture-morph-bg.js`,
+still unwired) using `/saturn-background.png`, so the later swap is a
+one-file change.
+
+**Discovered and fixed in passing:** `app/layout.tsx`'s
+`viewport-fit: 'cover'` was nested inside the `metadata` export, which
+this Next.js version silently ignores (logged a build warning,
+confirmed by curling the rendered page: the `<meta name="viewport">`
+tag was missing `viewport-fit=cover` entirely) — meaning every
+`env(safe-area-inset-*)` reference anywhere in the app, including the
+new `NavBar`'s top inset, was resolving to `0` regardless of device.
+Moved to a separate `export const viewport: Viewport = {...}` per
+Next's current API, verified by re-curling the rendered meta tag.
+Pre-existing bug, not introduced by this phase, but a direct blocker
+of this phase's explicit safe-area requirement, so fixed here rather
+than filed for later.
+
+Verification: `tsc --noEmit` clean; both demo routes confirmed 200 via
+local dev server; all three `/public` background images
+(`saturn-background.png`, `transits-background.png`,
+`sky-background.png`) confirmed 200; rendered HTML checked directly
+(nav links point at the correct slug-scoped URLs with the right item
+marked `active`; rail rows render with the active bar and retrograde
+marker). No browser-automation tool was available this session (the
+user declined the Chrome extension) — visual confirmation of nav
+spacing rebalancing and exact panel/rail proportions on screen was
+left to the founder to eyeball directly, same limitation noted in the
+Stage Three record above. One commit, not pushed, per the task's
+no-push instruction. Hard stop for founder review before Phase 3, per
+the task's instruction.

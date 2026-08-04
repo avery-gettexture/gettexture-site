@@ -1,12 +1,20 @@
-// Placeholder — the post-purchase home. Built out in Phase 3
-// (2-column My Chart / Transiting). This step only makes the route exist.
+'use client';
 
-export default function ReadingHomePage() {
+// Placeholder — the post-purchase home. Renders the Phase 2 <HomeLayout>
+// skeleton with filler content to prove the template works; real panel
+// content (placements list, today's sky, aspects) is built in Phase 3.
+
+import { use } from 'react';
+import HomeLayout from '@/app/components/HomeLayout';
+
+export default function ReadingHomePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#FDF5ED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', color: 'rgba(22,22,18,0.45)', letterSpacing: '1px' }}>
-        Post-purchase home — coming in Phase 3.
-      </p>
-    </div>
+    <HomeLayout
+      slug={slug}
+      leftPanel={<p className="placeholder-text">My Chart panel — built in Phase 3.</p>}
+      rightPanel={<p className="placeholder-text">Today&apos;s Sky panel — built in Phase 3.</p>}
+    />
   );
 }

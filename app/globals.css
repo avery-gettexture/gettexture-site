@@ -337,12 +337,289 @@ body {
 /* ── Scrollbar hide ── */
 .card-content::-webkit-scrollbar,
 .reference-content::-webkit-scrollbar,
-.intro-content::-webkit-scrollbar {
+.intro-content::-webkit-scrollbar,
+.rail-list::-webkit-scrollbar {
   display: none;
 }
 .card-content,
 .reference-content,
-.intro-content {
+.intro-content,
+.rail-list {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ============================================================
+   PHASE 2 — Reusable layout skeleton (NavBar, HomeLayout,
+   ReadingLayout, Rail). Additive only — nothing above this block
+   is touched. Percentages/dvh values come directly from
+   docs/TEXTURE_LAYOUT_PROPORTIONS.md; see the comment above each
+   block for which doc section it implements.
+   ============================================================ */
+
+/* ── Shared app shell: NavBar (fixed 8dvh) + the remaining "stage" ── */
+.app-shell {
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--cream);
+}
+
+.app-stage {
+  position: relative;
+  flex: 1 1 auto; /* 100dvh - 8dvh nav = 92dvh exactly */
+  overflow: hidden;
+}
+
+/* ── NavBar (doc: DESKTOP HOME "Top nav bar" — 8% of viewport height) ── */
+.nav-bar {
+  flex: 0 0 8dvh;
+  width: 100%;
+  background: var(--cream);
+  display: flex;
+  align-items: center;
+  padding-top: env(safe-area-inset-top);
+  padding-left: 4%;
+  padding-right: 4%;
+  gap: 4%;
+}
+
+.nav-wordmark {
+  flex: 0 0 auto;
+  font-family: var(--font-anton), sans-serif;
+  font-size: clamp(16px, 1.6vw, 22px);
+  color: var(--red-strong);
+  letter-spacing: 2px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-links {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+.nav-link {
+  flex: 0 1 auto;
+  font-family: var(--font-questrial), sans-serif;
+  font-size: clamp(13px, 1.1vw, 15px);
+  color: var(--dark);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-link.active {
+  font-family: var(--font-anton), sans-serif;
+  font-size: clamp(20px, 2.2vw, 30px);
+  letter-spacing: 0.5px;
+}
+
+/* ── HomeLayout (doc: DESKTOP — HOME) ── */
+.home-panels {
+  position: absolute;
+  top: 3dvh;     /* gap: nav bottom -> panel top */
+  height: 85dvh; /* two-panel body */
+  left: 0;
+  right: 0;
+}
+
+.home-panel {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 44.5%;
+  overflow: hidden;
+}
+
+.home-panel-left {
+  left: 4%;
+  background: linear-gradient(180deg, #1c1a30 0%, var(--indigo) 100%);
+}
+
+.home-panel-right {
+  left: 51.5%;
+  background: linear-gradient(180deg, #2f6f6a 0%, #1d4a47 100%);
+}
+
+.home-panel-sticker {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  transform: translateY(-50%);
+  background: var(--cream);
+  color: var(--dark);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: clamp(11px, 1vw, 13px);
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  z-index: 2;
+}
+
+.home-panel-slot {
+  position: absolute;
+  top: 2%;    /* sticker-label overlap clearance */
+  left: 5%;   /* content inset */
+  right: 5%;
+  bottom: 0;
+  overflow: hidden;
+}
+
+/* ── Morph background placeholder (stand-in for <texture-morph-bg>) ── */
+.morph-bg-placeholder {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+/* ── ReadingLayout (doc: DESKTOP — READING PAGE) ── */
+.reading-stage-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+.reading-rail-slot {
+  position: absolute;
+  top: 6.5dvh;
+  bottom: 6.5dvh;
+  left: 8%;
+  width: 19.32%; /* 84% content width * 23% rail */
+  overflow: hidden;
+}
+
+.reading-zone {
+  position: absolute;
+  top: 6.5dvh;
+  bottom: 6.5dvh;
+  left: 29.84%;  /* 8% + 19.32% rail + 2.52% gutter */
+  width: 62.16%; /* 84% content width * 74% zone */
+}
+
+.reading-zone-card {
+  position: absolute;
+  top: 6.5%;
+  bottom: 6.5%;
+  left: 8%;
+  right: 8%;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+/* Settings variant — doc: "NO backdrop... cream rectangle flexes to fill
+   more of the zone" but does not ratify exact numbers for this case (only
+   "normal" carries the 6.5%/8% figures). This inset is a PLACEHOLDER until
+   Phase 3 sets real numbers with the founder. */
+.reading-zone-card--full {
+  top: 2%;
+  bottom: 2%;
+  left: 2%;
+  right: 2%;
+}
+
+/* ── Rail (doc: THE LIST RAIL) ── */
+.rail {
+  width: 100%;
+  height: 100%;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rail-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 6%;
+}
+
+.rail-title {
+  font-family: var(--font-anton), sans-serif;
+  font-size: clamp(20px, 2vw, 28px);
+  color: var(--dark);
+  letter-spacing: 1px;
+}
+
+.rail-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.rail-control {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: clamp(11px, 1vw, 13px);
+  color: var(--dark-muted);
+  letter-spacing: 0.5px;
+}
+
+.rail-control.active {
+  color: var(--red-strong);
+  font-weight: 700;
+  font-size: clamp(12px, 1.15vw, 15px);
+}
+
+.rail-rule {
+  height: 1.5px;
+  background: var(--red-rule);
+  margin: 0 6%;
+  flex-shrink: 0;
+}
+
+.rail-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 6%;
+}
+
+.rail-row {
+  position: relative;
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--dark-faint);
+  cursor: pointer;
+}
+
+.rail-row.active {
+  background: rgba(185, 18, 18, 0.04);
+}
+
+.rail-row-bar {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--red-strong);
+}
+
+.rail-row-line1,
+.rail-row-line2 {
+  font-family: var(--font-questrial), sans-serif;
+  font-size: clamp(12px, 1vw, 14px);
+  color: var(--dark);
+  display: flex;
+  gap: 6px;
+}
+
+.rail-row-line2 {
+  color: var(--dark-muted);
+  margin-top: 2px;
+}
+
+.rail-row-retro {
+  color: var(--red-strong);
 }
