@@ -457,14 +457,22 @@ body {
 .home-panel-sticker {
   position: absolute;
   top: 0;
-  left: 5%;
-  transform: translateY(-50%);
+  left: 50%;
+  /* Centered over the panel's full width and sized up, per docs/mocks/
+     home.png ("My Chart" / "Today's Sky") — the prior build left this
+     left-anchored at the content inset and too small. Size/padding are
+     eyeballed against the mock's proportions, not doc-pinned; flag for
+     founder visual sign-off. Color is the SAME brand red used elsewhere
+     (nav-link.active, rail-control.active), not a new one-off value. */
+  transform: translate(-50%, -50%);
   background: var(--cream);
-  color: var(--dark);
+  color: var(--red-strong);
   font-family: var(--font-geist-mono), monospace;
-  font-size: clamp(11px, 1vw, 13px);
+  font-weight: 600;
+  font-size: clamp(16px, 1.8vw, 26px);
   letter-spacing: 1px;
-  padding: 6px 14px;
+  padding: 8px 20px;
+  white-space: nowrap;
   z-index: 2;
 }
 
@@ -554,12 +562,15 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Title + view controls — on the background, NOT inside the cream box.
    Sits near the top of the column in normal flow, independent of the
    rectangle below (whose position/height varies with row count). */
 .rail-header {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -571,11 +582,18 @@ body {
   font-size: clamp(14px, 1.4vw, 19px);
   color: var(--cream);
   letter-spacing: 0.5px;
+  text-align: center;
 }
 
+/* Spread edge-to-edge (first control at the rail's left edge, last at its
+   right), per docs/mocks/natal-page.png and transits-page.png — NOT the
+   left-clustered default a plain flex row gives you. Discovered while
+   comparing renders to the mocks; not one of the task's 6 numbered fixes,
+   but the same "match the mock's alignment" global rule applies. */
 .rail-controls {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .rail-control {
@@ -591,26 +609,35 @@ body {
   font-size: clamp(11px, 0.95vw, 13px);
 }
 
-/* The cream list rectangle. HEIGHT IS CONTENT-DRIVEN (sum of .rail-row
-   heights) — never fixed to a constant. Bottom-anchored at the SAME 6.5%
-   inset .reading-zone-card uses for its own bottom; since this column and
-   .reading-zone share an identical height, that lands this rectangle's
-   bottom exactly on the reading pane's bottom edge for the natural
-   (natal, 13-row) case. Fewer rows (transits, 11) compute a shorter
-   rectangle whose bottom sits a bit higher and whose top sits lower —
-   no per-screen CSS needed, it falls out of the row math. max-height +
-   the flex/min-height:0 pairing below is a fallback for short viewports
-   only (scrolls instead of colliding with the header).  */
+/* The cream list rectangle. TOP-ANCHORED: it sits in normal flow directly
+   under .rail-header (never absolutely positioned to the bottom — an
+   earlier build anchored this to `bottom: 6.5%`, which made it shrink
+   FROM THE TOP as row count dropped; docs/mocks/natal-page.png and
+   transits-page.png both show the opposite — the title/rows start at a
+   fixed top, and a shorter list simply ends higher, never moving the top).
+   HEIGHT IS CONTENT-DRIVEN (sum of .rail-row heights) — never fixed to a
+   constant; `flex: 0 1 auto` lets it take exactly its content height and
+   only shrink (via the inner scroll below) if a tall list would run past
+   the .rail-bottom-spacer reserved below. */
 .rail-rect {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 6.5%;
-  max-height: 100%;
+  flex: 0 1 auto;
+  min-height: 0;
+  width: 100%;
   background: var(--cream);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Reserves the SAME 6.5% inset .reading-zone-card uses for its own bottom,
+   so a tall list (natal, 13 rows) still stops at the reading pane's bottom
+   edge instead of running past it. Percentage flex-basis in a COLUMN flex
+   container resolves against the container's height — unlike margin/
+   padding percentages, which always resolve against width regardless of
+   flex direction — so this is an exact 6.5% of the rail column's own
+   height, not a new magic number. */
+.rail-bottom-spacer {
+  flex: 0 0 6.5%;
 }
 
 .rail-list {

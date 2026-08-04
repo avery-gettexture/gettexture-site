@@ -1888,3 +1888,96 @@ confirmed; the founder should eyeball the actual render, particularly
 the eyeballed spacing values called out above (home-panel top inset,
 rail row height, active-nav size). Commits per fix, not pushed, per the
 task's no-push instruction.
+
+**August 3, 2026 (Phase 2 correction #2 — verified against the mocks with
+actual screenshots, no API calls, not deployed):** the prior correction
+above was still unverified (no browser tool was available that session);
+this pass installed Playwright (`npx playwright install chromium`, browser
+binary only — nothing added to `package.json`/`package-lock.json`), ran the
+local dev server against `DOGFOOD_READING_SLUG`, and screenshotted both
+routes that are actually wired to the new components before and after each
+fix, comparing side by side against `docs/mocks/*.png`. Scope note: only
+`/reading/[slug]` (`HomeLayout`) and `/reading/[slug]/reference`
+(`ReadingLayout`+`Rail`) are wired — `/natal` and `/transits` remain the old
+unwired pages (Phase 3 work, per §5.1 above), so `natal-page.png` and
+`transits-page.png` couldn't be screenshotted against their own real page
+yet; they were instead used as the source of truth for the *shared*
+`Rail`/`ReadingLayout` behavior (title centering, rail-rectangle height
+math), verified through `/reference` by temporarily swapping in 13 and then
+11 dummy rows to confirm the rectangle's top position holds steady while
+only its bottom moves, then reverting to the real 3-row demo data before
+committing (not part of the commit).
+
+Fixes (`app/globals.css`, `app/components/Rail.tsx`,
+`app/reading/[slug]/reference/page.tsx`):
+
+- **Home sticker labels (`.home-panel-sticker`):** were left-anchored at the
+  panel's 5% content inset and small (`clamp(11px, 1vw, 13px)`, dark ink).
+  Per `home.png`, the whole sticker (box + text) is centered horizontally
+  over the panel and much larger, in the brand red already used elsewhere.
+  Changed to `left: 50%; transform: translate(-50%, -50%)` (was
+  `translateY(-50%)` at a fixed left offset), `color: var(--red-strong)`
+  (the SAME token as `nav-link.active`/`rail-control.active` — no new color
+  introduced, per founder instruction), `font-size: clamp(16px, 1.8vw,
+  26px)` (up from 11–13px), `font-weight: 600`. Measured on a 1512px-wide
+  render: left sticker center x = 396.875 vs. left panel center x =
+  396.883; right sticker center x = 1115.078 vs. right panel center x =
+  1115.086 — centered to sub-pixel precision. Rendered size at that width:
+  26px (the clamp's ceiling). Size/padding are eyeballed against the mock's
+  proportions, not doc-pinned; flagged for visual sign-off.
+- **Rail rectangle height (`.rail`, `.rail-rect`, new `.rail-bottom-spacer`):**
+  was `position: absolute; bottom: 6.5%` with no `top` — bottom-anchored, so
+  it shrank FROM THE TOP as row count dropped, the opposite of both mocks.
+  Restructured `.rail` as a column flexbox: `.rail-header` (unchanged,
+  already normal flow) then `.rail-rect` as a normal-flow flex item
+  (`flex: 0 1 auto; min-height: 0`) so it now starts immediately below the
+  header and grows downward with its content, never moving its top. A new
+  `.rail-bottom-spacer` (`flex: 0 0 6.5%`) reserves the same 6.5% inset
+  `.reading-zone-card` uses for its own bottom, so a tall list still stops
+  at the reading pane's bottom edge — percentage flex-basis in a column
+  flex container resolves against the container's height (unlike margin/
+  padding percentages, which always resolve against width regardless of
+  flex direction), so this is exact, not a new magic number. Verified by
+  temporarily rendering the Reference rail with 13 and 11 dummy rows: the
+  rectangle's top stayed at the identical pixel position in both cases,
+  only the bottom moved (13 rows reached to ~4dvh above the reading pane's
+  bottom edge; 11 rows stopped further short) — matching the natal-vs-
+  transits relationship shown in `natal-page.png`/`transits-page.png`.
+- **Rail title (`.rail-title`):** added `text-align: center` (was left by
+  flex default). Confirmed centered over the rail column via bounding-box
+  measurement on the Reference render.
+- **Rail view-controls alignment (`.rail-controls`) — discovered while
+  comparing, not one of the task's 6 numbered items:** the control row
+  ("READ >" / "CHART >") was left-clustered (default flex row, no
+  `justify-content`), but both `natal-page.png` and `transits-page.png`
+  show it spread edge-to-edge. Added `justify-content: space-between;
+  width: 100%`. Flagged separately from the numbered fixes since it wasn't
+  explicitly called out, but falls under the task's "match the mock's
+  alignment for every element" global rule.
+- **Reference view-controls (`app/reading/[slug]/reference/page.tsx`):**
+  `controls={[{ label: 'List', active: true }]}` → `controls={[]}` —
+  Reference has no List/Chart cluster per `reference.png` (it's a single
+  page). `Rail.tsx` now skips rendering `.rail-controls` entirely when the
+  array is empty, so Reference doesn't get a stray empty flex row under its
+  title. Natal/Transits keep their controls once Phase 3 wires them to
+  `Rail`.
+- **Checked, no change needed:** Reference's backgrounds
+  (`background="/sky-background.png"` + `zoneBackground=
+  "/transits-background.png"`) were already correct from the prior pass —
+  confirmed via screenshot, not re-edited. `.placeholder-text` (the
+  Reference/Home slot filler copy) is small, muted, italic body text, not
+  styled as a heading — no fake "placeholder title" found in the cream
+  reading pane.
+
+Verification: `tsc --noEmit` clean; both wired routes and the three
+untouched routes (`/natal`, `/transits`, `/settings`) confirmed 200 via a
+freshly rebuilt local dev server (`.next` cleared and restarted mid-session
+after a stale-CSS false negative — the running dev server had not picked up
+two of the six edits on first re-screenshot; a clean rebuild resolved it,
+noted here in case it recurs); before/after screenshots taken for both
+wired routes at 1512×982 and compared directly against `home.png` and
+`reference.png`; computed-style/bounding-box checks (not just visual
+eyeballing) confirmed sticker centering and color token. No screenshots
+were committed (scratchpad only); no throwaway scripts committed. One
+commit, not pushed, per the task's no-push instruction. Hard stop for
+founder review.

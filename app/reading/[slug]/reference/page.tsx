@@ -28,7 +28,7 @@ export default function ReferenceHomePage({ params }: { params: Promise<{ slug: 
       rail={
         <Rail
           title="Reference"
-          controls={[{ label: 'List', active: true }]}
+          controls={[]}
           rows={DEMO_ROWS}
         />
       }

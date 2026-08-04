@@ -34,13 +34,15 @@ export default function Rail({ title, controls, rows }: RailProps) {
     <div className="rail">
       <div className="rail-header">
         <h2 className="rail-title">{title}</h2>
-        <div className="rail-controls">
-          {controls.map(c => (
-            <span key={c.label} className={`rail-control${c.active ? ' active' : ''}`}>
-              {c.label}
-            </span>
-          ))}
-        </div>
+        {controls.length > 0 && (
+          <div className="rail-controls">
+            {controls.map(c => (
+              <span key={c.label} className={`rail-control${c.active ? ' active' : ''}`}>
+                {c.label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="rail-rect">
         <div className="rail-list">
@@ -62,6 +64,7 @@ export default function Rail({ title, controls, rows }: RailProps) {
           ))}
         </div>
       </div>
+      <div className="rail-bottom-spacer" />
     </div>
   );
 }
