@@ -2345,3 +2345,47 @@ untouched (screenshot).
 Files touched: `app/components/ReadingLayout.tsx`, `app/globals.css`,
 `app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
 both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 3 — intermittent scroll fix,
+rail title, background confirmation):**
+
+- **Diagnosed and fixed the intermittent "sometimes the outside-card
+  scroll just doesn't work" report.** Root cause: the wheel handler
+  computed its navigation target from `activeIndexRef.current`, which
+  only updates when the `IntersectionObserver` actually fires — and that
+  only happens once scroll has settled past the 50% threshold.
+  `scrollIntoView({behavior:'smooth'})` animations routinely take longer
+  than the round-2 fix's 180ms quiet-period unlock, so a second
+  deliberate gesture could legally fire while the observer was still
+  catching up from the first jump: `next` would then compute from the
+  STALE pre-jump index, landing back on the section already being
+  animated to — a silent no-op from the user's perspective, and only
+  reproducible when gestures land in that specific timing window
+  (matching the "mostly works" report exactly). Fixed by reading the
+  live `scrollTop` directly off the DOM at the moment of the wheel event
+  instead of any cached/derived React state, so the target is always
+  correct regardless of whether an animation or the observer's catch-up
+  is still in flight. Verified by specifically reproducing the failure
+  pattern: 5 deliberate gestures fired 200ms apart (faster than a typical
+  smooth-scroll settle, the exact condition that used to fail) each
+  advanced exactly one section with no repeats or skips
+  (Sun->Moon->Mercury->Venus->Mars->Jupiter).
+- **Rail title enlarged and left-aligned** (`clamp(14px,1.4vw,19px)` ->
+  `clamp(20px,2vw,26px)`, `text-align: center` -> `left`), with a new
+  cream `.rail-title-rule` divider spanning the rail's width underneath
+  it. `.rail-header`'s `margin-bottom` trimmed (14px -> 2px) so the
+  larger title + new rule are absorbed from existing whitespace rather
+  than pushing `.rail-rect`'s top down — per founder instruction ("the
+  space should be eaten up vertically... shouldn't crowd anything
+  below").
+- **Confirmed the natal full-page background is the real
+  `/sky-background.png` image, not a CSS color wash** — checked both the
+  file itself (a genuine soft radial-glow gradient, just low-contrast,
+  which is presumably why it read as a flat wash at a glance) and the
+  CSS (`.reading-stage-bg` uses `background-image: url(...)`, no
+  competing `background-color`/`linear-gradient` anywhere). No code
+  change needed.
+
+Files touched: `app/components/Rail.tsx`, `app/globals.css`,
+`app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
+both clean. One commit, not pushed.

@@ -45,6 +45,7 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
     <div className="rail">
       <div className="rail-header">
         <h2 className="rail-title">{title}</h2>
+        <div className="rail-title-rule" />
         {controls.length > 0 && (
           <div className="rail-controls">
             {controls.map(c => (

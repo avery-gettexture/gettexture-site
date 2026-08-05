@@ -615,15 +615,31 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 0.5% 6% 0;
-  margin-bottom: 14px;
+  /* Margin trimmed (was 14px) to absorb the larger title + new rule
+     below without pushing .rail-rect's top down — per founder feedback
+     (Aug 5 2026, round 3): the extra title/rule height should be "eaten"
+     from this whitespace, not added on top of it. Re-verify against a
+     screenshot/measurement if the title size is tuned further. */
+  margin-bottom: 2px;
 }
 
 .rail-title {
   font-family: var(--font-anton), sans-serif;
-  font-size: clamp(14px, 1.4vw, 19px);
+  /* Enlarged (was clamp(14px, 1.4vw, 19px)) and left-aligned, per
+     founder feedback (Aug 5 2026, round 3). */
+  font-size: clamp(20px, 2vw, 26px);
   color: var(--cream);
   letter-spacing: 0.5px;
-  text-align: center;
+  text-align: left;
+}
+
+/* Cream rule under the title, spanning the rail's width — per founder
+   feedback (Aug 5 2026, round 3). */
+.rail-title-rule {
+  height: 1px;
+  background: rgba(253, 245, 237, 0.35);
+  width: 100%;
+  margin: 2px 0;
 }
 
 /* Clustered together, right-aligned to the rail's right edge, with a

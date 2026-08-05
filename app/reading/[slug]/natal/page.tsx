@@ -371,6 +371,20 @@ function DesktopNatal({
   // (accumulating or locked) and only releases after real silence — this
   // survives a momentum tail of any length instead of guessing a fixed
   // duration.
+  //
+  // Round 3 fix (intermittent "sometimes it just doesn't work"): the
+  // `next` target was computed from `activeIndexRef.current`, which only
+  // updates when the IntersectionObserver below actually fires — and
+  // that only happens once scroll has settled past the 50% threshold.
+  // scrollIntoView's smooth animation routinely takes longer than the
+  // 180ms quiet-period unlock, so a second gesture could fire while the
+  // observer was still catching up from the first jump: `next` would
+  // then be computed from the OLD (pre-jump) index, landing back on the
+  // section already being animated to — a silent no-op from the user's
+  // perspective. Fixed by reading the live scroll position directly off
+  // the DOM at the moment of the wheel event instead of any cached/
+  // derived React state, so it's always correct regardless of whether an
+  // animation or the observer's catch-up is still in flight.
   useEffect(() => {
     const THRESHOLD = 60;
     const QUIET_MS = 180;
@@ -395,7 +409,11 @@ function DesktopNatal({
       if (locked) return;
       accumulated += e.deltaY;
       if (Math.abs(accumulated) < THRESHOLD) return;
-      const next = activeIndexRef.current + (accumulated > 0 ? 1 : -1);
+      const container = containerRef.current;
+      if (!container) return;
+      const sectionHeight = container.clientHeight;
+      const currentIndex = sectionHeight > 0 ? Math.round(container.scrollTop / sectionHeight) : activeIndexRef.current;
+      const next = currentIndex + (accumulated > 0 ? 1 : -1);
       accumulated = 0;
       if (next < 0 || next >= PLACEMENTS.length) return;
       locked = true;
