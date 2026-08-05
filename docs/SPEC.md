@@ -2538,3 +2538,90 @@ traced to a specific hover region, structural fix):**
 
 Files touched: `app/globals.css`. `tsc --noEmit` and `npm run build`
 both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 7 — architecture rebuilt per
+founder direction: layered frame + native full-page scroll):**
+
+Founder feedback after round 6: still badly broken ("took like 2
+scrolls for it to stop working... mostly just not working"), and a
+concrete architectural suggestion — stop trying to make a small,
+JS-mediated scroll region coexist with hijacked "outside card" wheel
+logic; instead treat the page like a static frame (nav + rail) with a
+"reading pane hole," and ONE real full-page native scroll underneath —
+the same model mobile's natal page already uses successfully. Correct
+diagnosis: rounds 2-6 all narrowed a failure window (timing, direction
+accuracy, momentum tails, hit-testing) without removing the underlying
+conflict — custom JS trying to detect and override what would otherwise
+be native browser scroll handling. This round removes the conflict
+instead of refereeing it.
+
+**Rebuilt:**
+- `DesktopNatal` no longer uses `<ReadingLayout>` (its rail-slot/zone-
+  column contract doesn't fit this model) — it builds its own
+  `.app-shell`/`.app-stage` directly, reusing `NavBar` and `Rail`
+  unchanged. `ReadingLayout`'s `bareZone` prop (added round 2 for the
+  now-abandoned approach) was reverted — dead code, no other caller.
+- `.natal-scroll`: ONE native `scroll-snap-type: y mandatory` container
+  spanning the ENTIRE `.app-stage` (not just the zone column). Each
+  `.natal-section` (`height:100%`) contains a `.natal-zone` wrapper that
+  reproduces the OLD static `.reading-zone`'s exact geometry (top/bottom
+  6.5dvh, left 29.84%/width 62.16%) — so `.section-bg` and
+  `.reading-zone-card` inside it are completely unchanged, just
+  repeated per-section instead of rendered once as static chrome.
+- `.reading-rail-slot` (unchanged CSS) renders AFTER `.natal-scroll` in
+  DOM order, so it naturally stacks on top with no z-index needed — a
+  true overlay frame with a hole where the native scroll shows through.
+- Scrolling over the card OR the background margin now needs ZERO JS —
+  both are inside `.natal-scroll`, 100% native, nothing left to race
+  against. The only remaining custom JS is a rail-forwarding handler
+  (the rail is a genuinely separate, non-scrolling overlay with nothing
+  native to scroll on its own).
+
+**A real bug in the first draft of that rail forwarding, caught before
+shipping:** initially just piped raw `e.deltaY` into
+`container.scrollBy()` per event — wrong, since a real multi-event
+gesture's forwarded total has nothing capping it against one section's
+height (confirmed: one test gesture forwarded straight through to the
+last section). Fixed by not forwarding raw pixels at all — accumulate +
+require a threshold (resistance) then move exactly one section via
+`scrollToIndex` (native scroll-snap handles the actual motion), reusing
+round 5's proven "quiet period that re-arms on every event" lock so a
+gesture can't trigger more than one jump. Verified: 6 consecutive
+realistic swipes over the rail advanced exactly Moon->Mercury->Venus->
+Mars->Jupiter->Saturn, no overshoot, no skips; rail click-to-jump and
+the inside-card accordion click both still work correctly.
+
+**Testing-methodology finding, worth recording for future sessions:**
+while verifying native scroll over the background margin, repeated
+bursts of many small synthetic wheel events (mimicking real trackpad
+momentum) appeared to fail entirely — scrollTop stayed at 0 across
+several such bursts, even ones summing well past the scroll-snap
+midpoint. Isolating the variables: a SINGLE sufficiently large wheel
+event (crossing the ~50% snap threshold) reliably worked, repeatably
+(three separate single-events in a row each correctly advanced one
+section: 0->903->1807->2710); direct programmatic `scrollBy` respected
+the snap correctly; and — critically — the same "many small events in
+a tight burst" pattern accumulated perfectly normally on a REGULAR
+(non-snap) scrollable element (the reading text itself, verified: a
+15-event/600px burst landed exactly at that element's true max
+scrollTop). The failure is therefore specific to `scroll-snap-type:
+mandatory` containers receiving synthetic (Playwright-dispatched)
+wheel events in rapid succession — Chromium headless does not appear to
+recognize a train of individually-dispatched synthetic wheel events as
+one continuous user gesture for snap purposes the way it does for
+genuine OS-level trackpad input, so each small event gets evaluated
+against the snap point independently and reverts. This is a known-shape
+limitation of automated wheel testing against scroll-snap, not
+something the app can fix — and not evidence of a bug, given every
+other angle (single large native events, programmatic scroll, and the
+non-snap reading-text scroll) all behaved correctly and repeatably.
+Recorded so a future session doesn't misread the same test artifact as
+a regression. Given this, real-device verification by the founder is
+the authoritative check for the specific case of continuous momentum
+scrolling directly over the background margin; rail-forwarding (which
+does not depend on this native gesture-recognition behavior, since it's
+plain JS accumulation) was fully verified by automation.
+
+Files touched: `app/components/ReadingLayout.tsx`, `app/globals.css`,
+`app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
+both clean. One commit, not pushed.

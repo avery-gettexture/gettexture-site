@@ -7,7 +7,7 @@ import ReferencePage from '@/app/components/ReferencePage';
 import CoverSection from '@/app/components/CoverSection';
 import BirthDataSection from '@/app/components/BirthDataSection';
 import ChartSection from '@/app/components/ChartSection';
-import ReadingLayout from '@/app/components/ReadingLayout';
+import NavBar from '@/app/components/NavBar';
 import Rail, { type RailRow } from '@/app/components/Rail';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -311,6 +311,15 @@ function PlacementCard(props: Parameters<typeof PlacementCardContent>[0]) {
 // a working chart view this pass — the chart wheel itself is a separate,
 // not-yet-built piece (SPEC §16, "chart wheel is Phase 3, not built").
 
+// Round 7 rewrite (Aug 5 2026), per founder direction: treat this like a
+// static frame (nav + rail) with a "hole" the reading pane shows through,
+// and ONE real full-page native scroll underneath — the same model
+// mobile's natal page already uses successfully — rather than a small
+// scroll region plus custom JS trying to detect and redirect "outside
+// card" wheel input. Rounds 2-6 kept narrowing failure windows because
+// that approach was fundamentally fighting the browser's own scroll
+// handling; this removes the fight instead of refereeing it. See the
+// long comment on `.natal-scroll` in globals.css for the full mechanics.
 function DesktopNatal({
   slug,
   reading,
@@ -325,17 +334,14 @@ function DesktopNatal({
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // The index we've most recently navigated to (or are mid-animation
-  // toward) — the single source of truth for "where's next," updated
-  // synchronously by scrollToIndex itself rather than derived from
-  // observing scroll state. See the round 4 note below for why.
-  const targetIndexRef = useRef(0);
-  // True from the moment a jump is triggered until the
-  // IntersectionObserver confirms we've actually arrived (or a safety
-  // timeout fires) — blocks new jumps for the animation's real duration
-  // instead of guessing a fixed delay.
-  const navigatingRef = useRef(false);
+  // Mirrors activeIndex but updated synchronously (not on React's render
+  // schedule) — read by the rail-forwarding handler below so a fast
+  // rail-hover gesture always computes "next" from the true current
+  // index, never a stale one.
+  const activeIndexRef = useRef(0);
 
+  // Drives the rail's active-row highlight, and is the source of truth
+  // for the rail-forwarding handler below.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -346,8 +352,7 @@ function DesktopNatal({
             const idx = Number((entry.target as HTMLElement).dataset.index);
             if (!Number.isNaN(idx)) {
               setActiveIndex(idx);
-              targetIndexRef.current = idx;
-              navigatingRef.current = false;
+              activeIndexRef.current = idx;
             }
           }
         });
@@ -359,44 +364,28 @@ function DesktopNatal({
   }, []);
 
   const scrollToIndex = useCallback((index: number) => {
-    targetIndexRef.current = index;
-    navigatingRef.current = true;
+    activeIndexRef.current = index;
     sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    // Safety net: if the observer never fires for this target (e.g. it
-    // was already 50%+ visible so no intersection *change* occurs),
-    // don't leave navigation permanently blocked.
-    setTimeout(() => { navigatingRef.current = false; }, 700);
   }, []);
 
-  // Scroll disambiguation rule (docs/TEXTURE_LAYOUT_PROPORTIONS.md,
-  // "The scroll disambiguation rule"), wired per founder feedback (Aug 5
-  // 2026): cursor over the cream reading card -> its own content scrolls
-  // (native chaining then hands off to the snap-scroll above once
-  // exhausted, per the .reading-pane-section overscroll-behavior rule in
-  // globals.css). Cursor anywhere else on the page -> this listener
-  // advances/retreats one placement per gesture.
+  // The ONLY custom scroll JS left: the rail (and nav bar) are a
+  // separate, non-scrolling overlay — genuinely nothing native to scroll
+  // there on their own. Scrolling over the card OR the background margin
+  // needs NO handling here — both are inside .natal-scroll, so the
+  // browser does 100% of that natively, with no JS in the way to race
+  // against (this is the whole point of the round 7 redesign).
   //
-  // Round 4 fixed the direction-accuracy bug (targetIndexRef instead of
-  // reading live scroll position — see the removed comment above this
-  // one in git history for the full story) but introduced a NEW bug:
-  // unlocking as soon as the IntersectionObserver confirmed arrival was
-  // too eager. A single physical trackpad swipe's momentum tail
-  // routinely keeps emitting wheel events for a second or more — well
-  // past when one jump's animation finishes and the observer confirms
-  // it — so the same swipe could cross the threshold again once
-  // unlocked, and again, producing "3 at a time" (reported after round
-  // 4) instead of one clean jump per swipe.
-  //
-  // Round 5 fix: `navigatingRef` (animation-in-flight) is now only HALF
-  // the gate. The other half is `blockedUntil`, a timestamp that every
-  // single wheel event — whether it's the one that triggers a jump or
-  // any event arriving while still blocked — pushes further into the
-  // future by POST_JUMP_QUIET_MS. So as long as a momentum tail keeps
-  // producing events, the block keeps re-arming and never lapses mid-
-  // tail; it only opens once there's been genuine silence. This is the
-  // same "quiet period" idea rounds 2-3 used for the accumulation
-  // threshold, now applied to the POST-jump lock instead, combined with
-  // (not replacing) round 4's direction-accurate targetIndexRef.
+  // First attempt at the rail forwarding just piped raw e.deltaY into
+  // container.scrollBy() per event — wrong: over a real multi-event
+  // gesture the forwarded total can run well past one section's height
+  // with nothing to stop it (confirmed: one test gesture forwarded
+  // straight through to the last section). Fixed by NOT forwarding raw
+  // pixels at all — instead accumulate + require a threshold (a little
+  // resistance) then move exactly one section via scrollToIndex
+  // (native scroll-snap handles the actual motion), the same "quiet
+  // period that re-arms on every event" lock from round 5 (proven
+  // correct against real momentum tails) so a gesture can't trigger more
+  // than one jump.
   useEffect(() => {
     const THRESHOLD = 60;
     const POST_JUMP_QUIET_MS = 320;
@@ -405,17 +394,12 @@ function DesktopNatal({
 
     const handleWheel = (e: WheelEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('.reading-zone-card')) return;
+      if (target.closest('.natal-scroll')) return;
       e.preventDefault();
       if (e.deltaY === 0) return;
 
       const now = performance.now();
-      if (navigatingRef.current || now < blockedUntil) {
-        // Still mid-jump, or inside the post-jump quiet window — this
-        // event is (most likely) the same physical gesture's momentum
-        // tail. Extend the window rather than acting on it, and drop
-        // any in-progress accumulation so it can't carry into whatever
-        // gesture comes after the tail finally goes quiet.
+      if (now < blockedUntil) {
         blockedUntil = Math.max(blockedUntil, now + POST_JUMP_QUIET_MS);
         accumulated = 0;
         return;
@@ -425,7 +409,7 @@ function DesktopNatal({
       if (Math.abs(accumulated) < THRESHOLD) return;
       const direction = accumulated > 0 ? 1 : -1;
       accumulated = 0;
-      const next = targetIndexRef.current + direction;
+      const next = activeIndexRef.current + direction;
       if (next < 0 || next >= PLACEMENTS.length) return;
       scrollToIndex(next);
       blockedUntil = now + POST_JUMP_QUIET_MS;
@@ -450,59 +434,63 @@ function DesktopNatal({
   });
 
   return (
-    <ReadingLayout
-      slug={slug}
-      active="natal"
-      background="/sky-background.png"
-      bareZone
-      rail={
-        <Rail
-          title="Planets"
-          controls={[{ label: 'READ', active: true }, { label: 'CHART', active: false }]}
-          rows={rows}
-          fillHeight
-          onRowClick={(id) => {
-            const idx = PLACEMENTS.findIndex(p => p.id === id);
-            if (idx !== -1) scrollToIndex(idx);
-          }}
-        />
-      }
-    >
-      <div className="reading-pane-scroll" ref={containerRef}>
-        {PLACEMENTS.map((placement, index) => {
-          const refProps = getReferenceProps(placement, referenceData);
-          return (
-            <div
-              key={placement.id}
-              className="reading-pane-section"
-              data-index={index}
-              ref={el => { sectionRefs.current[index] = el; }}
-            >
-              {/* Each section carries its own background, mirroring
-                  mobile's .reading-section — it scrolls together with
-                  its card as one unit instead of being swapped by React
-                  state, per founder feedback (Aug 5 2026, round 2). */}
+    <div className="app-shell">
+      <NavBar slug={slug} active="natal" />
+      <div className="app-stage">
+        <div className="reading-stage-bg" style={{ backgroundImage: 'url(/sky-background.png)' }} />
+        <div className="natal-scroll" ref={containerRef}>
+          {PLACEMENTS.map((placement, index) => {
+            const refProps = getReferenceProps(placement, referenceData);
+            return (
               <div
-                className="section-bg"
-                style={{
-                  backgroundImage: `url(${placement.background})`,
-                  backgroundPosition: placement.id === 'mc' ? 'center top' : 'center center',
-                }}
-              />
-              <div className="reading-zone-card">
-                <PlacementCardContent
-                  planet={placement}
-                  reading={reading}
-                  customerName={customerName}
-                  referenceData={refProps.referenceData}
-                  referenceDataSecondary={refProps.referenceDataSecondary}
-                />
+                key={placement.id}
+                className="natal-section"
+                data-index={index}
+                ref={el => { sectionRefs.current[index] = el; }}
+              >
+                <div className="natal-zone">
+                  {/* Each section carries its own background, mirroring
+                      mobile's .reading-section — it scrolls together
+                      with its card as one unit instead of being swapped
+                      by React state, per founder feedback (round 2). */}
+                  <div
+                    className="section-bg"
+                    style={{
+                      backgroundImage: `url(${placement.background})`,
+                      backgroundPosition: placement.id === 'mc' ? 'center top' : 'center center',
+                    }}
+                  />
+                  <div className="reading-zone-card">
+                    <PlacementCardContent
+                      planet={placement}
+                      reading={reading}
+                      customerName={customerName}
+                      referenceData={refProps.referenceData}
+                      referenceDataSecondary={refProps.referenceDataSecondary}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        {/* Rendered AFTER .natal-scroll in DOM order so it naturally
+            stacks on top (no z-index needed) — the true "static frame"
+            with the reading pane as the hole the scroll shows through. */}
+        <div className="reading-rail-slot">
+          <Rail
+            title="Planets"
+            controls={[{ label: 'READ', active: true }, { label: 'CHART', active: false }]}
+            rows={rows}
+            fillHeight
+            onRowClick={(id) => {
+              const idx = PLACEMENTS.findIndex(p => p.id === id);
+              if (idx !== -1) scrollToIndex(idx);
+            }}
+          />
+        </div>
       </div>
-    </ReadingLayout>
+    </div>
   );
 }
 

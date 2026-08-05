@@ -570,14 +570,6 @@ body {
   right: 4%;
   background: var(--cream);
   overflow: hidden;
-  /* Re-enables interaction (round 6, Aug 5 2026): natal's .reading-pane-
-     scroll ancestor is now pointer-events:none so the background margin
-     around this card can never be hit-tested as a native scroll target
-     (see that rule's comment) — this restores normal pointer/wheel
-     behavior for the card itself and everything inside it. Harmless for
-     Reference/Settings, whose ancestor (.reading-zone, not the bareZone
-     .reading-pane-scroll) was never affected. */
-  pointer-events: auto;
   /* flex column added (Aug 5 2026, round 2): natal's per-section reuse of
      this class now hosts .card-header/.card-content/.card-footer
      directly (mirrors mobile's .card-inner, which already has this) —
@@ -825,69 +817,82 @@ body {
    PHASE 3A — desktop natal re-housing (docs/TEXTURE_LAYOUT_PROPORTIONS.md,
    "DESKTOP — READING PAGE" + "THE LIST RAIL"). Desktop-only (>=1024px);
    mobile keeps the .reading-container/.reading-section mechanic untouched.
-   The reading pane is a scroll document of placement sections living
-   INSIDE the shared .reading-zone-card box (same 6.5%/4% inset chrome
-   used everywhere else) — this just adds the inner snap-scroll viewport;
-   each section's header/content/footer reuse the existing .card-header/
-   .card-content/.section-row/.card-footer rules above unchanged.
+
+   ROUND 7 REWRITE (Aug 5 2026) — layered "frame + full-bleed scroll
+   underneath" model, per founder direction, replacing rounds 2-6's
+   approach of a small scroll region nested inside a static rail+zone
+   layout with custom JS trying to detect/redirect "outside card"
+   wheel input. That approach kept breaking because it fought the
+   browser's own native scroll handling (see round 6's postmortem
+   above, and the round 3-5 history before it) — every fix narrowed
+   the failure window without removing the underlying conflict.
+
+   This mirrors mobile's OWN proven mechanic exactly (one native
+   scroll-snap container, .section-bg + card baked into each section)
+   instead of a bespoke desktop invention: .natal-scroll is ONE
+   full-bleed native scroll-snap container spanning the ENTIRE
+   .app-stage (not just the zone column); each .natal-section carries
+   a .natal-zone wrapper reproducing the exact geometry the old static
+   .reading-zone used to occupy (top/bottom 6.5dvh, left 29.84%/width
+   62.16%), so .section-bg and .reading-zone-card inside it are
+   UNCHANGED — same classes, same percentages, just repeated per
+   section instead of rendered once as static chrome. The rail
+   (.reading-rail-slot, unchanged) is a sibling that renders AFTER
+   .natal-scroll in DOM order, so it naturally stacks on top without
+   needing z-index — it's a true overlay "frame" with a "hole" where
+   the scrolling content shows through untouched.
+
+   The result: scrolling over the card OR the background margin around
+   it is now 100% native — nothing in JS ever tries to intercept or
+   redirect it, so there is no more "which wins, native or JS" race to
+   have races in. The ONLY remaining JS (in DesktopNatal) is a plain
+   wheel-delta forward from the rail (a genuinely separate, non-
+   scrolling overlay element with nothing native to scroll on its own)
+   to .natal-scroll via scrollBy — not a reimplementation of scroll-
+   snap, just piping raw input into the same native scroller that
+   already handles snapping and momentum correctly on its own.
    ============================================================ */
 
-.reading-pane-scroll {
+.natal-scroll {
   position: absolute;
   inset: 0;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
-  /* Round 6 fix (Aug 5 2026): the "planet outline" background margin
-     lives INSIDE this scrollable element (each section's .section-bg is
-     a sibling of .reading-zone-card, both children of one
-     .reading-pane-section). Founder report: outside-card scroll worked
-     for a while, then became inconsistent specifically when the cursor
-     was over that background margin (not the rail, not the cream card).
-     Likely cause: once a wheel gesture starts over ANY descendant of a
-     natively-scrollable element, some browsers can hand momentum
-     continuation to their own native scroll/compositor instead of
-     continuing to dispatch cancelable `wheel` events to JS — so
-     preventDefault on the opening event(s) doesn't guarantee it covers
-     the whole gesture. `pointer-events: none` here removes this element
-     (and, by inheritance, everything in it) from hit-testing entirely,
-     so the browser has no scrollable target to capture over the
-     background margin at all — only .reading-zone-card below re-enables
-     it, restoring normal interaction there. */
-  pointer-events: none;
 }
 
-.reading-pane-scroll::-webkit-scrollbar {
+.natal-scroll::-webkit-scrollbar {
   display: none;
 }
-.reading-pane-scroll {
+.natal-scroll {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* Reworked (Aug 5 2026, round 2 founder feedback) from a flex column
-   holding card content directly, to a position:relative composite host
-   — mirrors mobile's .reading-section exactly: a full-bleed .section-bg
-   (reused from mobile, unmodified) behind an inset .reading-zone-card
-   (also reused). Each section now carries its OWN background as part of
-   its own scrolling content, so the background scrolls together with
-   its card instead of being a separate layer swapped by React state —
-   this is what fixes the background "flash" and makes scrolling feel
-   like paging through a document. The header/content/footer flex-column
-   layout that used to live directly in this rule now lives one level
-   deeper, inside the reused .reading-zone-card (which already has it). */
-.reading-pane-section {
+.natal-section {
   position: relative;
   height: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  overflow: hidden;
+}
+
+/* Reproduces the old static .reading-zone's exact geometry, per section
+   — this is why .section-bg and .reading-zone-card below need no
+   changes of their own; they're positioned relative to this wrapper
+   exactly as they were relative to the single static .reading-zone
+   before. */
+.natal-zone {
+  position: absolute;
+  top: 6.5dvh;
+  bottom: 6.5dvh;
+  left: 29.84%;
+  width: 62.16%;
 }
 
 /* Desktop-scoped title override (Aug 5 2026 founder feedback): the
    shared .planet-name rule (used identically by mobile) is intentionally
    NOT touched — this is a more-specific selector that only applies
    inside the desktop reading pane. */
-.reading-pane-section .planet-name {
+.natal-section .planet-name {
   font-size: clamp(22px, 3vw, 30px);
 }
 
@@ -895,12 +900,12 @@ body {
    .card-content/.section-body keep `overscroll-behavior: contain`
    (blocks chaining) — untouched. Here it's relaxed to `auto` so once the
    open accordion body's own content is exhausted, the wheel gesture
-   natively hands off to .reading-pane-scroll's mandatory scroll-snap
-   above and advances to the next placement, instead of dead-stopping.
-   The "little resistance" before that handoff is the browser's native
-   overscroll boundary feel plus the mandatory snap itself — no JS. */
-.reading-pane-section .card-content,
-.reading-pane-section .section-body {
+   natively hands off to .natal-scroll's mandatory scroll-snap above and
+   advances to the next placement, instead of dead-stopping. The "little
+   resistance" before that handoff is the browser's native overscroll
+   boundary feel plus the mandatory snap itself — no JS. */
+.natal-section .card-content,
+.natal-section .section-body {
   overscroll-behavior: auto;
 }
 
