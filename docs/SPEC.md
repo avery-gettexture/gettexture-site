@@ -286,7 +286,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 8. EXISTING INFRASTRUCTURE (build on, don't rebuild)
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
-- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page now renders 13 sections (North Node + South Node merged into one "Nodes" section), but the DATABASE side of this migration has NOT run yet — `scripts/add_nodes_column.sql` (adds a `nodes` column and updates `get_reading_by_slug` to return it) is drafted but not executed by the founder. Until it runs, the app is TEMPORARILY wired to source the merged Nodes section's content from the existing `north_node` column — flagged throughout `app/reading/[slug]/natal/page.tsx` with "TEMPORARY" comments — so `readings` still physically has all 14 original interpretation columns (`north_node`/`south_node` both intact, neither dropped) plus, once the script runs, a 15th (`nodes`) alongside them. Dropping the two old columns is a separate, not-yet-authorized decision. **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture.
+- `readings` table: birth data, chart_data jsonb, 15 interpretation columns (14 original + `nodes`), slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page renders 13 sections (North Node + South Node merged into one "Nodes" section), sourced from a new `nodes` column, empty until content is generated for it. `scripts/add_nodes_column.sql` ran successfully against Supabase on the second attempt — the first attempt hit Postgres error 42P13 ("cannot change return type of existing function") because `CREATE OR REPLACE FUNCTION` cannot add a column to a function's `RETURNS TABLE` (named OUT parameters) shape; fixed by adding an explicit `DROP FUNCTION IF EXISTS get_reading_by_slug(text);` before recreating it (table/data untouched, only the function definition briefly gone). Verified with a live read via the anon-key RPC before any app code changed: `get_reading_by_slug` returns a `nodes` key (value `null`, as expected). App code then swapped from its temporary `north_node` stand-in to the real `nodes` column — confirmed by screenshot: the Nodes card now shows the "being prepared" placeholder instead of the old dogfood `north_node` text. The old `north_node`/`south_node` columns are left in place, unused by the app now but not dropped (a separate, not-yet-authorized decision). **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
@@ -2165,3 +2165,24 @@ One commit, not pushed, per the task's no-push instruction. Hard stop for
 founder review, per the task's instruction — including founder sign-off
 on the SQL migration (not run this session) and the flagged judgment
 calls above.
+
+**August 4, 2026 (Phase 3A follow-up — nodes column wired for real):** the
+founder ran `scripts/add_nodes_column.sql`; first attempt failed with
+Postgres 42P13 (`CREATE OR REPLACE FUNCTION` can't add a column to a
+`RETURNS TABLE` function's shape), fixed by adding an explicit `DROP
+FUNCTION IF EXISTS get_reading_by_slug(text)` before recreating it —
+table/data untouched, function definition only. Second attempt
+succeeded. Before touching any app code, verified live via a read-only
+anon-key RPC call (`get_reading_by_slug` against the dogfood slug) that
+the function now actually returns a `nodes` key — confirmed present,
+value `null` — rather than trusting the founder's report of success
+alone. Swapped `app/reading/[slug]/natal/page.tsx`'s Nodes placement
+`contentKey` from the temporary `north_node` to the real `nodes` column
+and updated the `Reading` interface accordingly; the separate, still-
+open "meta line shows only the North Node's own sign/house/degree, not
+a true combined-axis line" simplification is unrelated to this swap and
+was left flagged as-is. Verified by screenshot: the Nodes card now
+renders the "This interpretation is being prepared" placeholder (since
+`nodes` is genuinely empty) instead of the old dogfood `north_node`
+prose. `tsc --noEmit` and `npm run build` both clean. One commit, not
+pushed.

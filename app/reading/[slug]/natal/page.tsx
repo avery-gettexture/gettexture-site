@@ -37,10 +37,8 @@ interface Reading {
   mc: string | null;
   north_node: string | null;
   south_node: string | null;
-  // Not yet returned by get_reading_by_slug — the founder hasn't run
-  // scripts/add_nodes_column.sql yet. Declared here so the swap from the
-  // temporary `north_node` wiring below is a one-line change once it has.
-  nodes?: string | null;
+  // Combined Nodes content (SPEC §4.1). Empty until generated.
+  nodes: string | null;
   chart_data: any;
 }
 
@@ -72,12 +70,10 @@ const PLACEMENTS: PlacementConfig[] = [
   { id: 'pluto',   name: 'Pluto',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/pluto-background.png',   contentKey: 'pluto'   },
   { id: 'asc',     name: 'Ascendant',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/asc-background.png',     contentKey: 'asc_reading' },
   { id: 'mc',      name: 'Midheaven',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mc-background.png',      contentKey: 'mc'      },
-  // TEMPORARY (per founder instruction, in place until scripts/
-  // add_nodes_column.sql has been run against Supabase): contentKey points
-  // at the existing `north_node` column instead of the new `nodes` column,
-  // so the reading pipeline isn't blocked on that migration. Swap
-  // contentKey to 'nodes' once the founder confirms the migration ran.
-  { id: 'nodes',   name: 'Nodes',      background: '/nodes-background.png', contentKey: 'north_node' },
+  // Nodes merged per SPEC §4.1 (14 -> 13 placements). Sourced from the
+  // `nodes` column (scripts/add_nodes_column.sql, run against Supabase
+  // August 2026) — empty until the combined Nodes content is generated.
+  { id: 'nodes',   name: 'Nodes',      background: '/nodes-background.png', contentKey: 'nodes' },
 ];
 
 const PLACEHOLDER_SYNTHESIS = 'This interpretation is being prepared. Check back shortly.';
@@ -105,11 +101,11 @@ const PLANET_KEY_MAP: Record<string, string> = {
   sun: 'sun', moon: 'moon', mercury: 'mercury', venus: 'venus',
   mars: 'mars', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus',
   neptune: 'neptune', pluto: 'pluto', asc: 'ascendant', mc: 'medium_coeli',
-  // TEMPORARY simplification (flagged for founder review): the merged
-  // Nodes section's meta line and rail row show the North Node's own
-  // sign/house/degree only, not a combined-axis line. SPEC §4.1 treats the
-  // axis as one subject; this UI still owes a real combined-meta treatment
-  // once Nodes content is written for real.
+  // Standing simplification (flagged for founder review, independent of
+  // the content-column wiring above): the merged Nodes section's meta
+  // line and rail row show the North Node's own sign/house/degree only,
+  // not a combined-axis line. SPEC §4.1 treats the axis as one subject;
+  // this UI still owes a real combined-meta treatment.
   nodes: 'mean_north_lunar_node',
 };
 
