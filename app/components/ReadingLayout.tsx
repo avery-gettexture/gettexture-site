@@ -20,6 +20,15 @@ interface ReadingLayoutProps {
    * but does not ratify exact numbers — see the CSS comment on
    * .reading-zone-card--full. */
   inset?: 'normal' | 'full';
+  /** Opt-in (Aug 5 2026, round 2 founder feedback): skips this
+   * component's own zoneBackground/.reading-zone-card wrapper entirely,
+   * rendering `children` directly filling the full .reading-zone box
+   * instead. Lets a caller build its own per-section background+card
+   * composite (natal desktop needs each placement's background to
+   * scroll WITH its own card, mirroring the mobile page's .section-bg/
+   * .card-inner pattern, rather than one static swapped-by-state image).
+   * Default false — Reference/Transits/Settings are unaffected. */
+  bareZone?: boolean;
   rail: React.ReactNode;
   /** Reading-zone card interior — header/body/footer are screen content,
    * built in Phase 3. */
@@ -35,6 +44,7 @@ export default function ReadingLayout({
   background,
   zoneBackground,
   inset = 'normal',
+  bareZone = false,
   rail,
   children,
 }: ReadingLayoutProps) {
@@ -50,17 +60,23 @@ export default function ReadingLayout({
         )}
         <div className="reading-rail-slot">{rail}</div>
         <div className="reading-zone">
-          {zoneBackground && (
-            <div
-              className="reading-zone-bg"
-              style={{ backgroundImage: `url(${zoneBackground})` }}
-            />
+          {bareZone ? (
+            children
+          ) : (
+            <>
+              {zoneBackground && (
+                <div
+                  className="reading-zone-bg"
+                  style={{ backgroundImage: `url(${zoneBackground})` }}
+                />
+              )}
+              <div
+                className={`reading-zone-card${inset === 'full' ? ' reading-zone-card--full' : ''}`}
+              >
+                {children}
+              </div>
+            </>
           )}
-          <div
-            className={`reading-zone-card${inset === 'full' ? ' reading-zone-card--full' : ''}`}
-          >
-            {children}
-          </div>
         </div>
       </div>
     </div>

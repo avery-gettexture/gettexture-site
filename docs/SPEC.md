@@ -2269,3 +2269,79 @@ card is pixel-identical to before.
 Files touched: `app/globals.css`, `app/components/Rail.tsx`,
 `app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
 both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 2 — rail bottom, background
+flash architecture fix, scroll-momentum bug):** four more issues from
+Avery running the shell live. Desktop-only; mobile re-verified
+untouched (screenshot).
+
+- **Rail bottom now reaches toward the true zone edge, not the cream
+  card's inset bottom.** Avery clarified "the planet outline" means the
+  OUTER background/zone bound (the same bottom `.reading-rail-slot`/
+  `.reading-zone` already share), not `.reading-zone-card`'s own smaller
+  6.5%-inset bottom, which is what the rail was aligned to before.
+  `.rail-bottom-spacer` reduced from `flex: 0 0 6.5%` to `2%`; verified
+  the rail box's bottom moved from 867.8px (matching the card) to
+  902.7px (much closer to the true outer edge at 918.2px), with the
+  remaining ~2% read as intentional breathing room, not a cutoff.
+  `.rail-list` vertical padding increased (4px -> 14px) so the first/last
+  rows don't start flush against the box edges ("abrupt start").
+- **Background flash fixed by architecture change, not a CSS tweak.**
+  Root cause: `DesktopNatal` was swapping a single static
+  `zoneBackground` image via React state (`activeIndex`) every time the
+  active section changed — an instant, un-animatable cut by
+  construction. Avery's own diagnosis was correct and pointed at an
+  already-working pattern in this codebase: mobile's natal page already
+  bakes each placement's background into that placement's own scrolling
+  `.reading-section` (`.section-bg`), so the background moves with its
+  card as one unit, with no swap logic at all. Ported that model to
+  desktop instead of inventing a new mechanism:
+  - `ReadingLayout` gained an opt-in `bareZone?: boolean` prop (default
+    false, zero effect on Reference/Settings/Transits, which don't pass
+    it). When true, it skips its own `zoneBackground`/`.reading-zone-card`
+    wrapper and renders `children` directly filling `.reading-zone`.
+  - `DesktopNatal` now passes `bareZone` and builds each
+    `.reading-pane-section` as its own composite: a full-bleed
+    `.section-bg` (reused from mobile, unmodified) behind a
+    `.reading-zone-card` (reused, now per-section instead of static
+    chrome) holding that placement's card content. The `zoneBackground`/
+    `activeIndex`-driven background prop is gone entirely.
+  - `.reading-pane-section` reworked from a flex column to
+    `position: relative` (children are now absolutely positioned:
+    background layer + inset card layer, matching mobile's
+    `.reading-section`/`.section-bg`/`.card-inner` shape exactly).
+  - **Regression caught and fixed before shipping:** reusing
+    `.reading-zone-card` as a per-section flex-column host broke on
+    first render — it never had `display: flex; flex-direction: column`
+    (previously it only ever wrapped one opaque `{children}` blob, never
+    needed to arrange header/content/footer itself), so the middle
+    `.card-content` couldn't claim remaining height via `flex: 1` and
+    the Overview text was silently clipped to one line. Caught by
+    screenshot before considering this done, not shipped broken. Fixed
+    by adding `display: flex; flex-direction: column` to
+    `.reading-zone-card` itself — safe for Reference's/Settings' current
+    single-child usage (a lone flex item in a column still just stacks
+    normally). Re-verified: full Overview paragraph renders again on
+    both natal and (unaffected) Reference.
+  - Verified via DOM inspection (not just visual screenshots) that
+    `.reading-zone-bg` (the old shared swap layer) no longer exists in
+    the page and that separate sections carry distinct baked-in
+    `background-image` URLs.
+- **Outside-card wheel scroll "double scrolling" fixed.** Root cause: the
+  round-1 handler fired on the first wheel event then blocked for a flat
+  700ms — trackpad momentum scrolling routinely keeps emitting wheel
+  events well past 700ms, so the lock expired mid-gesture and a second
+  jump fired from the same physical scroll ("goes down 2," per founder
+  report). Replaced with an accumulated-delta threshold (60px) before
+  the first jump commits (the requested "little more substantial"
+  resistance) plus a rolling 180ms "quiet period" lock that re-arms on
+  every wheel event, locked or not, so it only releases after genuine
+  silence rather than a fixed duration — correct regardless of how long
+  a momentum tail runs. Verified with a simulated 16-event, ~1-second
+  accelerate/decelerate gesture (mimicking real trackpad momentum, not
+  just Playwright's single-event `mouse.wheel()`): advanced exactly one
+  section, not two.
+
+Files touched: `app/components/ReadingLayout.tsx`, `app/globals.css`,
+`app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
+both clean. One commit, not pushed.

@@ -359,23 +359,53 @@ function DesktopNatal({
   // (native chaining then hands off to the snap-scroll above once
   // exhausted, per the .reading-pane-section overscroll-behavior rule in
   // globals.css). Cursor anywhere else on the page -> this listener
-  // advances/retreats one placement per gesture, with a cooldown so one
-  // wheel/trackpad gesture doesn't fire multiple jumps.
+  // advances/retreats one placement per gesture.
+  //
+  // Round 2 correction: a flat post-jump cooldown (e.g. 700ms) isn't long
+  // enough — trackpad momentum keeps emitting wheel events well past
+  // that, so the lock expired mid-gesture and a second jump fired from
+  // the same physical scroll ("goes down 2," per founder report).
+  // Replaced with (a) an accumulated-delta threshold before the first
+  // jump fires at all (resistance, so a light touch doesn't commit), and
+  // (b) a rolling "quiet period" lock that re-arms on EVERY wheel event
+  // (accumulating or locked) and only releases after real silence — this
+  // survives a momentum tail of any length instead of guessing a fixed
+  // duration.
   useEffect(() => {
-    let cooling = false;
+    const THRESHOLD = 60;
+    const QUIET_MS = 180;
+    let accumulated = 0;
+    let locked = false;
+    let quietTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const armUnlock = () => {
+      if (quietTimer) clearTimeout(quietTimer);
+      quietTimer = setTimeout(() => {
+        locked = false;
+        accumulated = 0;
+      }, QUIET_MS);
+    };
+
     const handleWheel = (e: WheelEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('.reading-zone-card')) return;
       e.preventDefault();
-      if (cooling || e.deltaY === 0) return;
-      const next = activeIndexRef.current + (e.deltaY > 0 ? 1 : -1);
+      if (e.deltaY === 0) return;
+      armUnlock();
+      if (locked) return;
+      accumulated += e.deltaY;
+      if (Math.abs(accumulated) < THRESHOLD) return;
+      const next = activeIndexRef.current + (accumulated > 0 ? 1 : -1);
+      accumulated = 0;
       if (next < 0 || next >= PLACEMENTS.length) return;
-      cooling = true;
+      locked = true;
       scrollToIndex(next);
-      setTimeout(() => { cooling = false; }, 700);
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      if (quietTimer) clearTimeout(quietTimer);
+    };
   }, [scrollToIndex]);
 
   const rows: RailRow[] = PLACEMENTS.map((placement, index) => {
@@ -398,7 +428,7 @@ function DesktopNatal({
       slug={slug}
       active="natal"
       background="/sky-background.png"
-      zoneBackground={PLACEMENTS[activeIndex]?.background}
+      bareZone
       rail={
         <Rail
           title="Planets"
@@ -422,13 +452,26 @@ function DesktopNatal({
               data-index={index}
               ref={el => { sectionRefs.current[index] = el; }}
             >
-              <PlacementCardContent
-                planet={placement}
-                reading={reading}
-                customerName={customerName}
-                referenceData={refProps.referenceData}
-                referenceDataSecondary={refProps.referenceDataSecondary}
+              {/* Each section carries its own background, mirroring
+                  mobile's .reading-section — it scrolls together with
+                  its card as one unit instead of being swapped by React
+                  state, per founder feedback (Aug 5 2026, round 2). */}
+              <div
+                className="section-bg"
+                style={{
+                  backgroundImage: `url(${placement.background})`,
+                  backgroundPosition: placement.id === 'mc' ? 'center top' : 'center center',
+                }}
               />
+              <div className="reading-zone-card">
+                <PlacementCardContent
+                  planet={placement}
+                  reading={reading}
+                  customerName={customerName}
+                  referenceData={refProps.referenceData}
+                  referenceDataSecondary={refProps.referenceDataSecondary}
+                />
+              </div>
             </div>
           );
         })}

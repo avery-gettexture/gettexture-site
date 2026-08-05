@@ -570,6 +570,15 @@ body {
   right: 4%;
   background: var(--cream);
   overflow: hidden;
+  /* flex column added (Aug 5 2026, round 2): natal's per-section reuse of
+     this class now hosts .card-header/.card-content/.card-footer
+     directly (mirrors mobile's .card-inner, which already has this) —
+     without it the middle .card-content can't claim remaining height via
+     flex:1 and long body text gets clipped to one line. A lone
+     `{children}` block (Reference's current placeholder, Settings) is
+     unaffected by becoming a single flex item in a column. */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Settings variant — doc: "NO backdrop... cream rectangle flexes to fill
@@ -669,22 +678,26 @@ body {
   overflow: hidden;
 }
 
-/* Reserves the SAME 6.5% inset .reading-zone-card uses for its own bottom,
-   so a tall list (natal, 13 rows) still stops at the reading pane's bottom
-   edge instead of running past it. Percentage flex-basis in a COLUMN flex
-   container resolves against the container's height — unlike margin/
-   padding percentages, which always resolve against width regardless of
-   flex direction — so this is an exact 6.5% of the rail column's own
-   height, not a new magic number. */
+/* Small breathing-room gap, NOT aligned to .reading-zone-card's own 6.5%
+   bottom inset. Corrected per founder feedback (Aug 5 2026, round 2):
+   the rail's bottom should reach toward the outer "planet outline" —
+   the same true bottom .reading-rail-slot/.reading-zone already share —
+   not stop short at the (smaller) cream card's inset bottom. Percentage
+   flex-basis in a COLUMN flex container resolves against the
+   container's own height, so this is still an exact 2% of the rail
+   column's height, not a new magic number. */
 .rail-bottom-spacer {
-  flex: 0 0 6.5%;
+  flex: 0 0 2%;
 }
 
 .rail-list {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 6%;
+  /* Vertical padding increased (was 4px) per founder feedback: the
+     first/last rows landed flush against the box edges, reading as an
+     abrupt start. */
+  padding: 14px 6%;
 }
 
 .rail-row {
@@ -788,12 +801,22 @@ body {
   scrollbar-width: none;
 }
 
+/* Reworked (Aug 5 2026, round 2 founder feedback) from a flex column
+   holding card content directly, to a position:relative composite host
+   — mirrors mobile's .reading-section exactly: a full-bleed .section-bg
+   (reused from mobile, unmodified) behind an inset .reading-zone-card
+   (also reused). Each section now carries its OWN background as part of
+   its own scrolling content, so the background scrolls together with
+   its card instead of being a separate layer swapped by React state —
+   this is what fixes the background "flash" and makes scrolling feel
+   like paging through a document. The header/content/footer flex-column
+   layout that used to live directly in this rule now lives one level
+   deeper, inside the reused .reading-zone-card (which already has it). */
 .reading-pane-section {
+  position: relative;
   height: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
