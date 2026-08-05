@@ -2625,3 +2625,9 @@ plain JS accumulation) was fully verified by automation.
 Files touched: `app/components/ReadingLayout.tsx`, `app/globals.css`,
 `app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
 both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 7 — founder confirmation):**
+founder tested the round 7 rebuild directly and confirmed it's working,
+including the one case automation couldn't fully close the loop on
+(continuous scrolling over the background margin). Desktop natal
+scroll behavior considered resolved as of this commit.
