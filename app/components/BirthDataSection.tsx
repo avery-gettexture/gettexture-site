@@ -12,7 +12,7 @@ interface BirthDataSectionProps {
   onScrollNext: () => void;
 }
 
-function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const months = ['January','February','March','April','May','June',
     'July','August','September','October','November','December'];

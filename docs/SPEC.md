@@ -286,7 +286,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 8. EXISTING INFRASTRUCTURE (build on, don't rebuild)
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
-- `readings` table: birth data, chart_data jsonb, 15 interpretation columns (14 original + `nodes`), slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page renders 13 sections (North Node + South Node merged into one "Nodes" section), sourced from a new `nodes` column, empty until content is generated for it. `scripts/add_nodes_column.sql` ran successfully against Supabase on the second attempt — the first attempt hit Postgres error 42P13 ("cannot change return type of existing function") because `CREATE OR REPLACE FUNCTION` cannot add a column to a function's `RETURNS TABLE` (named OUT parameters) shape; fixed by adding an explicit `DROP FUNCTION IF EXISTS get_reading_by_slug(text);` before recreating it (table/data untouched, only the function definition briefly gone). Verified with a live read via the anon-key RPC before any app code changed: `get_reading_by_slug` returns a `nodes` key (value `null`, as expected). App code then swapped from its temporary `north_node` stand-in to the real `nodes` column — confirmed by screenshot: the Nodes card now shows the "being prepared" placeholder instead of the old dogfood `north_node` text. The old `north_node`/`south_node` columns are left in place, unused by the app now but not dropped (a separate, not-yet-authorized decision). **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture.
+- `readings` table: birth data, chart_data jsonb, 15 interpretation columns (14 original + `nodes`), slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page renders 13 sections (North Node + South Node merged into one "Nodes" section), sourced from a new `nodes` column, empty until content is generated for it. `scripts/add_nodes_column.sql` ran successfully against Supabase on the second attempt — the first attempt hit Postgres error 42P13 ("cannot change return type of existing function") because `CREATE OR REPLACE FUNCTION` cannot add a column to a function's `RETURNS TABLE` (named OUT parameters) shape; fixed by adding an explicit `DROP FUNCTION IF EXISTS get_reading_by_slug(text);` before recreating it (table/data untouched, only the function definition briefly gone). Verified with a live read via the anon-key RPC before any app code changed: `get_reading_by_slug` returns a `nodes` key (value `null`, as expected). App code then swapped from its temporary `north_node` stand-in to the real `nodes` column — confirmed by screenshot: the Nodes card now shows the "being prepared" placeholder instead of the old dogfood `north_node` text. The old `north_node`/`south_node` columns are left in place, unused by the app now but not dropped (a separate, not-yet-authorized decision). **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture. **Desktop rail row (Phase 3A follow-up, August 5, 2026, §16):** the natal page's desktop rail now shows the Nodes row as both axis ends side by side (North + South, one shared degree, no retrograde flag) rather than the North Node's own placement standing in for the whole axis — see the §16 entry below. The per-section card header's own meta line still shows the North Node's placement only; that narrower simplification is unchanged and still flagged for founder review. Mobile's one-line List view (`ChartSection.tsx`) carries the same narrower simplification and is also unchanged — out of scope for this pass.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
@@ -2631,3 +2631,105 @@ founder tested the round 7 rebuild directly and confirmed it's working,
 including the one case automation couldn't fully close the loop on
 (continuous scrolling over the background margin). Desktop natal
 scroll behavior considered resolved as of this commit.
+
+**August 5, 2026 (Phase 3A follow-up — CHART overlay built, Nodes rail row
+fixed; no API calls, not deployed):** the desktop natal page's READ | CHART
+toggle (visible but inert since Phase 3A) now does something. Two pieces:
+
+1. **CHART overlay.** A screen-state swap of the reading pane's content, not
+   a scroll target — clicking CHART replaces the reading with the real
+   `NatalChartWheelWeb` wheel over `public/chart-radial-new.png`; clicking
+   READ swaps back. `.natal-scroll` (the existing reading pane) stays
+   mounted at all times and is hidden via `display: none` rather than
+   unmounted, so its scroll position survives the round trip for free —
+   verified by reading `.natal-scroll`'s `scrollTop` before/after a
+   READ→CHART→READ round trip (unchanged). The rail-forwarding wheel
+   listener now stands down while CHART is showing, so scrolling over the
+   static chart pane can't silently drive the hidden reading scroll
+   underneath it. The READ | CHART toggle's active/inactive **styling**
+   (bold cream vs. muted, `.rail-control`/`.rail-control.active` in
+   `globals.css`) is untouched — only the missing `onClick` wiring was
+   added. New component `app/components/NatalChartPane.tsx`:
+   - **Background:** `chart-radial-new.png` is a circle inscribed in a
+     transparent square (confirmed by opening the file), so simply covering
+     the pane wasn't enough — its circular edge would show inside the
+     rectangle. Fixed by rendering it in a div oversized to 220% on each
+     axis, centered on the wheel's own center point, clipped by the
+     existing `.reading-zone-card`'s `overflow: hidden` — the image's
+     center is locked to the wheel's center and no circular edge is ever
+     visible, regardless of the pane's actual aspect ratio.
+   - **Wheel:** reuses `NatalChartWheelWeb` exactly as mobile's
+     `ChartSection.tsx` already does (no explicit `size` prop, just a sized
+     wrapper div, letting the component's own `ResizeObserver` do the
+     work). Proportions — 62% of the pane's width, vertical center at 44%
+     down, leaving the lower band for name/birth data — come from
+     `docs/TEXTURE_LAYOUT_PROPORTIONS.md`'s CHART VIEW section, cross-checked
+     against the pixel geometry of the two new mock files added this
+     session, `docs/mocks/natal-wheel-collapsed.png` /
+     `natal-wheel-expanded.png` (flat placeholder circles showing wheel
+     proportion/placement and the name/birth-data band only, not real chart
+     content).
+   - **Name / birth data:** first real build of the collapse/expand
+     mechanic the layout doc describes as used everywhere on natal (this is
+     the first place it's actually wired to a click). Collapsed: name
+     centered. Expanded (click the name): name shifts to an 8% left inset,
+     birth data (date + time, location) appears on one line below it. The
+     name's vertical position is fixed between both states — the container
+     is top-anchored, not bottom-anchored, so only the birth-data line adds
+     height below the name rather than shifting it. Reuses
+     `BirthDataSection.tsx`'s `formatDate` helper (now exported) instead of
+     re-deriving date formatting.
+   - **Chart 101 link**, top-right: a real, live `<Link href="/reference">`
+     per founder direction this session ("I'd rather have a functioning
+     link" — the how-to-read-a-chart content itself doesn't exist yet
+     anywhere in the app and remains a separate, later build; the link
+     points at the existing Reference page in the meantime).
+   - **Rail row click while CHART is showing** (founder-confirmed this
+     session): switches back to READ and scrolls to that placement — the
+     rail always means "go to this placement." Implementation note: the
+     scroll can't happen in the same synchronous click handler that
+     requests the mode switch, because `.natal-scroll`'s `display: none`
+     hasn't been lifted in the DOM yet at that point, and `scrollIntoView`
+     on an element inside a still-hidden ancestor is a silent no-op (caught
+     by automation — the first version of this landed on the previously
+     active section instead of the clicked one). Fixed with a
+     `pendingScrollIndexRef` + a `useEffect` keyed on `paneMode` that
+     performs the scroll (via `requestAnimationFrame`) once READ is
+     actually visible again.
+2. **Nodes rail row.** The desktop rail's Nodes row now shows both axis ends
+   side by side — `North Node ... South Node <degree>` on the first line
+   (one shared degree, since north/south are exactly opposite — the axis
+   math guarantees identical degree-within-sign on both ends), `<sign> |
+   <house>  -  <sign> | <house>` on the second, and never a retrograde
+   badge. `Rail.tsx`'s `RailRow` gained an optional `secondary` field
+   (unset for every other row, including Reference's/Transits' own Rail
+   usages, which are unaffected); `Rail` renders the two-ended layout only
+   when it's present. The South Node's own sign/house wasn't looked up
+   anywhere on this page before — added `'nodes-south':
+   'mean_south_lunar_node'` to `PLANET_KEY_MAP` and called the existing
+   `getPlanetMeta` helper a second time (it already returns exactly the
+   right formatted strings, e.g. `"9th House"`, `"Virgo"` — no new
+   formatting logic needed).
+
+**Founder confirmations this session (asked before building, since none of
+this was specified in the brief):** (1) verifying the CHART state needed a
+real chart, so screenshotting used the natal page's normal, already-built
+read (`get_reading_by_slug`, read-only, no writes/AI/Stripe calls) against
+an existing reading — same as any page view; (2) rail-row-click-while-CHART
+behavior (switch to READ + scroll, above); (3) Chart 101 → `/reference`,
+live now rather than inert.
+
+Verified by Playwright screenshot against a real reading: wheel proportion
+and vertical placement match the two new mocks; the radial background fills
+the full pane with no visible circular edge; name collapse/expand and the
+Chart 101 navigation all work; the READ↔CHART swap is confirmed scroll-free
+(`.natal-scroll` `scrollTop` unchanged across a round trip, and a wheel
+gesture over the chart pane produces no movement); Nodes row shows both ends
+with no retrograde flag; rail-row-click-while-CHART correctly switches and
+scrolls (after the fix above). `tsc --noEmit` clean.
+
+Files touched: `app/components/NatalChartPane.tsx` (new),
+`app/components/BirthDataSection.tsx` (exported `formatDate`),
+`app/components/Rail.tsx`, `app/reading/[slug]/natal/page.tsx`,
+`docs/mocks/natal-wheel-collapsed.png` / `natal-wheel-expanded.png` (new).
+One commit, not pushed.

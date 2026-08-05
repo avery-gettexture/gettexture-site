@@ -7,6 +7,7 @@ import ReferencePage from '@/app/components/ReferencePage';
 import CoverSection from '@/app/components/CoverSection';
 import BirthDataSection from '@/app/components/BirthDataSection';
 import ChartSection from '@/app/components/ChartSection';
+import NatalChartPane from '@/app/components/NatalChartPane';
 import NavBar from '@/app/components/NavBar';
 import Rail, { type RailRow } from '@/app/components/Rail';
 
@@ -101,12 +102,14 @@ const PLANET_KEY_MAP: Record<string, string> = {
   sun: 'sun', moon: 'moon', mercury: 'mercury', venus: 'venus',
   mars: 'mars', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus',
   neptune: 'neptune', pluto: 'pluto', asc: 'ascendant', mc: 'medium_coeli',
-  // Standing simplification (flagged for founder review, independent of
-  // the content-column wiring above): the merged Nodes section's meta
-  // line and rail row show the North Node's own sign/house/degree only,
-  // not a combined-axis line. SPEC §4.1 treats the axis as one subject;
-  // this UI still owes a real combined-meta treatment.
+  // The merged Nodes section's own meta line (card header) still shows the
+  // North Node's own sign/house/degree only, not a combined-axis line —
+  // that simplification is unchanged and still flagged for founder review.
+  // The desktop RAIL row is no longer part of that simplification: it now
+  // shows both ends (see the 'nodes-south' entry below and the `secondary`
+  // row built in DesktopNatal's `rows`, SPEC §16).
   nodes: 'mean_north_lunar_node',
+  'nodes-south': 'mean_south_lunar_node',
 };
 
 const SIGN_ABBR_MAP: Record<string, string> = {
@@ -151,7 +154,7 @@ function getReferenceProps(placement: PlacementConfig, referenceData: Record<str
 const RAIL_PLANET_GLYPHS: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
-  asc: '↑', mc: '↑', nodes: '☊',
+  asc: '↑', mc: '↑', nodes: '☊', 'nodes-south': '☋',
 };
 
 const RAIL_SIGN_GLYPHS: Record<string, string> = {
@@ -306,10 +309,9 @@ function PlacementCard(props: Parameters<typeof PlacementCardContent>[0]) {
 // ("DESKTOP — READING PAGE" / "THE LIST RAIL") and docs/mocks/natal-page.png.
 // Per founder ruling, the Cover/Birth Data/Intro splash screens do not
 // appear on desktop — the pane opens directly on the rail + first
-// placement, matching the mock. The Chart toggle control is shown (the doc
-// requires the full List/Chart set to always display) but is not wired to
-// a working chart view this pass — the chart wheel itself is a separate,
-// not-yet-built piece (SPEC §16, "chart wheel is Phase 3, not built").
+// placement, matching the mock. The Chart toggle control (READ | CHART) is
+// wired to a real screen-state swap — see `paneMode` below and
+// NatalChartPane — as of SPEC §16, Phase 3A follow-up (Aug 5 2026).
 
 // Round 7 rewrite (Aug 5 2026), per founder direction: treat this like a
 // static frame (nav + rail) with a "hole" the reading pane shows through,
@@ -332,6 +334,11 @@ function DesktopNatal({
   referenceData: Record<string, PlacementReferenceResult>;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  // READ | CHART pane state (SPEC §16, Phase 3A follow-up): a screen-state
+  // swap of the reading pane's content, not a scroll target. `.natal-scroll`
+  // stays mounted at all times (see the `display` toggle below) so its
+  // scroll position survives switching back to READ with no extra logic.
+  const [paneMode, setPaneMode] = useState<'read' | 'chart'>('read');
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Mirrors activeIndex but updated synchronously (not on React's render
@@ -363,10 +370,29 @@ function DesktopNatal({
     return () => observer.disconnect();
   }, []);
 
+  // Holds a placement index a rail-row click wants to jump to once
+  // .natal-scroll is visible again. Needed because switching paneMode back
+  // to 'read' (which removes `display: none`) doesn't take effect in the
+  // DOM until after this render commits — calling scrollIntoView on an
+  // element that's still inside a display:none ancestor is a silent no-op,
+  // so the scroll can't happen in the same synchronous click handler that
+  // requests the mode switch.
+  const pendingScrollIndexRef = useRef<number | null>(null);
+
   const scrollToIndex = useCallback((index: number) => {
     activeIndexRef.current = index;
     sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  // Flushes a scroll requested while the CHART pane was showing, once
+  // .natal-scroll's `display: none` has actually been lifted (see
+  // pendingScrollIndexRef above).
+  useEffect(() => {
+    if (paneMode !== 'read' || pendingScrollIndexRef.current === null) return;
+    const index = pendingScrollIndexRef.current;
+    pendingScrollIndexRef.current = null;
+    requestAnimationFrame(() => scrollToIndex(index));
+  }, [paneMode, scrollToIndex]);
 
   // The ONLY custom scroll JS left: the rail (and nav bar) are a
   // separate, non-scrolling overlay — genuinely nothing native to scroll
@@ -393,6 +419,9 @@ function DesktopNatal({
     let blockedUntil = 0;
 
     const handleWheel = (e: WheelEvent) => {
+      // The CHART pane is a static frame with nothing to scroll to — don't
+      // let wheel input over it silently drive the hidden READ scroll.
+      if (paneMode !== 'read') return;
       const target = e.target as HTMLElement;
       if (target.closest('.natal-scroll')) return;
       e.preventDefault();
@@ -416,10 +445,33 @@ function DesktopNatal({
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, [scrollToIndex]);
+  }, [scrollToIndex, paneMode]);
 
   const rows: RailRow[] = PLACEMENTS.map((placement, index) => {
     const meta = getPlanetMeta(reading.chart_data, placement.id);
+    // Nodes row (SPEC §4.1, §16): NO retrograde flag, and both axis ends
+    // shown side by side via `secondary` rather than the North Node's own
+    // placement standing in for the whole axis.
+    if (placement.id === 'nodes') {
+      const southMeta = getPlanetMeta(reading.chart_data, 'nodes-south');
+      return {
+        id: placement.id,
+        glyph: RAIL_PLANET_GLYPHS.nodes,
+        name: 'North Node',
+        degree: meta.degree,
+        signGlyph: RAIL_SIGN_GLYPHS[meta.sign] ?? '',
+        sign: meta.sign,
+        house: meta.house || undefined,
+        secondary: {
+          glyph: RAIL_PLANET_GLYPHS['nodes-south'],
+          name: 'South Node',
+          signGlyph: RAIL_SIGN_GLYPHS[southMeta.sign] ?? '',
+          sign: southMeta.sign,
+          house: southMeta.house || undefined,
+        },
+        active: index === activeIndex,
+      };
+    }
     return {
       id: placement.id,
       glyph: RAIL_PLANET_GLYPHS[placement.id] ?? '○',
@@ -438,7 +490,11 @@ function DesktopNatal({
       <NavBar slug={slug} active="natal" />
       <div className="app-stage">
         <div className="reading-stage-bg" style={{ backgroundImage: 'url(/sky-background.png)' }} />
-        <div className="natal-scroll" ref={containerRef}>
+        <div
+          className="natal-scroll"
+          ref={containerRef}
+          style={{ display: paneMode === 'read' ? undefined : 'none' }}
+        >
           {PLACEMENTS.map((placement, index) => {
             const refProps = getReferenceProps(placement, referenceData);
             return (
@@ -474,18 +530,54 @@ function DesktopNatal({
             );
           })}
         </div>
+        {/* CHART pane — a screen-state swap of the reading pane's content,
+            not a scroll target (SPEC §16, Phase 3A follow-up). Occupies the
+            same .natal-zone/.reading-zone-card geometry every placement
+            section already uses, so the frame never moves; only rendered
+            in 'chart' mode (unlike .natal-scroll above, which stays
+            mounted always and is hidden via `display` instead — this pane
+            has no scroll position to preserve, so it's fine to mount only
+            when active). */}
+        {paneMode === 'chart' && (
+          <div className="natal-zone">
+            <div className="reading-zone-card" style={{ background: 'transparent' }}>
+              <NatalChartPane
+                chartData={reading.chart_data}
+                birthTimeKnown={reading.birth_time_known}
+                name={customerName}
+                birthDate={reading.birth_date}
+                birthTime={reading.birth_time}
+                birthLocation={reading.birth_location}
+              />
+            </div>
+          </div>
+        )}
         {/* Rendered AFTER .natal-scroll in DOM order so it naturally
             stacks on top (no z-index needed) — the true "static frame"
             with the reading pane as the hole the scroll shows through. */}
         <div className="reading-rail-slot">
           <Rail
             title="Planets"
-            controls={[{ label: 'READ', active: true }, { label: 'CHART', active: false }]}
+            controls={[
+              { label: 'READ', active: paneMode === 'read', onClick: () => setPaneMode('read') },
+              { label: 'CHART', active: paneMode === 'chart', onClick: () => setPaneMode('chart') },
+            ]}
             rows={rows}
             fillHeight
             onRowClick={(id) => {
+              // Rail always means "go to this placement" — clicking a row
+              // while CHART is showing switches back to READ first (per
+              // founder confirmation), then scrolls as usual. The scroll
+              // itself is deferred (pendingScrollIndexRef) until READ's
+              // `display: none` is actually lifted — see the effect above.
               const idx = PLACEMENTS.findIndex(p => p.id === id);
-              if (idx !== -1) scrollToIndex(idx);
+              if (idx === -1) return;
+              if (paneMode !== 'read') {
+                pendingScrollIndexRef.current = idx;
+                setPaneMode('read');
+              } else {
+                scrollToIndex(idx);
+              }
             }}
           />
         </div>
