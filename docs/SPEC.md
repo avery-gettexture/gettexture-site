@@ -2186,3 +2186,86 @@ renders the "This interpretation is being prepared" placeholder (since
 `nodes` is genuinely empty) instead of the old dogfood `north_node`
 prose. `tsc --noEmit` and `npm run build` both clean. One commit, not
 pushed.
+
+**August 5, 2026 (Phase 3A follow-up — desktop natal visual/interaction
+tweaks from live founder feedback):** Avery ran the desktop shell locally
+and sent back a punch list after seeing it rendered for real; all
+changes below are desktop-only (>=1024px) and scoped so nothing shared
+with mobile changed — verified by screenshot that a mobile placement
+card is pixel-identical to before.
+
+- **Reading-zone card widened:** `.reading-zone-card`'s left/right inset
+  reduced from the doc's original 8% to **4%** each side — this is
+  shared chrome (also used by Reference/Settings/Transits), so the
+  widening applies everywhere that box appears, not just natal.
+- **Placement title shrunk (desktop only):** new selector
+  `.reading-pane-section .planet-name { font-size: clamp(22px, 3vw,
+  30px) }` overrides the shared `.planet-name` rule (`clamp(36px, 10vw,
+  52px)`, unchanged) only inside the desktop reading pane — mobile's
+  title size is untouched.
+- **Rail box: guaranteed no-scroll, all 13 rows visible, bottom flush
+  with the reading card.** Root cause of the founder's cutoff: `.rail-
+  row`'s fixed `5.3dvh` height was eyeballed against one viewport height
+  and fell back to an internal scroll on shorter screens. Fix: a new
+  opt-in "fill" mode on `Rail` (`fillHeight` prop, natal only) —
+  `.rail-rect--fill`/`.rail-list--fill`/`.rail-row--fill` make the box
+  and its rows `flex: 1`, dividing the exact space available (header to
+  the existing 6.5% bottom spacer) evenly across however many rows exist,
+  so all 13 always fit with zero scroll on any screen height. Because the
+  rail column and reading zone share the same 6.5dvh top/bottom
+  placement, the unchanged 6.5% bottom spacer now lines up pixel-for-
+  pixel with the reading card's own bottom inset (verified: both measured
+  671.6px on a 760px-tall test viewport). Deliberately opt-in rather than
+  the new default — Reference (3 demo rows) and future Transits (11 rows)
+  are tuned so a shorter list produces a shorter box, by design (Phase 2
+  history above); stretching those to fill would be an unreviewed change
+  to screens not part of this feedback pass.
+- **Rail header spacing:** `.rail-header` top padding trimmed (2% -> 0.5%)
+  to reclaim vertical space for the now-taller fill-mode box, per the
+  founder's own suggestion; a new `margin-bottom: 14px` adds breathing
+  room between the READ/CHART controls and the cream box below.
+- **Rail controls redesigned:** no more red on the active state — 
+  `.rail-control.active` now bold + larger + full-opacity cream
+  (`rgba(253,245,237,1)`), inactive dimmed to `rgba(253,245,237,0.45)`,
+  reusing the same active/inactive convention already used for mobile nav
+  links elsewhere in the app rather than inventing a new color rule. The
+  `>` chevron is gone (labels are now plain "READ"/"CHART"); a hairline
+  `border-left` divider sits between the two; `.rail-controls` changed
+  from `justify-content: space-between` (spread edge-to-edge) to
+  `flex-end` (clustered together, right-aligned to the rail's edge).
+- **Nested scroll -> resistance -> advance to next placement:** root
+  cause was `overscroll-behavior: contain` on `.card-content`/
+  `.section-body`, which blocks scroll-chaining outright. Added a
+  desktop-scoped override (`.reading-pane-section .card-content,
+  .reading-pane-section .section-body { overscroll-behavior: auto }`) —
+  mobile keeps `contain`, untouched. Verified via direct scrollTop
+  inspection (not just visual screenshots): a wheel gesture scrolls the
+  open accordion body to its max first; the next gesture or two land at
+  that boundary with no movement (the "little resistance"); the
+  following gesture then advances `.reading-pane-scroll` (already
+  `scroll-snap-type: y mandatory`) to the next section — confirmed this
+  is native browser scroll-chaining, no custom JS involved.
+- **Scroll disambiguation wired (the layout doc's own rule, written but
+  never wired for natal):** a `wheel` listener in `DesktopNatal`
+  (window-level, mounted once) checks whether `event.target` is inside
+  `.reading-zone-card`; if so it does nothing (native scroll/chaining
+  above handles it); otherwise it advances/retreats one placement per
+  gesture (by `deltaY` sign) with a ~700ms cooldown so one gesture can't
+  fire multiple jumps. Verified this fires correctly both over the rail
+  and over the page background.
+- **Debugging note worth recording:** mid-verification, wheel-based
+  navigation intermittently failed to fire in fresh Playwright test runs
+  even after code was correct — traced to the exact stale-Turbopack-cache
+  issue this project's history already flagged once before (Phase 2
+  correction #2 entry above, "the running dev server had not picked up
+  two of the six edits"). A full `rm -rf .next` + dev-server restart
+  resolved it each time. A separate, unrelated false negative also
+  appeared from a Playwright test script that opened two pages in one
+  browser instance — isolating each interaction test to its own
+  single-page script showed the app was working correctly the whole time.
+  Recorded here so a future session doesn't waste time re-diagnosing the
+  same two false leads.
+
+Files touched: `app/globals.css`, `app/components/Rail.tsx`,
+`app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
+both clean. One commit, not pushed.

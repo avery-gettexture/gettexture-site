@@ -564,8 +564,10 @@ body {
   position: absolute;
   top: 6.5%;
   bottom: 6.5%;
-  left: 8%;
-  right: 8%;
+  /* Widened per founder feedback (Aug 5 2026) from the doc's original 8% —
+     the card now claims more of the reading zone's horizontal width. */
+  left: 4%;
+  right: 4%;
   background: var(--cream);
   overflow: hidden;
 }
@@ -594,13 +596,17 @@ body {
 
 /* Title + view controls — on the background, NOT inside the cream box.
    Sits near the top of the column in normal flow, independent of the
-   rectangle below (whose position/height varies with row count). */
+   rectangle below (whose position/height varies with row count).
+   Top padding trimmed and a bottom margin added per founder feedback
+   (Aug 5 2026): reclaims vertical space for the (now fill-mode, on
+   natal) cream box below, and adds breathing room before it. */
 .rail-header {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 2% 6% 0;
+  gap: 2px;
+  padding: 0.5% 6% 0;
+  margin-bottom: 14px;
 }
 
 .rail-title {
@@ -611,26 +617,34 @@ body {
   text-align: center;
 }
 
-/* Spread edge-to-edge (first control at the rail's left edge, last at its
-   right), per docs/mocks/natal-page.png and transits-page.png — NOT the
-   left-clustered default a plain flex row gives you. Discovered while
-   comparing renders to the mocks; not one of the task's 6 numbered fixes,
-   but the same "match the mock's alignment" global rule applies. */
+/* Clustered together, right-aligned to the rail's right edge, with a
+   hairline divider between them (not spread edge-to-edge, no chevron) —
+   per founder feedback, Aug 5 2026. Supersedes the prior "spread
+   edge-to-edge" treatment. */
 .rail-controls {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   width: 100%;
 }
 
 .rail-control {
   font-family: var(--font-geist-mono), monospace;
   font-size: clamp(10px, 0.85vw, 12px);
-  color: var(--cream);
+  color: rgba(253, 245, 237, 0.45);
   letter-spacing: 0.5px;
 }
 
+.rail-control + .rail-control {
+  border-left: 1px solid rgba(253, 245, 237, 0.30);
+  margin-left: 10px;
+  padding-left: 10px;
+}
+
+/* Active state, per founder feedback (Aug 5 2026): no red — bold, larger,
+   full-opacity cream instead, same active/inactive convention already
+   used for mobile nav links elsewhere in this app. */
 .rail-control.active {
-  color: var(--red-strong);
+  color: rgba(253, 245, 237, 1);
   font-weight: 700;
   font-size: clamp(11px, 0.95vw, 13px);
 }
@@ -695,6 +709,36 @@ body {
   background: rgba(185, 18, 18, 0.04);
 }
 
+/* "Fill" mode — opt-in via Rail's `fillHeight` prop, used by natal (13
+   rows, the app's max row count). Per founder feedback (Aug 5 2026): the
+   cream box must show all rows with zero scroll and its bottom flush
+   with the reading card's bottom, on any screen height. Rather than
+   change the default row-height-is-a-tuned-constant behavior above
+   (shared with Reference/Transits, where a shorter list is INTENDED to
+   produce a shorter box — SPEC's Phase 2 history), this scales the box
+   and its rows to fill exactly the space available: `.rail-rect--fill`
+   claims all remaining height between the header and the bottom spacer,
+   `.rail-row--fill` rows then divide that height evenly. Because the
+   rail column and the reading zone share the same top/bottom (6.5dvh
+   each), the unchanged 6.5% .rail-bottom-spacer below still lines up
+   pixel-for-pixel with the reading card's own 6.5% bottom inset. */
+.rail-rect--fill {
+  flex: 1;
+}
+
+.rail-list--fill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rail-row--fill {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .rail-row-bar {
   position: absolute;
   left: 0;
@@ -723,7 +767,7 @@ body {
    "DESKTOP — READING PAGE" + "THE LIST RAIL"). Desktop-only (>=1024px);
    mobile keeps the .reading-container/.reading-section mechanic untouched.
    The reading pane is a scroll document of placement sections living
-   INSIDE the shared .reading-zone-card box (same 6.5%/8% inset chrome
+   INSIDE the shared .reading-zone-card box (same 6.5%/4% inset chrome
    used everywhere else) — this just adds the inner snap-scroll viewport;
    each section's header/content/footer reuse the existing .card-header/
    .card-content/.section-row/.card-footer rules above unchanged.
@@ -751,6 +795,27 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Desktop-scoped title override (Aug 5 2026 founder feedback): the
+   shared .planet-name rule (used identically by mobile) is intentionally
+   NOT touched — this is a more-specific selector that only applies
+   inside the desktop reading pane. */
+.reading-pane-section .planet-name {
+  font-size: clamp(22px, 3vw, 30px);
+}
+
+/* Desktop-scoped scroll-chaining (Aug 5 2026 founder feedback): mobile's
+   .card-content/.section-body keep `overscroll-behavior: contain`
+   (blocks chaining) — untouched. Here it's relaxed to `auto` so once the
+   open accordion body's own content is exhausted, the wheel gesture
+   natively hands off to .reading-pane-scroll's mandatory scroll-snap
+   above and advances to the next placement, instead of dead-stopping.
+   The "little resistance" before that handoff is the browser's native
+   overscroll boundary feel plus the mandatory snap itself — no JS. */
+.reading-pane-section .card-content,
+.reading-pane-section .section-body {
+  overscroll-behavior: auto;
 }
 
 .rail-row-retro {

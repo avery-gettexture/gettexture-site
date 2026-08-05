@@ -23,6 +23,13 @@ interface RailProps {
    * section. Optional so existing shell-only callers (e.g. Reference's
    * demo rows) keep working with no click behavior wired. */
   onRowClick?: (id: string) => void;
+  /** Opt-in "fill" mode (founder feedback, Aug 5 2026): the cream box and
+   * its rows stretch to fill exactly the space available, guaranteeing
+   * every row is visible with zero scroll and the box's bottom flush
+   * with the reading card's. Default (omitted/false) keeps the original
+   * content-driven sizing, where a shorter list produces a shorter box —
+   * used by Reference/Transits, not opted into here. */
+  fillHeight?: boolean;
 }
 
 // THE LIST RAIL (docs/TEXTURE_LAYOUT_PROPORTIONS.md). Structure only —
@@ -33,7 +40,7 @@ interface RailProps {
 // cream rectangle below holds only the row list, and its height is
 // content-driven (see .rail-rect / .rail-row in globals.css) — it is not
 // fixed to a constant, so it naturally comes out taller for more rows.
-export default function Rail({ title, controls, rows, onRowClick }: RailProps) {
+export default function Rail({ title, controls, rows, onRowClick, fillHeight }: RailProps) {
   return (
     <div className="rail">
       <div className="rail-header">
@@ -48,12 +55,12 @@ export default function Rail({ title, controls, rows, onRowClick }: RailProps) {
           </div>
         )}
       </div>
-      <div className="rail-rect">
-        <div className="rail-list">
+      <div className={`rail-rect${fillHeight ? ' rail-rect--fill' : ''}`}>
+        <div className={`rail-list${fillHeight ? ' rail-list--fill' : ''}`}>
           {rows.map(row => (
             <div
               key={row.id}
-              className={`rail-row${row.active ? ' active' : ''}`}
+              className={`rail-row${row.active ? ' active' : ''}${fillHeight ? ' rail-row--fill' : ''}`}
               onClick={() => onRowClick?.(row.id)}
               style={onRowClick ? { cursor: 'pointer' } : undefined}
             >

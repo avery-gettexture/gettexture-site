@@ -323,8 +323,13 @@ function DesktopNatal({
   referenceData: Record<string, PlacementReferenceResult>;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndexRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -347,6 +352,31 @@ function DesktopNatal({
   const scrollToIndex = useCallback((index: number) => {
     sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  // Scroll disambiguation rule (docs/TEXTURE_LAYOUT_PROPORTIONS.md,
+  // "The scroll disambiguation rule"), wired per founder feedback (Aug 5
+  // 2026): cursor over the cream reading card -> its own content scrolls
+  // (native chaining then hands off to the snap-scroll above once
+  // exhausted, per the .reading-pane-section overscroll-behavior rule in
+  // globals.css). Cursor anywhere else on the page -> this listener
+  // advances/retreats one placement per gesture, with a cooldown so one
+  // wheel/trackpad gesture doesn't fire multiple jumps.
+  useEffect(() => {
+    let cooling = false;
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.reading-zone-card')) return;
+      e.preventDefault();
+      if (cooling || e.deltaY === 0) return;
+      const next = activeIndexRef.current + (e.deltaY > 0 ? 1 : -1);
+      if (next < 0 || next >= PLACEMENTS.length) return;
+      cooling = true;
+      scrollToIndex(next);
+      setTimeout(() => { cooling = false; }, 700);
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [scrollToIndex]);
 
   const rows: RailRow[] = PLACEMENTS.map((placement, index) => {
     const meta = getPlanetMeta(reading.chart_data, placement.id);
@@ -372,8 +402,9 @@ function DesktopNatal({
       rail={
         <Rail
           title="Planets"
-          controls={[{ label: 'READ >', active: true }, { label: 'CHART >', active: false }]}
+          controls={[{ label: 'READ', active: true }, { label: 'CHART', active: false }]}
           rows={rows}
+          fillHeight
           onRowClick={(id) => {
             const idx = PLACEMENTS.findIndex(p => p.id === id);
             if (idx !== -1) scrollToIndex(idx);
