@@ -451,9 +451,12 @@ function DesktopNatal({
     const meta = getPlanetMeta(reading.chart_data, placement.id);
     // Nodes row (SPEC §4.1, §16): NO retrograde flag, and both axis ends
     // shown side by side via `secondary` rather than the North Node's own
-    // placement standing in for the whole axis.
+    // placement standing in for the whole axis. House is shortened to just
+    // the ordinal ("9th", not "9th House") — the full word was pushing the
+    // two-ended line onto a third line (founder feedback).
     if (placement.id === 'nodes') {
       const southMeta = getPlanetMeta(reading.chart_data, 'nodes-south');
+      const shortHouse = (h: string) => h.replace(/ House$/, '') || undefined;
       return {
         id: placement.id,
         glyph: RAIL_PLANET_GLYPHS.nodes,
@@ -461,14 +464,33 @@ function DesktopNatal({
         degree: meta.degree,
         signGlyph: RAIL_SIGN_GLYPHS[meta.sign] ?? '',
         sign: meta.sign,
-        house: meta.house || undefined,
+        house: shortHouse(meta.house),
         secondary: {
           glyph: RAIL_PLANET_GLYPHS['nodes-south'],
           name: 'South Node',
           signGlyph: RAIL_SIGN_GLYPHS[southMeta.sign] ?? '',
           sign: southMeta.sign,
-          house: southMeta.house || undefined,
+          house: shortHouse(southMeta.house),
         },
+        active: index === activeIndex,
+      };
+    }
+    // Midheaven's rail row shows its house (founder feedback) even though
+    // getPlanetMeta blanks house for both angles (ascendant/medium_coeli) —
+    // that exclusion still applies to Ascendant and to MC's own card-header
+    // meta line, unchanged; this looks the house up directly for the rail
+    // row only.
+    if (placement.id === 'mc') {
+      const rawHouse = reading.chart_data?.subject?.medium_coeli?.house;
+      return {
+        id: placement.id,
+        glyph: RAIL_PLANET_GLYPHS.mc,
+        name: placement.name,
+        degree: meta.degree,
+        retrograde: meta.retrograde,
+        signGlyph: RAIL_SIGN_GLYPHS[meta.sign] ?? '',
+        sign: meta.sign,
+        house: HOUSE_ORDINALS[rawHouse] ?? undefined,
         active: index === activeIndex,
       };
     }
@@ -532,15 +554,20 @@ function DesktopNatal({
         </div>
         {/* CHART pane — a screen-state swap of the reading pane's content,
             not a scroll target (SPEC §16, Phase 3A follow-up). Occupies the
-            same .natal-zone/.reading-zone-card geometry every placement
-            section already uses, so the frame never moves; only rendered
-            in 'chart' mode (unlike .natal-scroll above, which stays
-            mounted always and is hidden via `display` instead — this pane
-            has no scroll position to preserve, so it's fine to mount only
-            when active). */}
+            same .natal-zone geometry every placement section already uses,
+            so the frame never moves; only rendered in 'chart' mode (unlike
+            .natal-scroll above, which stays mounted always and is hidden
+            via `display` instead — this pane has no scroll position to
+            preserve, so it's fine to mount only when active).
+
+            Fills the FULL .natal-zone block — the same size as any
+            placement's .section-bg image — not the smaller inset
+            .reading-zone-card cream rectangle every other state uses
+            (founder correction: the wheel needed the whole block's room,
+            not just the cream card's, to read at a reasonable size). */}
         {paneMode === 'chart' && (
           <div className="natal-zone">
-            <div className="reading-zone-card" style={{ background: 'transparent' }}>
+            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
               <NatalChartPane
                 chartData={reading.chart_data}
                 birthTimeKnown={reading.birth_time_known}
@@ -548,6 +575,7 @@ function DesktopNatal({
                 birthDate={reading.birth_date}
                 birthTime={reading.birth_time}
                 birthLocation={reading.birth_location}
+                slug={slug}
               />
             </div>
           </div>

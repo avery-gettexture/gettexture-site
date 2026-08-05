@@ -2655,9 +2655,9 @@ toggle (visible but inert since Phase 3A) now does something. Two pieces:
      the pane wasn't enough — its circular edge would show inside the
      rectangle. Fixed by rendering it in a div oversized to 220% on each
      axis, centered on the wheel's own center point, clipped by the
-     existing `.reading-zone-card`'s `overflow: hidden` — the image's
-     center is locked to the wheel's center and no circular edge is ever
-     visible, regardless of the pane's actual aspect ratio.
+     containing element's `overflow: hidden` — the image's center is
+     locked to the wheel's center and no circular edge is ever visible,
+     regardless of the pane's actual aspect ratio.
    - **Wheel:** reuses `NatalChartWheelWeb` exactly as mobile's
      `ChartSection.tsx` already does (no explicit `size` prop, just a sized
      wrapper div, letting the component's own `ResizeObserver` do the
@@ -2668,7 +2668,9 @@ toggle (visible but inert since Phase 3A) now does something. Two pieces:
      session, `docs/mocks/natal-wheel-collapsed.png` /
      `natal-wheel-expanded.png` (flat placeholder circles showing wheel
      proportion/placement and the name/birth-data band only, not real chart
-     content).
+     content). **Superseded same day — see the correction entry below**:
+     these ratios and the `.reading-zone-card`-sized container turned out
+     wrong once checked against a real screenshot.
    - **Name / birth data:** first real build of the collapse/expand
      mechanic the layout doc describes as used everywhere on natal (this is
      the first place it's actually wired to a click). Collapsed: name
@@ -2678,7 +2680,8 @@ toggle (visible but inert since Phase 3A) now does something. Two pieces:
      is top-anchored, not bottom-anchored, so only the birth-data line adds
      height below the name rather than shifting it. Reuses
      `BirthDataSection.tsx`'s `formatDate` helper (now exported) instead of
-     re-deriving date formatting.
+     re-deriving date formatting. **Superseded same day — see below**:
+     color and anchoring both turned out wrong too.
    - **Chart 101 link**, top-right: a real, live `<Link href="/reference">`
      per founder direction this session ("I'd rather have a functioning
      link" — the how-to-read-a-chart content itself doesn't exist yet
@@ -2733,3 +2736,71 @@ Files touched: `app/components/NatalChartPane.tsx` (new),
 `app/components/Rail.tsx`, `app/reading/[slug]/natal/page.tsx`,
 `docs/mocks/natal-wheel-collapsed.png` / `natal-wheel-expanded.png` (new).
 One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 2 — CHART overlay correction
+after founder screenshot review; no API calls, not deployed):** the founder
+reviewed the round-1 build directly and flagged it as a real mismatch, not
+a nitpick — the name overlapped the wheel, the wheel ran into the pane's
+top edge, and asked directly whether screenshots were actually being diffed
+or the report was written from code alone. They were right to push:
+re-measuring the round-1 render via Playwright `getBoundingClientRect`
+(not a screenshot eyeball) found the wheel's SVG at 567×567px inside a
+915×687px pane — 62% of the pane's *width* as coded, but the pane isn't
+square, so that same 567px is 82% of its *height*, which is why the wheel
+hit the top edge and its bottom (85% down) collided with the name band
+(anchored at a fixed 82%). Root cause: treating "62% of width" and "62% of
+height" as interchangeable, which only holds for a square container.
+
+Fixed in two steps:
+1. **Wheel sizing.** `NatalChartPane` now measures its own container via
+   `ResizeObserver` and sizes the wheel as a percentage of
+   `Math.min(width, height)` — the same defensive pattern mobile's
+   `ChartSection.tsx` already uses (`min(...)` across width/height/dvh
+   candidates) — passing an explicit pixel `size` to `NatalChartWheelWeb`
+   instead of a CSS `width: X%` that silently assumes a square box.
+2. **New ratios, from a new founder mock.** The founder added
+   `docs/mocks/chart-dif.png` — the current (wrong) render with a
+   transparent circle traced on top at the target size, plus a
+   dark-vs-cream text comparison, overlaid on to-scale screenshots of the
+   actual pane. Measured by pixel analysis (brightness-transition
+   scanlines through the circle's true center, found via a vertical
+   profile first — not eyeballed): circle diameter is **85% of the pane's
+   limiting dimension** (was 62%), vertical center **~46.5%** (was 44%).
+   Name/birth-data text color histogrammed to its dominant solid pixel —
+   `rgb(19,15,15)` — which matches this app's existing `var(--dark)`
+   (`#161612`) almost exactly: the same color already used for all body
+   text on cream throughout the rest of the app, not a new one-off value.
+   The block is now bottom-anchored (`bottom: 3%`), not top-anchored:
+   measuring "Avery" 's own row-span in the collapsed vs. expanded mock
+   panels shows it sits *higher* when birth data is present below it (name
+   center ~96% down collapsed vs. ~93% down expanded) — the birth-data
+   line's bottom edge is what's pinned near the pane's true bottom, and
+   the name moves up to make room above it, not the reverse.
+
+**Separately, founder direction mid-review (not from the mock — a plain
+instruction):** the chart pane should occupy the FULL `.natal-zone` block —
+the same size as any placement's `.section-bg` image — not the smaller
+`.reading-zone-card` cream rectangle every other state uses. The cream
+card's own 6.5%/4% insets were eating room the founder wanted back. Fixed
+by dropping the `.reading-zone-card` wrapper for the chart pane specifically
+(a plain `position: absolute; inset: 0; overflow: hidden` div sits directly
+in `.natal-zone` instead) — confirmed via measurement: the container grew
+from 915×687px to 995×790px at the same viewport, and the 85%/46.5% ratios
+above are computed against this larger box, per founder instruction to
+"keep the same proportions... but enlarge the area."
+
+Also: Chart 101's link target was corrected — founder's first answer
+("point it at `/reference`") was, in their words, "too abbreviated"; the
+real target is the slug-scoped `/reading/[slug]/reference` route (confirmed
+that route exists under `app/reading/[slug]/reference`, unlike a bare
+top-level `/reference`). `NatalChartPane` gained a `slug` prop for this.
+
+Verified the same way as the finding that triggered this round — real
+`getBoundingClientRect` measurement, not a screenshot eyeball: wheel now
+renders at 85.1% of the pane's limiting dimension (target 85%), name text
+computed color `rgb(22, 22, 18)` (exactly `var(--dark)`), Chart 101's
+`href` reads `/reading/hejkhjq1zns5/reference`. `tsc --noEmit` clean.
+
+Files touched: `app/components/NatalChartPane.tsx`,
+`app/reading/[slug]/natal/page.tsx`, `docs/mocks/chart-dif.png` (new, the
+founder's correction overlay). One commit, not pushed.
