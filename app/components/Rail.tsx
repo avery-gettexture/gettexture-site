@@ -19,6 +19,10 @@ interface RailProps {
   title: string;
   controls: RailControl[];
   rows: RailRow[];
+  /** Row-click nav (Phase 3A): scroll-snaps the reading pane to that row's
+   * section. Optional so existing shell-only callers (e.g. Reference's
+   * demo rows) keep working with no click behavior wired. */
+  onRowClick?: (id: string) => void;
 }
 
 // THE LIST RAIL (docs/TEXTURE_LAYOUT_PROPORTIONS.md). Structure only —
@@ -29,7 +33,7 @@ interface RailProps {
 // cream rectangle below holds only the row list, and its height is
 // content-driven (see .rail-rect / .rail-row in globals.css) — it is not
 // fixed to a constant, so it naturally comes out taller for more rows.
-export default function Rail({ title, controls, rows }: RailProps) {
+export default function Rail({ title, controls, rows, onRowClick }: RailProps) {
   return (
     <div className="rail">
       <div className="rail-header">
@@ -47,7 +51,12 @@ export default function Rail({ title, controls, rows }: RailProps) {
       <div className="rail-rect">
         <div className="rail-list">
           {rows.map(row => (
-            <div key={row.id} className={`rail-row${row.active ? ' active' : ''}`}>
+            <div
+              key={row.id}
+              className={`rail-row${row.active ? ' active' : ''}`}
+              onClick={() => onRowClick?.(row.id)}
+              style={onRowClick ? { cursor: 'pointer' } : undefined}
+            >
               {row.active && <span className="rail-row-bar" />}
               <div className="rail-row-line1">
                 <span>{row.glyph}</span>

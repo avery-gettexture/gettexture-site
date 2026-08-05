@@ -7,10 +7,12 @@ import ReferencePage from '@/app/components/ReferencePage';
 import CoverSection from '@/app/components/CoverSection';
 import BirthDataSection from '@/app/components/BirthDataSection';
 import ChartSection from '@/app/components/ChartSection';
+import ReadingLayout from '@/app/components/ReadingLayout';
+import Rail, { type RailRow } from '@/app/components/Rail';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type SectionKey = 'synthesis' | 'reference';
+type SectionKey = 'overview' | 'reference';
 
 interface Reading {
   slug: string;
@@ -35,44 +37,58 @@ interface Reading {
   mc: string | null;
   north_node: string | null;
   south_node: string | null;
+  // Not yet returned by get_reading_by_slug — the founder hasn't run
+  // scripts/add_nodes_column.sql yet. Declared here so the swap from the
+  // temporary `north_node` wiring below is a one-line change once it has.
+  nodes?: string | null;
   chart_data: any;
 }
 
-interface PlanetConfig {
+interface PlacementConfig {
   id: string;
   name: string;
   background: string;
   contentKey: keyof Reading;
 }
 
-// ── Planet config ──────────────────────────────────────────────────────────
+// ── Placement config ──────────────────────────────────────────────────────
+// 13 placements (SPEC §4.1: North Node + South Node consolidated into one
+// "Nodes" axis piece — was 14). This list is the single shared source of
+// truth for BOTH mobile (unchanged single-column layout) and desktop (new
+// rail + reading-pane shell) — the nodes merge and the accordion fix below
+// are content-structure changes approved for both platforms; only the
+// desktop shell itself is a layout change.
 
-const PLANETS: PlanetConfig[] = [
-  { id: 'sun',        name: 'Sun',        background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sun-background.png',        contentKey: 'sun'        },
-  { id: 'moon',       name: 'Moon',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/moon-background.png',       contentKey: 'moon'       },
-  { id: 'mercury',    name: 'Mercury',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mercury-background.png',    contentKey: 'mercury'    },
-  { id: 'venus',      name: 'Venus',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/venus-background.png',      contentKey: 'venus'      },
-  { id: 'mars',       name: 'Mars',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mars-background.png',       contentKey: 'mars'       },
-  { id: 'jupiter',    name: 'Jupiter',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/jupiter-background.png',    contentKey: 'jupiter'    },
-  { id: 'saturn',     name: 'Saturn',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/saturn-background.png',     contentKey: 'saturn'     },
-  { id: 'uranus',     name: 'Uranus',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/uranus-background.png',     contentKey: 'uranus'     },
-  { id: 'neptune',    name: 'Neptune',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/neptune-background.png',    contentKey: 'neptune'    },
-  { id: 'pluto',      name: 'Pluto',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/pluto-background.png',      contentKey: 'pluto'      },
-  { id: 'asc',        name: 'Ascendant',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/asc-background.png',        contentKey: 'asc_reading'},
-  { id: 'mc',         name: 'Midheaven',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mc-background.png',         contentKey: 'mc'         },
-  { id: 'north-node', name: 'North Node', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/north-node-background.png', contentKey: 'north_node' },
-  { id: 'south-node', name: 'South Node', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/south-node-background.png', contentKey: 'south_node' },
+const PLACEMENTS: PlacementConfig[] = [
+  { id: 'sun',     name: 'Sun',        background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sun-background.png',     contentKey: 'sun'     },
+  { id: 'moon',    name: 'Moon',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/moon-background.png',    contentKey: 'moon'    },
+  { id: 'mercury', name: 'Mercury',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mercury-background.png', contentKey: 'mercury' },
+  { id: 'venus',   name: 'Venus',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/venus-background.png',   contentKey: 'venus'   },
+  { id: 'mars',    name: 'Mars',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mars-background.png',    contentKey: 'mars'    },
+  { id: 'jupiter', name: 'Jupiter',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/jupiter-background.png', contentKey: 'jupiter' },
+  { id: 'saturn',  name: 'Saturn',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/saturn-background.png',  contentKey: 'saturn'  },
+  { id: 'uranus',  name: 'Uranus',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/uranus-background.png',  contentKey: 'uranus'  },
+  { id: 'neptune', name: 'Neptune',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/neptune-background.png', contentKey: 'neptune' },
+  { id: 'pluto',   name: 'Pluto',      background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/pluto-background.png',   contentKey: 'pluto'   },
+  { id: 'asc',     name: 'Ascendant',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/asc-background.png',     contentKey: 'asc_reading' },
+  { id: 'mc',      name: 'Midheaven',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mc-background.png',      contentKey: 'mc'      },
+  // TEMPORARY (per founder instruction, in place until scripts/
+  // add_nodes_column.sql has been run against Supabase): contentKey points
+  // at the existing `north_node` column instead of the new `nodes` column,
+  // so the reading pipeline isn't blocked on that migration. Swap
+  // contentKey to 'nodes' once the founder confirms the migration ran.
+  { id: 'nodes',   name: 'Nodes',      background: '/nodes-background.png', contentKey: 'north_node' },
 ];
 
 const PLACEHOLDER_SYNTHESIS = 'This interpretation is being prepared. Check back shortly.';
 
-// ── Section indices ────────────────────────────────────────────────────────
+// ── Section indices (mobile scroll document) ───────────────────────────────
 // 0: Cover
 // 1: Birth Data
 // 2: Intro
 // 3: Chart
-// 4-17: Planets (14 total)
-// 18: Reference
+// 4-16: Placements (13 total)
+// 17: Reference
 
 const CHART_INDEX = 3;
 const PLANET_START = 4;
@@ -80,16 +96,21 @@ const PLANET_START = 4;
 const PLANET_TO_INDEX: Record<string, number> = {
   sun: 4, moon: 5, mercury: 6, venus: 7, mars: 8,
   jupiter: 9, saturn: 10, uranus: 11, neptune: 12, pluto: 13,
-  ascendant: 14, medium_coeli: 15, mean_north_lunar_node: 16, mean_south_lunar_node: 17,
+  ascendant: 14, medium_coeli: 15, mean_north_lunar_node: 16,
 };
 
-// ── Helper: get planet meta from chart_data ────────────────────────────────
+// ── Helper: get placement meta from chart_data ─────────────────────────────
 
 const PLANET_KEY_MAP: Record<string, string> = {
   sun: 'sun', moon: 'moon', mercury: 'mercury', venus: 'venus',
   mars: 'mars', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus',
   neptune: 'neptune', pluto: 'pluto', asc: 'ascendant', mc: 'medium_coeli',
-  'north-node': 'mean_north_lunar_node', 'south-node': 'mean_south_lunar_node',
+  // TEMPORARY simplification (flagged for founder review): the merged
+  // Nodes section's meta line and rail row show the North Node's own
+  // sign/house/degree only, not a combined-axis line. SPEC §4.1 treats the
+  // axis as one subject; this UI still owes a real combined-meta treatment
+  // once Nodes content is written for real.
+  nodes: 'mean_north_lunar_node',
 };
 
 const SIGN_ABBR_MAP: Record<string, string> = {
@@ -117,26 +138,104 @@ function getPlanetMeta(chartData: any, planetId: string): { sign: string; house:
   return { sign, house, degree, retrograde: planet.retrograde ?? false };
 }
 
-// ── Planet Card Component ──────────────────────────────────────────────────
+// Reference data is still fetched per individual point (SPEC §4.1: "the
+// reference dictionary keeps both nodes individually defined — the reading
+// merges, the vocabulary does not"), so the merged Nodes placement needs
+// both 'north-node' and 'south-node' results; every other placement maps
+// straight through.
+function getReferenceProps(placement: PlacementConfig, referenceData: Record<string, PlacementReferenceResult>) {
+  if (placement.id === 'nodes') {
+    return { referenceData: referenceData['north-node'], referenceDataSecondary: referenceData['south-node'] };
+  }
+  return { referenceData: referenceData[placement.id], referenceDataSecondary: undefined as PlacementReferenceResult | undefined };
+}
 
-function PlanetCard({
+// Desktop rail glyphs (mirrors ChartSection.tsx's mobile glyph maps, keyed
+// to PLACEMENTS' short ids rather than chart_data field names).
+const RAIL_PLANET_GLYPHS: Record<string, string> = {
+  sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
+  jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
+  asc: '↑', mc: '↑', nodes: '☊',
+};
+
+const RAIL_SIGN_GLYPHS: Record<string, string> = {
+  Aries: '♈︎', Taurus: '♉︎', Gemini: '♊︎', Cancer: '♋︎',
+  Leo: '♌︎', Virgo: '♍︎', Libra: '♎︎', Scorpio: '♏︎',
+  Sagittarius: '♐︎', Capricorn: '♑︎', Aquarius: '♒︎', Pisces: '♓︎',
+};
+
+// ── Reference accordion body (shared by Overview/Reference toggle) ─────────
+
+function ReferenceBlock({ data, label }: { data: PlacementReferenceResult; label?: string }) {
+  const grouped: Array<{ instances: string[]; entry: PlacementReferenceResult['aspects'][0]['entry'] }> = [];
+  data.aspects.forEach(a => {
+    if (a.showDescription) {
+      grouped.push({ instances: [a.instance], entry: a.entry });
+    } else {
+      grouped[grouped.length - 1]?.instances.push(a.instance);
+    }
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {label && (
+        <div style={{
+          fontFamily: 'var(--font-anton), sans-serif',
+          fontSize: 'clamp(15px, 4vw, 18px)',
+          color: 'var(--dark)',
+          letterSpacing: '0.5px',
+        }}>
+          {label}
+        </div>
+      )}
+      {[data.planet, data.sign, data.house, data.motion, data.degree].filter(Boolean).map((entry, i) => entry && (
+        <div key={i}>
+          <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
+            {entry.category === 'motion' ? `${entry.name} MOTION` : entry.category === 'degree' ? `${entry.name} DEGREE` : entry.name}
+          </div>
+          <p className="body-text" style={{ color: 'rgba(22,22,18,0.70)', fontSize: 'clamp(13px, 3.6vw, 15px)' }}>{entry.description}</p>
+        </div>
+      ))}
+      {grouped.map((group, i) => (
+        <div key={`aspect-group-${i}`}>
+          {group.instances.map((inst, j) => (
+            <div key={j} style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
+              {inst}
+            </div>
+          ))}
+          <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px', marginTop: '2px' }}>
+            {group.entry.name}
+          </div>
+          <p className="body-text" style={{ color: 'rgba(22,22,18,0.70)', fontSize: 'clamp(13px, 3.6vw, 15px)' }}>{group.entry.description}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Placement card content (header + accordion + footer) ───────────────────
+// Shared by mobile (.card-inner wrapper) and desktop (.reading-pane-section
+// wrapper) — both wrappers already supply the same flex-column box, so this
+// renders just the three inner pieces. Accordion behavior (corrected per
+// founder instruction): Overview and Reference are both always
+// present/anchored, mutually exclusive, Overview expanded by default, and
+// whichever is expanded gets its OWN contained scroll (.section-body in
+// globals.css), not a scroll of the whole card.
+
+function PlacementCardContent({
   planet,
   reading,
   customerName,
   referenceData,
+  referenceDataSecondary,
 }: {
-  planet: PlanetConfig;
+  planet: PlacementConfig;
   reading: Reading | null;
   customerName: string;
   referenceData?: PlacementReferenceResult;
+  referenceDataSecondary?: PlacementReferenceResult;
 }) {
-  const [openSection, setOpenSection] = useState<SectionKey>('synthesis');
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  function handleSectionToggle(section: SectionKey) {
-    setOpenSection(section);
-    if (contentRef.current) contentRef.current.scrollTop = 0;
-  }
+  const [openSection, setOpenSection] = useState<SectionKey>('overview');
 
   const meta = reading ? getPlanetMeta(reading.chart_data, planet.id) : { sign: '', house: '', degree: '', retrograde: false };
   const synthesisText = reading ? (reading[planet.contentKey] as string | null) : null;
@@ -145,87 +244,169 @@ function PlanetCard({
 
   return (
     <>
-      <div className="card-outer" />
-      <div className="card-inner">
-        <div className="card-header">
-          <h1 className="planet-name">{planet.name}</h1>
-          {metaString ? <p className="planet-meta">{metaString}</p> : null}
-          <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
+      <div className="card-header">
+        <h1 className="planet-name">{planet.name}</h1>
+        {metaString ? <p className="planet-meta">{metaString}</p> : null}
+        <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
+      </div>
+
+      <div className="card-content">
+        <div className="section-row" onClick={() => setOpenSection('overview')}>
+          <span className="section-row-label">Overview</span>
+          <span className="section-row-chevron">{openSection === 'overview' ? '−' : '+'}</span>
         </div>
 
-        <div className="card-content" ref={contentRef}>
-          <div className="section-row" onClick={() => handleSectionToggle('synthesis')}>
-            <span className="section-row-label">Your {planet.name}</span>
-            <span className="section-row-chevron">{openSection === 'synthesis' ? '−' : '+'}</span>
+        {openSection === 'overview' && (
+          <div className="section-body">
+            <p className="body-text">{synthesisText ?? PLACEHOLDER_SYNTHESIS}</p>
           </div>
+        )}
 
-          {openSection === 'synthesis' && (
-            <div className="section-body">
-              <p className="body-text">{synthesisText ?? PLACEHOLDER_SYNTHESIS}</p>
-            </div>
-          )}
+        <div className="section-divider" />
 
-          <div className="section-divider" />
+        <div className="section-row" onClick={() => setOpenSection('reference')}>
+          <span className="section-row-label">Reference</span>
+          <span className="section-row-chevron">{openSection === 'reference' ? '−' : '+'}</span>
+        </div>
 
-          <div className="section-row" onClick={() => handleSectionToggle('reference')}>
-            <span className="section-row-label">Reference</span>
-            <span className="section-row-chevron">{openSection === 'reference' ? '−' : '+'}</span>
-          </div>
-
-          {openSection === 'reference' && (
-            <div className="section-body">
-              {!referenceData ? (
+        {openSection === 'reference' && (
+          <div className="section-body">
+            {planet.id === 'nodes' ? (
+              (!referenceData || !referenceDataSecondary) ? (
                 <p className="placeholder-text">Loading...</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {[
-                    referenceData.planet,
-                    referenceData.sign,
-                    referenceData.house,
-                    referenceData.motion,
-                    referenceData.degree,
-                  ].filter(Boolean).map((entry, i) => entry && (
-                    <div key={i}>
-                      <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
-                        {entry.category === 'motion' ? `${entry.name} MOTION` : entry.category === 'degree' ? `${entry.name} DEGREE` : entry.name}
-                      </div>
-                      <p className="body-text" style={{ color: 'rgba(22,22,18,0.70)', fontSize: 'clamp(13px, 3.6vw, 15px)' }}>{entry.description}</p>
-                    </div>
-                  ))}
-                  {(() => {
-                    const grouped: Array<{ instances: string[]; entry: typeof referenceData.aspects[0]['entry'] }> = [];
-                    referenceData.aspects.forEach(a => {
-                      if (a.showDescription) {
-                        grouped.push({ instances: [a.instance], entry: a.entry });
-                      } else {
-                        grouped[grouped.length - 1]?.instances.push(a.instance);
-                      }
-                    });
-                    return grouped.map((group, i) => (
-                      <div key={`aspect-group-${i}`}>
-                        {group.instances.map((inst, j) => (
-                          <div key={j} style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                            {inst}
-                          </div>
-                        ))}
-                        <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 11px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px', marginTop: '2px' }}>
-                          {group.entry.name}
-                        </div>
-                        <p className="body-text" style={{ color: 'rgba(22,22,18,0.70)', fontSize: 'clamp(13px, 3.6vw, 15px)' }}>{group.entry.description}</p>
-                      </div>
-                    ));
-                  })()}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                  <ReferenceBlock data={referenceData} label="North Node" />
+                  <ReferenceBlock data={referenceDataSecondary} label="South Node" />
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              )
+            ) : (
+              !referenceData ? <p className="placeholder-text">Loading...</p> : <ReferenceBlock data={referenceData} />
+            )}
+          </div>
+        )}
+      </div>
 
-        <div className="card-footer">
-          <span className="card-name">{customerName}</span>
-        </div>
+      <div className="card-footer">
+        <span className="card-name">{customerName}</span>
       </div>
     </>
+  );
+}
+
+function PlacementCard(props: Parameters<typeof PlacementCardContent>[0]) {
+  return (
+    <>
+      <div className="card-outer" />
+      <div className="card-inner">
+        <PlacementCardContent {...props} />
+      </div>
+    </>
+  );
+}
+
+// ── Desktop shell (>=1024px) ────────────────────────────────────────────────
+// Re-houses the reading pane + rail per docs/TEXTURE_LAYOUT_PROPORTIONS.md
+// ("DESKTOP — READING PAGE" / "THE LIST RAIL") and docs/mocks/natal-page.png.
+// Per founder ruling, the Cover/Birth Data/Intro splash screens do not
+// appear on desktop — the pane opens directly on the rail + first
+// placement, matching the mock. The Chart toggle control is shown (the doc
+// requires the full List/Chart set to always display) but is not wired to
+// a working chart view this pass — the chart wheel itself is a separate,
+// not-yet-built piece (SPEC §16, "chart wheel is Phase 3, not built").
+
+function DesktopNatal({
+  slug,
+  reading,
+  customerName,
+  referenceData,
+}: {
+  slug: string;
+  reading: Reading;
+  customerName: string;
+  referenceData: Record<string, PlacementReferenceResult>;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            const idx = Number((entry.target as HTMLElement).dataset.index);
+            if (!Number.isNaN(idx)) setActiveIndex(idx);
+          }
+        });
+      },
+      { root: container, threshold: 0.5 }
+    );
+    sectionRefs.current.forEach(el => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToIndex = useCallback((index: number) => {
+    sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const rows: RailRow[] = PLACEMENTS.map((placement, index) => {
+    const meta = getPlanetMeta(reading.chart_data, placement.id);
+    return {
+      id: placement.id,
+      glyph: RAIL_PLANET_GLYPHS[placement.id] ?? '○',
+      name: placement.name,
+      degree: meta.degree,
+      retrograde: meta.retrograde,
+      signGlyph: RAIL_SIGN_GLYPHS[meta.sign] ?? '',
+      sign: meta.sign,
+      house: meta.house || undefined,
+      active: index === activeIndex,
+    };
+  });
+
+  return (
+    <ReadingLayout
+      slug={slug}
+      active="natal"
+      background="/sky-background.png"
+      zoneBackground={PLACEMENTS[activeIndex]?.background}
+      rail={
+        <Rail
+          title="Planets"
+          controls={[{ label: 'READ >', active: true }, { label: 'CHART >', active: false }]}
+          rows={rows}
+          onRowClick={(id) => {
+            const idx = PLACEMENTS.findIndex(p => p.id === id);
+            if (idx !== -1) scrollToIndex(idx);
+          }}
+        />
+      }
+    >
+      <div className="reading-pane-scroll" ref={containerRef}>
+        {PLACEMENTS.map((placement, index) => {
+          const refProps = getReferenceProps(placement, referenceData);
+          return (
+            <div
+              key={placement.id}
+              className="reading-pane-section"
+              data-index={index}
+              ref={el => { sectionRefs.current[index] = el; }}
+            >
+              <PlacementCardContent
+                planet={placement}
+                reading={reading}
+                customerName={customerName}
+                referenceData={refProps.referenceData}
+                referenceDataSecondary={refProps.referenceDataSecondary}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </ReadingLayout>
   );
 }
 
@@ -239,8 +420,21 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
   const [notFound, setNotFound] = useState(false);
   const [referenceData, setReferenceData] = useState<Record<string, PlacementReferenceResult>>({});
   const [jumpToList, setJumpToList] = useState(false);
+  // Desktop shell (>=1024px) vs. today's mobile single-column page — the
+  // layout doc's breakpoint. null = not yet measured (avoids a
+  // server/client hydration mismatch); resolved synchronously on mount,
+  // before the async reading fetch below typically finishes.
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
 
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     async function fetchReading() {
@@ -278,7 +472,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
     scrollToSection(currentIndex + 1);
   }, [scrollToSection]);
 
-  if (loading) {
+  if (loading || isDesktop === null) {
     return (
       <div style={{ height: '100dvh', background: 'var(--indigo)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ fontFamily: 'var(--font-anton)', fontSize: '14px', color: 'var(--red-strong)', letterSpacing: '4px' }}>TEXTURE</span>
@@ -299,6 +493,17 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
   const birthDate    = reading?.birth_date ?? '';
   const birthTime    = reading?.birth_time ?? '';
   const birthLocation = reading?.birth_location ?? '';
+
+  if (isDesktop && reading) {
+    return (
+      <DesktopNatal
+        slug={slug}
+        reading={reading}
+        customerName={customerName}
+        referenceData={referenceData}
+      />
+    );
+  }
 
   return (
     <div className="reading-container" ref={containerRef}>
@@ -341,7 +546,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
               Astrology describes patterns. It does not dictate them. Nothing here is a verdict about who you are or what will happen — it&apos;s a description of tendencies, qualities, and the ways energy characteristically moves in your chart. What you recognize, what you set aside, and what you do with any of it is entirely yours. The most useful way to read this is as a mirror, not a map of a fixed destination.
             </p>
             <p className="body-text">
-              What follows is your whole chart. First the wheel and a list of your placements — tap any one to go straight to it. Tap TEXTURE in the top left corner at any point to jump back to the planet list. Then a section for each of your fourteen placements, where the full detail of that part of your chart is interpreted in context. At the end, a reference section defines every term used along the way, so nothing here requires prior knowledge to follow.
+              What follows is your whole chart. First the wheel and a list of your placements — tap any one to go straight to it. Tap TEXTURE in the top left corner at any point to jump back to the planet list. Then a section for each of your thirteen placements, where the full detail of that part of your chart is interpreted in context. At the end, a reference section defines every term used along the way, so nothing here requires prior knowledge to follow.
             </p>
             <div style={{
               marginTop: '8px',
@@ -381,47 +586,54 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         />
       </div>
 
-      {/* ── 4–17. PLANET SECTIONS ── */}
-      {PLANETS.map((planet, index) => (
-        <div
-          key={planet.id}
-          className="reading-section"
-          ref={el => { sectionRefs.current[PLANET_START + index] = el; }}
-        >
+      {/* ── 4–16. PLACEMENT SECTIONS ── */}
+      {PLACEMENTS.map((planet, index) => {
+        const refProps = getReferenceProps(planet, referenceData);
+        return (
           <div
-            className="wordmark"
-            style={{ cursor: 'pointer' }}
-            onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}
+            key={planet.id}
+            className="reading-section"
+            ref={el => { sectionRefs.current[PLANET_START + index] = el; }}
           >
-            TEXTURE
+            <div
+              className="wordmark"
+              style={{ cursor: 'pointer' }}
+              onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}
+            >
+              TEXTURE
+            </div>
+            <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(253,245,237,0.50)' }} onClick={() => scrollToSection(PLANET_START + index - 1)}>↑</button>
+            <div
+              className="section-bg"
+              style={{
+                backgroundImage: `url(${planet.background})`,
+                backgroundPosition: (() => {
+                  if (planet.id === 'asc') return 'center center';
+                  if (planet.id === 'mc') return 'center top';
+                  return 'center center';
+                })(),
+              }}
+            />
+            <PlacementCard
+              planet={planet}
+              reading={reading}
+              customerName={customerName}
+              referenceData={refProps.referenceData}
+              referenceDataSecondary={refProps.referenceDataSecondary}
+            />
+            <button className="next-arrow" style={{ color: planet.id === 'mc' ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
           </div>
-          <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: planet.id === 'south-node' ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToSection(PLANET_START + index - 1)}>↑</button>
-          <div
-            className="section-bg"
-            style={{
-              backgroundImage: `url(${planet.background})`,
-              backgroundPosition: (() => {
-                if (planet.id === 'north-node') return 'center top';
-                if (planet.id === 'south-node') return 'center bottom';
-                if (planet.id === 'asc') return 'center center';
-                if (planet.id === 'mc') return 'center top';
-                return 'center center';
-              })(),
-            }}
-          />
-          <PlanetCard planet={planet} reading={reading} customerName={customerName} referenceData={referenceData[planet.id]} />
-          <button className="next-arrow" style={{ color: ['mc', 'north-node'].includes(planet.id) ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
-        </div>
-      ))}
+        );
+      })}
 
-      {/* ── 18. REFERENCE ── */}
+      {/* ── 17. REFERENCE ── */}
       <div
         className="reading-section"
         style={{ background: 'var(--cream)' }}
-        ref={el => { sectionRefs.current[PLANET_START + PLANETS.length] = el; }}
+        ref={el => { sectionRefs.current[PLANET_START + PLACEMENTS.length] = el; }}
       >
         <div className="wordmark" style={{ color: 'var(--red-strong)', cursor: 'pointer' }} onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}>TEXTURE</div>
-        <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToSection(PLANET_START + PLANETS.length - 1)}>↑</button>
+        <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToSection(PLANET_START + PLACEMENTS.length - 1)}>↑</button>
         <div className="card-inner" style={{ borderBottom: '1.5px solid rgba(185,18,18,0.50)' }}>
           <ReferencePage />
         </div>

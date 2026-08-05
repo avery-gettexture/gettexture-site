@@ -195,7 +195,11 @@ Event standard:
   - `/reading/[slug]` — post-purchase home (shell only as of Phase 1;
     the built 2-column My Chart / Transiting home is Phase 3).
   - `/reading/[slug]/natal` — the natal reading (moved here from
-    `/reading/[slug]` in Phase 1; component itself unchanged).
+    `/reading/[slug]` in Phase 1, component unchanged at that time;
+    **re-housed into the `ReadingLayout`/`Rail` shell at desktop widths
+    (>=1024px) in Phase 3A, August 4, 2026, §16** — mobile keeps the
+    original single-column component, with two content-structure fixes
+    applied there too, see the Phase 3A entry).
   - `/reading/[slug]/transits` — transits (unchanged path; shell only
     until transit generation is live).
   - `/reading/[slug]/reference` — reference (shell as of Phase 1;
@@ -282,7 +286,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 8. EXISTING INFRASTRUCTURE (build on, don't rebuild)
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
-- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. (Interpretation columns become 13 with the nodes consolidation — migration note, §9.) **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture.
+- `readings` table: birth data, chart_data jsonb, 14 interpretation columns, slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page now renders 13 sections (North Node + South Node merged into one "Nodes" section), but the DATABASE side of this migration has NOT run yet — `scripts/add_nodes_column.sql` (adds a `nodes` column and updates `get_reading_by_slug` to return it) is drafted but not executed by the founder. Until it runs, the app is TEMPORARILY wired to source the merged Nodes section's content from the existing `north_node` column — flagged throughout `app/reading/[slug]/natal/page.tsx` with "TEMPORARY" comments — so `readings` still physically has all 14 original interpretation columns (`north_node`/`south_node` both intact, neither dropped) plus, once the script runs, a 15th (`nodes`) alongside them. Dropping the two old columns is a separate, not-yet-authorized decision. **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
@@ -2014,3 +2018,150 @@ zone ("Teal / CTA zone... Teal gradient with a cream rectangle") almost
 certainly means `/transits-background.png`, by the same pattern as
 desktop, but that's this session's inference, not a confirmed ruling —
 confirm with the founder before building it.
+
+**August 4, 2026 (Phase 3A — natal re-housed to the shell, desktop only;
+nodes 14 -> 13; no API calls, not deployed):** re-housed the DESKTOP natal
+reading into `<ReadingLayout>` + `<Rail>`, per
+`docs/TEXTURE_LAYOUT_PROPORTIONS.md` and `docs/mocks/natal-page.png`.
+Mobile's existing single-column page (`.reading-container`/
+`.reading-section`) is unchanged in layout; two content-structure fixes
+were applied to it as well, per explicit founder instruction (see
+correction record below).
+
+**Step 1 audit (findings, confirmed before any change):** the natal page
+was ONE responsive structure for both mobile and desktop (fluid
+percentage/`clamp()` sizing, zero `@media` queries, zero width-detection
+JS anywhere in the app) — not two separate structures. The Phase 2 shared
+components (`ReadingLayout`/`Rail`) had NO mobile handling at all (fixed
+absolute-percentage desktop positioning only), so rendering them at all
+widths would have broken mobile — confirming the entanglement risk the
+task brief anticipated. 14 sections confirmed rendering today (10 planets
++ Ascendant + Midheaven + North Node + South Node, the two node sections
+adjacent at the end of the list, just before Reference). Also flagged: the
+mock shows Overview/Reference as two always-present labeled sections,
+while the code at the time was a single-visible-at-a-time toggle — this
+became the accordion correction below.
+
+**Founder corrections received after the audit (binding on this build):**
+(1) Cover/Birth Data/Intro splash screens do NOT appear on desktop — the
+desktop reading pane opens directly on the rail + first placement (Sun),
+matching the mock; they still play on mobile, untouched. (2) Accordion
+behavior, corrected and applied to BOTH platforms (content-structure, not
+layout): Overview and Reference are both always present/anchored (never
+scroll away to reach Reference — the prior toggle-based hide was the
+bug); Overview expanded by default, Reference collapsed by default,
+directly below it; the two are MUTUALLY EXCLUSIVE (single-open); whichever
+is expanded gets its own CONTAINED scroll (scoped to that section only),
+not a scroll of the whole card. (3) The nodes 14->13 merge is also a
+content-structure change and applies to both platforms, not just desktop.
+(4) Mid-session: the founder had to step away before running the nodes
+SQL migration; instructed to wire the existing `north_node` column as a
+TEMPORARY stand-in for the merged Nodes section rather than block on the
+migration, and still make the 14->13 structural change now — swap to the
+real `nodes` column once the founder runs `scripts/add_nodes_column.sql`
+(drafted this session, copied from `scripts/lock_readings_and_transit_pieces.sql`'s
+`get_reading_by_slug` pattern with a `nodes` column added; not executed).
+
+**Changes:**
+- `app/reading/[slug]/natal/page.tsx`: the 14-entry planet list became a
+  13-entry `PLACEMENTS` list (North Node + South Node merged into one
+  `Nodes` entry, background `/nodes-background.png`, contentKey
+  TEMPORARILY `north_node` — flagged inline). Section-index constants
+  recomputed for 13 placements (Reference moved from index 18 to 17).
+  `PlanetCard` split into `PlacementCardContent` (header + accordion +
+  footer, no outer wrapper) and a thin `PlacementCard` (adds the mobile
+  `.card-outer`/`.card-inner` wrapper) so the identical inner markup can be
+  reused by both the mobile section and the new desktop pane — the layout
+  doc explicitly carries the `.card-inner` inset numbers verbatim into
+  `.reading-zone-card`, confirming this reuse is correct rather than
+  coincidental. Added a `DesktopNatal` component (rendered only at
+  `>=1024px`, detected via `matchMedia` in a `useEffect` to avoid a
+  hydration mismatch) that wires `<ReadingLayout>` + `<Rail>`: an
+  `IntersectionObserver` over 13 stacked `.reading-pane-section` divs
+  drives `activeIndex`, which drives both the rail's active red bar and
+  the reading-zone's own per-placement backdrop (`zoneBackground`); rail
+  row clicks call `scrollIntoView` on the matching section. The intro
+  copy's "fourteen placements" line was corrected to "thirteen" (mobile
+  Intro screen, still shown there).
+- `app/components/Rail.tsx`: added an optional `onRowClick(id)` prop —
+  Phase 2 shipped row markup only ("row-click scroll-snap behavior is
+  Phase 3," per that entry above); this wires it. Backward compatible —
+  Reference's existing demo usage passes nothing and is unaffected.
+- `app/components/ChartSection.tsx`: the mobile Chart-state "List" toggle
+  had its own separate 14-row planet order; merged North/South Node into
+  one row (key `mean_north_lunar_node`, label "Nodes") to stay consistent
+  with the page-level merge — flagged inline as the same one-line
+  simplification as the meta line below (shows the North Node's own
+  sign/house/degree, not a true combined-axis line).
+- `app/globals.css`: `.card-content` changed from a single scrolling
+  region to a flex column (`overflow: hidden`); `.section-body` now
+  `flex: 1 1 0; min-height: 0; overflow-y: auto` so whichever accordion
+  body is open claims the remaining card height and scrolls internally,
+  while the row after it stays anchored rather than scrolling away
+  (verified: expanding Reference on both a mobile and a desktop card
+  correctly keeps Overview's row pinned above and Reference's own content
+  scrolling in place). Added a new desktop-only block (`.reading-pane-scroll`,
+  `.reading-pane-section`) for the inner snap-scroll viewport living inside
+  the shared `.reading-zone-card` — additive only, nothing existing
+  changed for mobile.
+- `scripts/add_nodes_column.sql` (new, NOT run): `ALTER TABLE readings ADD
+  COLUMN nodes text` + `CREATE OR REPLACE FUNCTION get_reading_by_slug`
+  with `nodes` added to its return columns, copied from `scripts/
+  lock_readings_and_transit_pieces.sql`. Old `north_node`/`south_node`
+  columns are left in place (dropping them is a separate, unauthorized
+  decision) — the function now returns both old columns and the new one.
+
+**Judgment calls flagged, not silently resolved (need founder review):**
+(1) The merged Nodes section's meta line, rail row, and the mobile Chart
+List row all show the North Node's own sign/house/degree as a stand-in for
+a true combined-axis display (e.g. "Aries / Libra") — SPEC §4.1 treats the
+axis as one subject, but building the real combined display is separate
+UI work not attempted here. (2) The reading-zone-card's footer identity
+band (customer name, red top border) is rendered on every desktop
+placement card per the layout doc's "carry verbatim" rule for `.card-inner`
+internals, even though the mock's Venus crop doesn't show one — flagged in
+case the mock's omission was deliberate rather than a crop limit. (3) The
+rail's "CHART >" control is shown (per the doc's "always show the full
+set") but not wired to a working chart view on desktop — the chart wheel
+itself is separate, not-yet-built work (recorded above as "Phase 3, not
+built"), so this pass only re-houses the reading/list pane. (4) Copy
+change: "Your {Planet}" section label renamed to "Overview" to match
+`natal-page.png` literally — trivial and matches the mock exactly, but per
+the copy-approval rule this is flagged rather than assumed final.
+
+**Verification:** `tsc --noEmit` and `npm run build` both clean. Local dev
+server + Playwright screenshots (chromium, not committed, scratchpad only)
+against `DOGFOOD_READING_SLUG`, desktop at 1512×982 and mobile at
+390×844:
+
+| Element | Mock/doc | Rendered | Match |
+|---|---|---|---|
+| Full-page backdrop (dark, natal) | dark background | `/sky-background.png` | Yes |
+| Rail title "Planets" (Anton, cream, centered) | centered | centered | Yes |
+| Rail controls "READ >" / "CHART >" | shown, active red | shown, active red | Yes (fixed mid-verification — first pass used "Read"/"Chart" without the mock's literal caps+arrow) |
+| Rail rows: 13, 2-line format, active red bar | 13 placements | 13 rows, Sun...Nodes, active bar tracks scroll | Yes |
+| Rail click -> pane scroll-snap (two-way sync) | doc-specified | verified: clicking Moon and Nodes rows both scrolled the pane and moved the active bar | Yes |
+| Reading-zone card inset (6.5%/8%, carried from `.card-inner`) | doc-specified | matches | Yes |
+| Card title (Anton) + meta subheader | "Venus" / "20 libra 10th House Retrograde" | e.g. "Sun" / "Libra · 10th House · 25°" | Structurally yes; separator punctuation is the pre-existing app format, not altered |
+| Overview expanded / Reference collapsed by default | shown | matches | Yes |
+| Reference contained scroll on expand, Overview stays anchored above | founder instruction (not in static mock) | verified via screenshot on both a mobile and desktop card | Yes |
+| Nodes section: 13 not 14, merged content + combined reference | SPEC §4.1 | verified both platforms: single "Nodes" row/section, Reference accordion shows both North Node and South Node reference blocks stacked | Yes |
+| Desktop opens directly on rail + first placement, no intro screens | founder ruling this session | verified: first paint is the Sun card, no Cover/Birth Data/Intro | Yes |
+
+**Mobile-untouched verification:** confirmed via screenshot the mobile
+Cover/intro flow renders exactly as before (name splash, "LOOK CLOSELY"
+tagline, constellation belt); confirmed a placement card (Venus) and the
+merged Nodes card both render in the existing single-column style with
+the existing per-planet background bleed in the margins; confirmed the
+Chart section's "List" toggle shows exactly 13 rows including one merged
+"Nodes" row; confirmed total section count in the DOM is 18 (3 intro
+screens + Chart + 13 placements + Reference), matching the recomputed
+index math; zero browser console errors during the mobile pass. The only
+mobile-visible changes are the two founder-approved content-structure
+fixes (13 sections instead of 14; the accordion contained-scroll fix) —
+no mobile layout, sizing, or navigation code was touched.
+
+One commit, not pushed, per the task's no-push instruction. Hard stop for
+founder review, per the task's instruction — including founder sign-off
+on the SQL migration (not run this session) and the flagged judgment
+calls above.

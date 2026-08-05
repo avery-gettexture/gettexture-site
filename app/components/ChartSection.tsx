@@ -32,6 +32,12 @@ const SIGN_ABBR_MAP: Record<string, string> = {
   Sag: 'Sagittarius', Cap: 'Capricorn', Aqu: 'Aquarius', Pis: 'Pisces',
 };
 
+// Nodes merged per SPEC §4.1 (14 -> 13 placements): one "Nodes" row,
+// keyed on the North Node's own chart_data entry so the existing
+// sign/house/degree lookup below needs no special case. This compact
+// one-line row can only show one end of the axis; it shows the North
+// Node's own placement as a stand-in — flagged for founder review, same
+// simplification used on the natal page's per-section meta line.
 const PLANET_ORDER = [
   { key: 'sun',                   label: 'Sun',        glyphKey: 'sun' },
   { key: 'moon',                  label: 'Moon',       glyphKey: 'moon' },
@@ -45,8 +51,7 @@ const PLANET_ORDER = [
   { key: 'pluto',                 label: 'Pluto',      glyphKey: 'pluto' },
   { key: 'ascendant',             label: 'Ascendant',  glyphKey: 'ascendant' },
   { key: 'medium_coeli',          label: 'Midheaven',  glyphKey: 'medium_coeli' },
-  { key: 'mean_north_lunar_node', label: 'North Node', glyphKey: 'mean_north_lunar_node' },
-  { key: 'mean_south_lunar_node', label: 'South Node', glyphKey: 'mean_south_lunar_node' },
+  { key: 'mean_north_lunar_node', label: 'Nodes',      glyphKey: 'mean_north_lunar_node' },
 ];
 
 const HOUSE_ORDINALS: Record<string, string> = {
