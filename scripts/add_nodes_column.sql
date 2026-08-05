@@ -21,7 +21,15 @@
 
 ALTER TABLE readings ADD COLUMN IF NOT EXISTS nodes text;
 
-CREATE OR REPLACE FUNCTION get_reading_by_slug(p_slug text)
+-- Postgres will not let CREATE OR REPLACE change a function's return
+-- columns when they're declared as a RETURNS TABLE (named OUT parameters)
+-- -- even just adding one at the end counts as "a different row type" and
+-- is refused (42P13). Dropping first is required; this only removes the
+-- FUNCTION definition, not any table or data, and is recreated in the very
+-- next statement, so the gap is effectively instantaneous.
+DROP FUNCTION IF EXISTS get_reading_by_slug(text);
+
+CREATE FUNCTION get_reading_by_slug(p_slug text)
 RETURNS TABLE (
   slug              readings.slug%TYPE,
   name              readings.name%TYPE,
