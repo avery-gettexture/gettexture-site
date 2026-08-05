@@ -376,40 +376,51 @@ function DesktopNatal({
   // globals.css). Cursor anywhere else on the page -> this listener
   // advances/retreats one placement per gesture.
   //
-  // Round 4 rewrite. Rounds 2-3 both tried to derive "are we mid-
-  // animation" and "what index are we at" from either a fixed timer or
-  // the live scroll position — both are fundamentally fragile because
-  // scroll-snap + a JS smooth-scroll animation don't settle at a
-  // perfectly predictable time or pixel offset; reading scrollTop
-  // mid-flight can round to the wrong section depending on exactly how
-  // far the animation has progressed, and it did so asymmetrically
-  // between directions (round 3's regression: scrolling up broke
-  // outright, down only intermittently). This version doesn't infer
-  // anything from scroll state at all: `targetIndexRef` is the single
-  // authoritative "current/intended" index, moved by exactly ±1 per
-  // committed gesture and updated the instant a jump is triggered (not
-  // when it visually finishes); `navigatingRef` blocks new jumps until
-  // the IntersectionObserver above *confirms* arrival (with a timeout
-  // fallback), so the block duration is tied to reality instead of a
-  // guessed constant.
+  // Round 4 fixed the direction-accuracy bug (targetIndexRef instead of
+  // reading live scroll position — see the removed comment above this
+  // one in git history for the full story) but introduced a NEW bug:
+  // unlocking as soon as the IntersectionObserver confirmed arrival was
+  // too eager. A single physical trackpad swipe's momentum tail
+  // routinely keeps emitting wheel events for a second or more — well
+  // past when one jump's animation finishes and the observer confirms
+  // it — so the same swipe could cross the threshold again once
+  // unlocked, and again, producing "3 at a time" (reported after round
+  // 4) instead of one clean jump per swipe.
+  //
+  // Round 5 fix: `navigatingRef` (animation-in-flight) is now only HALF
+  // the gate. The other half is `blockedUntil`, a timestamp that every
+  // single wheel event — whether it's the one that triggers a jump or
+  // any event arriving while still blocked — pushes further into the
+  // future by POST_JUMP_QUIET_MS. So as long as a momentum tail keeps
+  // producing events, the block keeps re-arming and never lapses mid-
+  // tail; it only opens once there's been genuine silence. This is the
+  // same "quiet period" idea rounds 2-3 used for the accumulation
+  // threshold, now applied to the POST-jump lock instead, combined with
+  // (not replacing) round 4's direction-accurate targetIndexRef.
   useEffect(() => {
     const THRESHOLD = 60;
-    const QUIET_MS = 200;
+    const POST_JUMP_QUIET_MS = 320;
     let accumulated = 0;
-    let quietTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const armQuietReset = () => {
-      if (quietTimer) clearTimeout(quietTimer);
-      quietTimer = setTimeout(() => { accumulated = 0; }, QUIET_MS);
-    };
+    let blockedUntil = 0;
 
     const handleWheel = (e: WheelEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('.reading-zone-card')) return;
       e.preventDefault();
       if (e.deltaY === 0) return;
-      if (navigatingRef.current) return;
-      armQuietReset();
+
+      const now = performance.now();
+      if (navigatingRef.current || now < blockedUntil) {
+        // Still mid-jump, or inside the post-jump quiet window — this
+        // event is (most likely) the same physical gesture's momentum
+        // tail. Extend the window rather than acting on it, and drop
+        // any in-progress accumulation so it can't carry into whatever
+        // gesture comes after the tail finally goes quiet.
+        blockedUntil = Math.max(blockedUntil, now + POST_JUMP_QUIET_MS);
+        accumulated = 0;
+        return;
+      }
+
       accumulated += e.deltaY;
       if (Math.abs(accumulated) < THRESHOLD) return;
       const direction = accumulated > 0 ? 1 : -1;
@@ -417,12 +428,10 @@ function DesktopNatal({
       const next = targetIndexRef.current + direction;
       if (next < 0 || next >= PLACEMENTS.length) return;
       scrollToIndex(next);
+      blockedUntil = now + POST_JUMP_QUIET_MS;
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-      if (quietTimer) clearTimeout(quietTimer);
-    };
+    return () => window.removeEventListener('wheel', handleWheel);
   }, [scrollToIndex]);
 
   const rows: RailRow[] = PLACEMENTS.map((placement, index) => {

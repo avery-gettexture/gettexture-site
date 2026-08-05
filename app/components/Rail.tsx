@@ -47,12 +47,14 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
         <h2 className="rail-title">{title}</h2>
         <div className="rail-title-rule" />
         {controls.length > 0 && (
-          <div className="rail-controls">
-            {controls.map(c => (
-              <span key={c.label} className={`rail-control${c.active ? ' active' : ''}`}>
-                {c.label}
-              </span>
-            ))}
+          <div className="rail-controls-slot">
+            <div className="rail-controls">
+              {controls.map(c => (
+                <span key={c.label} className={`rail-control${c.active ? ' active' : ''}`}>
+                  {c.label}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>

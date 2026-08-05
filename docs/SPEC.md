@@ -2438,3 +2438,55 @@ after a regression, spacing corrected the intended way):**
 
 Files touched: `app/globals.css`, `app/reading/[slug]/natal/page.tsx`.
 `tsc --noEmit` and `npm run build` both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 5 — second scroll regression
+fixed with a more rigorous test; rail controls recentered):**
+
+- **Round 4's scroll fix had its own bug: momentum tails could still
+  slip in extra jumps.** Founder report this time: scrolling down went
+  3 sections per swipe; up worked fine. Root cause: round 4 unlocked new
+  navigation as soon as the `IntersectionObserver` confirmed the jump's
+  animation had visually finished. But a single physical trackpad swipe
+  routinely keeps emitting wheel events (decaying in size) for a second
+  or more — well past when one jump's ~300ms animation completes — so
+  the SAME swipe could cross the threshold again once unlocked, and
+  again. Round 4's own verification used evenly-spaced discrete
+  synthetic gestures, which never exercises this — it doesn't reproduce
+  a real decaying momentum tail. Fixed by adding a second, independent
+  gate: a `blockedUntil` timestamp that every wheel event (whether it's
+  a trigger or one arriving while already blocked) pushes
+  POST_JUMP_QUIET_MS (320ms) further into the future — so as long as a
+  momentum tail keeps producing events, the block keeps re-arming and
+  only opens once there's genuine silence, regardless of whether the
+  animation itself already finished. Round 4's `targetIndexRef`
+  direction-accuracy fix is unchanged (that part was correct — it's the
+  unlock timing that was too eager). **Verification changed to match the
+  failure mode this time:** rather than only re-testing evenly-spaced
+  discrete gestures (which round 4 already passed and STILL shipped
+  broken), added a realistic simulation — an initial burst plus a
+  decaying-magnitude tail of ~40 events over ~1.8s, mimicking actual
+  trackpad momentum — for both directions. One realistic down-swipe now
+  lands on exactly Moon (not Mercury/Venus); one up-swipe returns to
+  exactly Sun. Round 4's original discrete-gesture test was also re-run
+  to confirm the new, stricter gate doesn't make deliberate rapid
+  section-hopping feel sluggish (400ms-apart gestures still each
+  register distinctly).
+- **Rail controls recentered.** Founder feedback: after round 4 restored
+  the breathing room below the header, the READ/CHART controls still sat
+  hugging the rule right under the title, leaving all the new whitespace
+  unused below them — "aligning them more to the top... or centering"
+  read as awkward either way without redistributing the space itself.
+  Wrapped the controls in a new fixed-height `.rail-controls-slot`
+  (`display:flex; align-items:center`) sized to match the old rule-gap +
+  controls-row + header-margin total, so `.rail-rect`'s top position is
+  unaffected (measured 225.4px vs round 4's 224.4px — effectively
+  unchanged) while the controls now sit vertically centered within the
+  gap (measured 8.0px of space above and below, i.e. truly centered, not
+  pinned to either edge). Font size also nudged up slightly per the
+  founder's "barely increasing" note (inactive
+  `clamp(10px,0.85vw,12px)` -> `clamp(11px,0.9vw,13px)`, active
+  `clamp(11px,0.95vw,13px)` -> `clamp(12px,1vw,14px)`).
+
+Files touched: `app/components/Rail.tsx`, `app/globals.css`,
+`app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
+both clean. One commit, not pushed.

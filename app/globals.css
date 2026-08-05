@@ -619,10 +619,12 @@ body {
      before .rail-rect down to nothing. Corrected (Aug 5 2026, round 4):
      the extra title height now comes from the top padding instead (the
      rail column starts well above where the reading card's own top
-     inset begins, so there's headroom to give up here), and the
-     breathing room below the header is restored. */
+     inset begins, so there's headroom to give up here). Round 5: that
+     restored breathing room is now owned by .rail-controls-slot's fixed
+     height below (so the controls can sit centered within it) rather
+     than living here as a trailing margin — removed to avoid double-
+     counting the same space in two places. */
   padding: 0 6% 0;
-  margin-bottom: 16px;
 }
 
 .rail-title {
@@ -648,6 +650,18 @@ body {
    hairline divider between them (not spread edge-to-edge, no chevron) —
    per founder feedback, Aug 5 2026. Supersedes the prior "spread
    edge-to-edge" treatment. */
+/* Fixed-height slot the controls row sits centered inside (Aug 5 2026,
+   round 5) — was previously hugging .rail-title-rule with all the
+   trailing whitespace left below it, unused, before .rail-rect. Height
+   approximates the old rule-gap + controls-row + header-margin total,
+   so .rail-rect's top position is unaffected — only where the controls
+   sit WITHIN that same overall space changes. */
+.rail-controls-slot {
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
 .rail-controls {
   display: flex;
   justify-content: flex-end;
@@ -656,7 +670,8 @@ body {
 
 .rail-control {
   font-family: var(--font-geist-mono), monospace;
-  font-size: clamp(10px, 0.85vw, 12px);
+  /* Barely enlarged (Aug 5 2026, round 5 founder feedback). */
+  font-size: clamp(11px, 0.9vw, 13px);
   color: rgba(253, 245, 237, 0.45);
   letter-spacing: 0.5px;
 }
@@ -673,7 +688,7 @@ body {
 .rail-control.active {
   color: rgba(253, 245, 237, 1);
   font-weight: 700;
-  font-size: clamp(11px, 0.95vw, 13px);
+  font-size: clamp(12px, 1vw, 14px);
 }
 
 /* The cream list rectangle. TOP-ANCHORED: it sits in normal flow directly
