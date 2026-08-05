@@ -570,6 +570,14 @@ body {
   right: 4%;
   background: var(--cream);
   overflow: hidden;
+  /* Re-enables interaction (round 6, Aug 5 2026): natal's .reading-pane-
+     scroll ancestor is now pointer-events:none so the background margin
+     around this card can never be hit-tested as a native scroll target
+     (see that rule's comment) — this restores normal pointer/wheel
+     behavior for the card itself and everything inside it. Harmless for
+     Reference/Settings, whose ancestor (.reading-zone, not the bareZone
+     .reading-pane-scroll) was never affected. */
+  pointer-events: auto;
   /* flex column added (Aug 5 2026, round 2): natal's per-section reuse of
      this class now hosts .card-header/.card-content/.card-footer
      directly (mirrors mobile's .card-inner, which already has this) —
@@ -829,6 +837,23 @@ body {
   inset: 0;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
+  /* Round 6 fix (Aug 5 2026): the "planet outline" background margin
+     lives INSIDE this scrollable element (each section's .section-bg is
+     a sibling of .reading-zone-card, both children of one
+     .reading-pane-section). Founder report: outside-card scroll worked
+     for a while, then became inconsistent specifically when the cursor
+     was over that background margin (not the rail, not the cream card).
+     Likely cause: once a wheel gesture starts over ANY descendant of a
+     natively-scrollable element, some browsers can hand momentum
+     continuation to their own native scroll/compositor instead of
+     continuing to dispatch cancelable `wheel` events to JS — so
+     preventDefault on the opening event(s) doesn't guarantee it covers
+     the whole gesture. `pointer-events: none` here removes this element
+     (and, by inheritance, everything in it) from hit-testing entirely,
+     so the browser has no scrollable target to capture over the
+     background margin at all — only .reading-zone-card below re-enables
+     it, restoring normal interaction there. */
+  pointer-events: none;
 }
 
 .reading-pane-scroll::-webkit-scrollbar {

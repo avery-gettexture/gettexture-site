@@ -2490,3 +2490,51 @@ fixed with a more rigorous test; rail controls recentered):**
 Files touched: `app/components/Rail.tsx`, `app/globals.css`,
 `app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
 both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 6 — scroll inconsistency
+traced to a specific hover region, structural fix):**
+
+- **Founder pinpointed the trigger precisely this time:** scrolling
+  worked for a while, then became inconsistent specifically once the
+  cursor had hovered over "the planet outline" — the visible background
+  margin around the cream card — as opposed to the rail or anywhere else
+  on the page. That specificity matters: unlike the rail or the dark
+  page background (neither of which is inside any natively-scrollable
+  element), the background margin (`.section-bg`) is a sibling of
+  `.reading-zone-card` *inside* `.reading-pane-scroll` — the same
+  element that provides the inside-card native scroll-chaining from
+  round 2. Likely mechanism: once a wheel gesture begins over any
+  descendant of a natively-scrollable element, some browsers can hand
+  the gesture's momentum continuation to their own native scroll/
+  compositor path instead of continuing to dispatch cancelable `wheel`
+  events to JS for the rest of it — so `e.preventDefault()` on the
+  opening event(s) doesn't reliably cover a whole real-world swipe that
+  started there, while it does over non-scrollable regions where no
+  native target exists to hand off to. This is consistent with the
+  reported pattern (worked initially, then intermittent) and with why
+  every round-2-through-5 fix, which only ever changed timing/state
+  logic, couldn't resolve it — the browser was bypassing the JS
+  entirely for part of the gesture, not misinterpreting it.
+- **Fix: remove the background margin from hit-testing altogether**,
+  rather than trying to out-time or out-guess the browser's native
+  capture. `.reading-pane-scroll` gained `pointer-events: none`;
+  `.reading-zone-card` gained an explicit `pointer-events: auto` to
+  restore normal interaction for the card and everything inside it
+  (inheritance is per-subtree, so this only re-enables the card, not the
+  background). With this, a wheel gesture starting over the background
+  margin now hit-tests to `.reading-zone` (confirmed via
+  `document.elementFromPoint`) — a plain, non-scrollable div with no
+  scrollable ancestor for the browser to ever hand off to — so the
+  window-level JS listener is structurally the ONLY thing that can ever
+  handle those events, eliminating the failure mode by construction
+  rather than by timing. Verified: `elementFromPoint` at a background-
+  margin coordinate resolves outside `.reading-pane-scroll`; at the
+  card's center it still resolves inside `.reading-zone-card`; three
+  consecutive realistic momentum swipes (the same decaying-tail
+  simulation from round 5) fired with the cursor specifically over the
+  background margin each produced exactly one section change, in both
+  directions; and the card's own accordion click-to-expand still works
+  (pointer-events restored correctly).
+
+Files touched: `app/globals.css`. `tsc --noEmit` and `npm run build`
+both clean. One commit, not pushed.
