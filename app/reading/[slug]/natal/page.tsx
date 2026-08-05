@@ -323,13 +323,18 @@ function DesktopNatal({
   referenceData: Record<string, PlacementReferenceResult>;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeIndexRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
+  // The index we've most recently navigated to (or are mid-animation
+  // toward) — the single source of truth for "where's next," updated
+  // synchronously by scrollToIndex itself rather than derived from
+  // observing scroll state. See the round 4 note below for why.
+  const targetIndexRef = useRef(0);
+  // True from the moment a jump is triggered until the
+  // IntersectionObserver confirms we've actually arrived (or a safety
+  // timeout fires) — blocks new jumps for the animation's real duration
+  // instead of guessing a fixed delay.
+  const navigatingRef = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -339,7 +344,11 @@ function DesktopNatal({
         entries.forEach(entry => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const idx = Number((entry.target as HTMLElement).dataset.index);
-            if (!Number.isNaN(idx)) setActiveIndex(idx);
+            if (!Number.isNaN(idx)) {
+              setActiveIndex(idx);
+              targetIndexRef.current = idx;
+              navigatingRef.current = false;
+            }
           }
         });
       },
@@ -350,7 +359,13 @@ function DesktopNatal({
   }, []);
 
   const scrollToIndex = useCallback((index: number) => {
+    targetIndexRef.current = index;
+    navigatingRef.current = true;
     sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Safety net: if the observer never fires for this target (e.g. it
+    // was already 50%+ visible so no intersection *change* occurs),
+    // don't leave navigation permanently blocked.
+    setTimeout(() => { navigatingRef.current = false; }, 700);
   }, []);
 
   // Scroll disambiguation rule (docs/TEXTURE_LAYOUT_PROPORTIONS.md,
@@ -361,43 +376,31 @@ function DesktopNatal({
   // globals.css). Cursor anywhere else on the page -> this listener
   // advances/retreats one placement per gesture.
   //
-  // Round 2 correction: a flat post-jump cooldown (e.g. 700ms) isn't long
-  // enough — trackpad momentum keeps emitting wheel events well past
-  // that, so the lock expired mid-gesture and a second jump fired from
-  // the same physical scroll ("goes down 2," per founder report).
-  // Replaced with (a) an accumulated-delta threshold before the first
-  // jump fires at all (resistance, so a light touch doesn't commit), and
-  // (b) a rolling "quiet period" lock that re-arms on EVERY wheel event
-  // (accumulating or locked) and only releases after real silence — this
-  // survives a momentum tail of any length instead of guessing a fixed
-  // duration.
-  //
-  // Round 3 fix (intermittent "sometimes it just doesn't work"): the
-  // `next` target was computed from `activeIndexRef.current`, which only
-  // updates when the IntersectionObserver below actually fires — and
-  // that only happens once scroll has settled past the 50% threshold.
-  // scrollIntoView's smooth animation routinely takes longer than the
-  // 180ms quiet-period unlock, so a second gesture could fire while the
-  // observer was still catching up from the first jump: `next` would
-  // then be computed from the OLD (pre-jump) index, landing back on the
-  // section already being animated to — a silent no-op from the user's
-  // perspective. Fixed by reading the live scroll position directly off
-  // the DOM at the moment of the wheel event instead of any cached/
-  // derived React state, so it's always correct regardless of whether an
-  // animation or the observer's catch-up is still in flight.
+  // Round 4 rewrite. Rounds 2-3 both tried to derive "are we mid-
+  // animation" and "what index are we at" from either a fixed timer or
+  // the live scroll position — both are fundamentally fragile because
+  // scroll-snap + a JS smooth-scroll animation don't settle at a
+  // perfectly predictable time or pixel offset; reading scrollTop
+  // mid-flight can round to the wrong section depending on exactly how
+  // far the animation has progressed, and it did so asymmetrically
+  // between directions (round 3's regression: scrolling up broke
+  // outright, down only intermittently). This version doesn't infer
+  // anything from scroll state at all: `targetIndexRef` is the single
+  // authoritative "current/intended" index, moved by exactly ±1 per
+  // committed gesture and updated the instant a jump is triggered (not
+  // when it visually finishes); `navigatingRef` blocks new jumps until
+  // the IntersectionObserver above *confirms* arrival (with a timeout
+  // fallback), so the block duration is tied to reality instead of a
+  // guessed constant.
   useEffect(() => {
     const THRESHOLD = 60;
-    const QUIET_MS = 180;
+    const QUIET_MS = 200;
     let accumulated = 0;
-    let locked = false;
     let quietTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const armUnlock = () => {
+    const armQuietReset = () => {
       if (quietTimer) clearTimeout(quietTimer);
-      quietTimer = setTimeout(() => {
-        locked = false;
-        accumulated = 0;
-      }, QUIET_MS);
+      quietTimer = setTimeout(() => { accumulated = 0; }, QUIET_MS);
     };
 
     const handleWheel = (e: WheelEvent) => {
@@ -405,18 +408,14 @@ function DesktopNatal({
       if (target.closest('.reading-zone-card')) return;
       e.preventDefault();
       if (e.deltaY === 0) return;
-      armUnlock();
-      if (locked) return;
+      if (navigatingRef.current) return;
+      armQuietReset();
       accumulated += e.deltaY;
       if (Math.abs(accumulated) < THRESHOLD) return;
-      const container = containerRef.current;
-      if (!container) return;
-      const sectionHeight = container.clientHeight;
-      const currentIndex = sectionHeight > 0 ? Math.round(container.scrollTop / sectionHeight) : activeIndexRef.current;
-      const next = currentIndex + (accumulated > 0 ? 1 : -1);
+      const direction = accumulated > 0 ? 1 : -1;
       accumulated = 0;
+      const next = targetIndexRef.current + direction;
       if (next < 0 || next >= PLACEMENTS.length) return;
-      locked = true;
       scrollToIndex(next);
     };
     window.addEventListener('wheel', handleWheel, { passive: false });

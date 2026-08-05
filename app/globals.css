@@ -614,13 +614,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0.5% 6% 0;
-  /* Margin trimmed (was 14px) to absorb the larger title + new rule
-     below without pushing .rail-rect's top down — per founder feedback
-     (Aug 5 2026, round 3): the extra title/rule height should be "eaten"
-     from this whitespace, not added on top of it. Re-verify against a
-     screenshot/measurement if the title size is tuned further. */
-  margin-bottom: 2px;
+  /* Round 3 got this backwards — it trimmed the space BELOW the header
+     (margin-bottom) to fit the bigger title, which squeezed the gap
+     before .rail-rect down to nothing. Corrected (Aug 5 2026, round 4):
+     the extra title height now comes from the top padding instead (the
+     rail column starts well above where the reading card's own top
+     inset begins, so there's headroom to give up here), and the
+     breathing room below the header is restored. */
+  padding: 0 6% 0;
+  margin-bottom: 16px;
 }
 
 .rail-title {
@@ -700,10 +702,15 @@ body {
    the same true bottom .reading-rail-slot/.reading-zone already share —
    not stop short at the (smaller) cream card's inset bottom. Percentage
    flex-basis in a COLUMN flex container resolves against the
-   container's own height, so this is still an exact 2% of the rail
-   column's height, not a new magic number. */
+   container's own height, so this is an exact percentage of the rail
+   column's height, not a new magic number.
+   Reduced further (2% -> 0.3%, round 4): round 2's 2% still read as
+   "hovering above" the true bottom rather than reaching it. Combined
+   with .rail-header's restored margin-bottom above, .rail-rect now
+   shifts down as a block — closing this gap while reopening the one
+   above it, rather than just stretching taller. */
 .rail-bottom-spacer {
-  flex: 0 0 2%;
+  flex: 0 0 0.3%;
 }
 
 .rail-list {

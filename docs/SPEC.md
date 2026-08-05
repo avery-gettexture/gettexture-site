@@ -2389,3 +2389,52 @@ rail title, background confirmation):**
 Files touched: `app/components/Rail.tsx`, `app/globals.css`,
 `app/reading/[slug]/natal/page.tsx`. `tsc --noEmit` and `npm run build`
 both clean. One commit, not pushed.
+
+**August 5, 2026 (Phase 3A follow-up, round 4 — scroll redesigned again
+after a regression, spacing corrected the intended way):**
+
+- **Round 3's scroll fix was itself broken — diagnosed and replaced.**
+  Founder report: scrolling down worked intermittently, scrolling up
+  didn't work at all. Root cause: round 3 read `container.scrollTop`
+  live and used `Math.round(scrollTop / sectionHeight)` to infer the
+  current section. This is fragile precisely because it's inferring
+  position from a value that's still animating — scroll-snap plus a JS
+  `scrollIntoView` don't settle at a perfectly predictable pixel offset
+  or moment, so mid-flight reads can round to the wrong section, and
+  round 3's testing happened to mostly exercise the forward direction.
+  Replaced the whole approach: rather than inferring "where are we" from
+  any observed scroll signal (timer-based or position-based), the
+  natal page now tracks a single authoritative `targetIndexRef` that
+  only ever moves by exactly +/-1 per committed gesture, updated
+  synchronously the instant a jump is triggered (not when it visually
+  finishes). New jumps are blocked by a `navigatingRef` that's cleared
+  by the existing `IntersectionObserver` actually confirming arrival at
+  the target section (with a 700ms timeout fallback in case the
+  observer doesn't fire, e.g. the target was already partially visible).
+  This ties the block duration to the real animation instead of a
+  guessed constant, and never depends on reading intermediate scroll
+  position at all. Verified with the specific pattern that broke before:
+  4 rapid down-gestures then 4 rapid up-gestures, 250ms apart (faster
+  than a comfortable pause) — landed exactly on
+  Moon->Mercury->Venus->Mars->Venus->Mercury->Moon->Sun, symmetric in
+  both directions, no stalls or skips.
+- **Rail spacing: founder correction on where the extra title height
+  should come from.** Round 3 took it from the margin BELOW the header
+  (squeezing the READ/CHART-to-rail-box gap to nothing); the founder
+  wanted it taken from ABOVE the title instead, with the below-title
+  breathing room restored — "it should slip above the height of the
+  reading card if necessary." Fixed: `.rail-header`'s top padding
+  removed (0.5% -> 0) so the larger title uses the (ample) headroom
+  above it — the rail column starts well above where the reading card's
+  own 6.5%-inset top begins, so there's real room to give up here — and
+  `margin-bottom` restored past its original value (2px -> 16px).
+  Combined with pushing `.rail-bottom-spacer` down further (2% -> 0.3%,
+  per the founder's own suggested mechanism — "move the cream rectangle
+  down" — increasing the gap before `.rail-rect` while shrinking the one
+  after it shifts the whole box down as a unit, satisfying both asks
+  from one change), the rail box's bottom now sits 2.3px from the true
+  outer edge (down from round 2/3's ~15.5px "hovering" gap) while the
+  gap above it measures 16px (up from round 3's near-zero squeeze).
+
+Files touched: `app/globals.css`, `app/reading/[slug]/natal/page.tsx`.
+`tsc --noEmit` and `npm run build` both clean. One commit, not pushed.
