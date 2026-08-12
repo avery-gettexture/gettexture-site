@@ -2804,3 +2804,119 @@ computed color `rgb(22, 22, 18)` (exactly `var(--dark)`), Chart 101's
 Files touched: `app/components/NatalChartPane.tsx`,
 `app/reading/[slug]/natal/page.tsx`, `docs/mocks/chart-dif.png` (new, the
 founder's correction overlay). One commit, not pushed.
+
+**August 11, 2026 (desktop Transits page — copy of the built desktop natal
+page, with six named deltas; no API calls, not deployed):** built
+`/reading/[slug]/transits`'s desktop (≥1024px) shell as a near-exact copy
+of the desktop natal page's shell (`DesktopNatal` in
+`app/reading/[slug]/natal/page.tsx`) — same one-native-scroll mechanic
+(`.natal-scroll`/`.natal-section`/`.natal-zone`, unmodified, shared CSS),
+same rail-driven snap-to-section behavior, same IntersectionObserver
+active-row tracking, same wheel-forwarding-from-rail trick — reusing all
+of it unchanged, per the founder's brief that transits is "a copy of the
+built NATAL page with specific deltas," not a fresh design. Mobile
+transits (`TRANSIT_BODIES`, the existing 10-body scrolling list) is
+untouched; this build is scoped to desktop only, matching how the brief's
+wording, mocks, and verify steps all describe desktop behavior.
+
+The six deltas, as built:
+1. **Rail:** 11 rows (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn,
+   Uranus, Neptune, Pluto, Nodes — "the current sky"), titled "Sky." A new
+   `SKY_BODIES` list, separate from mobile's 10-body `TRANSIT_BODIES`
+   (which has no Moon, per §3.6 — see flagged gap below). Nodes row reuses
+   `Rail`'s existing two-ended `secondary` field unchanged.
+2. **Third overlay, CALENDAR:** rail toggle is READ · CHART · CALENDAR
+   (same `Rail` `controls`/active-state styling natal already uses).
+   `paneMode` is now `'read' | 'chart' | 'calendar'` (natal has only
+   `'read' | 'chart'`). New `TransitCalendarPane.tsx` — structure only per
+   `docs/mocks/transits-calendar.png` (date, "Aspects and Events" title,
+   Current/Upcoming tabs, Filter + Aspects-to-My-Chart/Sky-Aspects links,
+   a placeholder vertical timeline with Newest/Soonest–Oldest/Latest end
+   labels, no real entries). Sits inside the same cream `reading-zone-card`
+   framing READ uses (unlike CHART, which has none) per
+   `docs/TEXTURE_LAYOUT_PROPORTIONS.md`'s "Aspects & Events / Calendar
+   panel" section. Filtering/sorting/live data is explicitly later work —
+   flagged in the component's own header comment.
+3. **CHART overlay, Today/Transiting:** new `TransitChartPane.tsx`,
+   modeled directly on `NatalChartPane.tsx` — identical wheel sizing math
+   (85% of the pane's limiting dimension, centered at 50%/46.5%) and
+   identical Chart 101 link. Both variants render the existing
+   `<NatalChartWheelWeb>` as a stand-in (no transit/bi-wheel component
+   exists yet, per the founder's explicit instruction), fed the reading's
+   real natal `chart_data` — plumbing the transits page now fetches via
+   `get_reading_by_slug` (previously it only fetched the customer's name).
+   This fetch is flagged as reused, not throwaway: the real bi-wheel will
+   need the same natal chart data. No name/birth-data band (the mock has
+   none); instead, today's date bottom-left and a Today | Transiting
+   toggle bottom-right, styled like the rail's own active/inactive
+   convention.
+4. **Extra accordion section, Timeline:** the READ pane's per-body card is
+   now a 3-section single-open accordion (Overview / Timeline /
+   Reference, Overview open by default) instead of natal's 2
+   (Overview/Reference) — same accordion mechanics, one more section.
+   Timeline is placeholder text, exactly as the brief allows ("Timeline
+   content can be placeholder for now"); Overview is unchanged, reusing
+   the page's existing `get_transit_pieces_by_slug` fetch and its
+   existing "being prepared" placeholder fallback.
+5. **Backgrounds:** full-page backdrop is `/transits-background.png`
+   (natal's desktop shell uses `/sky-background.png`); the CHART pane's
+   own backdrop is `/sky-background.png` (natal's CHART pane uses
+   `/chart-radial-new.png`) — same oversized/cropped "fills the full
+   square, no visible circular edge" treatment, just a different image.
+   Both files already existed in `/public`; no new assets.
+6. **Labels:** rail title "Sky" (natal: "Planets"); the READ pane's bottom
+   card label is the literal string "Transits" (natal shows the reading's
+   customer name).
+
+Three things flagged to the founder rather than resolved silently (full
+reasoning in the approved plan, `synthetic-finding-lemon.md`, and repeated
+here for the record):
+- **No live "current sky" position data reaches the browser.** The
+  `sky_positions` engine table is server-only (§11.1: "RLS on, server-only
+  reads"), and this build makes no API calls, so the 11 rail rows and each
+  body's card header show only the glyph and name — degree/sign/house are
+  left blank rather than invented. A public sky-position source is future
+  work.
+- **Moon is in the 11-row rail list, but has no standing transit piece**
+  (§3.6: Moon is ambient-only, no per-user generation). Not
+  special-cased — its row and card behave exactly like every other body's,
+  so its Overview always shows the "being prepared" placeholder until
+  Moon's separate ambient-content system exists.
+- **The Reference accordion tab is a placeholder, not a live mirror of
+  natal's Reference tab.** Checked `lib/reference-utils.ts`:
+  `fetchAllPlanetReferences` generates its content FROM the natal chart's
+  actual birth degree/sign/house. Reusing it here would show the person's
+  *natal* placement under a "current sky" heading — incorrect, not merely
+  unfinished — so it's placeholdered until real current-sky position data
+  (same gap as above) makes a correct version possible.
+
+Verify table (desktop, 1440×900, Playwright screenshots against natal's
+own desktop screenshots and both mock images):
+
+| Element | Expected (natal/mock) | Rendered | Match |
+|---|---|---|---|
+| Shell/proportions | Same rail (23%) + reading-zone (74%) split, same 8%/6.5% buffers as natal | Identical — same `.natal-zone`/`.reading-zone-card` classes, unmodified | ✅ |
+| Rail title | "Sky" | "Sky" | ✅ |
+| Rail row count | 11 (Sun–Pluto + Nodes) | 11 rendered, Nodes as one two-ended row | ✅ |
+| Rail toggle | READ · CHART · CALENDAR, active = red/bold | All three present, active state switches correctly on click | ✅ |
+| Full-page background | `/transits-background.png` | Teal/sky image confirmed behind rail + zone | ✅ |
+| CHART backdrop | `/sky-background.png`, full square, no circular edge | Confirmed — same oversized/cropped treatment as natal's `chart-radial-new.png` | ✅ |
+| CHART wheel | Same size/placement as natal (85% / 46.5%) | Same `NatalChartWheelWeb` stand-in, same ratios | ✅ |
+| CHART date | Bottom-left, per mock | "August 11, 2026" bottom-left | ✅ |
+| Today/Transiting toggle | Bottom-right, active state marked | Present, active state switches on click, matches rail-control convention | ✅ |
+| Chart 101 link | Top-right, `/reading/[slug]/reference` | Present, same position/label | ✅ |
+| CALENDAR layout | Per `transits-calendar.png`: date, title, tabs, filter links, vertical timeline | All elements present and positioned per the mock | ✅ |
+| CALENDAR framing | Cream card (unlike CHART) | Rendered inside `.reading-zone-card` | ✅ |
+| Accordion | 3 sections, single-open, Overview default | Overview/Timeline/Reference, mutually exclusive, verified by clicking each | ✅ |
+| Bottom card label | "Transits" (literal) | "Transits" | ✅ |
+| State swap (no scroll) | CHART/CALENDAR replace pane content, no scrolling | Confirmed — same `.natal-scroll` display-toggle mechanism as natal's CHART | ✅ |
+| Mobile transits | Untouched | `TRANSIT_BODIES`/mobile markup unchanged | ✅ |
+
+`tsc --noEmit` clean.
+
+Files touched: `app/reading/[slug]/transits/page.tsx` (desktop shell
+added, mobile path unchanged), `app/components/TransitChartPane.tsx`
+(new), `app/components/TransitCalendarPane.tsx` (new). No changes to
+`Rail.tsx`, `ReadingLayout.tsx`, `NatalChartPane.tsx`,
+`NatalChartWheelWeb.tsx`, `globals.css`, or the natal page — all reused
+as-is. One commit, not pushed.
