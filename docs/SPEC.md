@@ -1248,8 +1248,17 @@ anon-facing reads this layer directly):**
 `scripts/create_eclipse_transiting_catches.sql` — run by the founder in the
 Supabase SQL editor. RLS enabled on all five, zero policies (default-deny),
 matching the established pattern; no data written, no backfill, no engine or
-assembler code changed. Stage 2 (mint-once refactor + byte-identical brief
-proof) and Stage 3 (wire writes) remain pending, unscheduled.
+assembler code changed. **Verified with a fresh live-table read after the
+founder ran the migrations** (per the standing rule that a script's own
+success log is never trusted alone): a throwaway, uncommitted script
+selected every one of each table's intended columns by name (a mismatch
+would 400 loudly) with an exact row count, confirming all five tables exist
+with every intended column present and are genuinely empty (0 rows) —
+`reading_transit_contacts` (25 columns), `reading_natal_activations` (16),
+`reading_eclipse_catches` (9), `sky_pair_activations` (9),
+`eclipse_transiting_catches` (9). Stage 2 (mint-once refactor +
+byte-identical brief proof) and Stage 3 (wire writes) remain pending,
+unscheduled.
 
 ---
 
