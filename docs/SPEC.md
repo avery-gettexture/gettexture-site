@@ -1142,19 +1142,25 @@ remain a separate, still-pending display-fix brief — this task changed
 stored data only, no display/render code and no
 `scripts/engine/assemble-brief.mjs`.
 
-### 11A.11 Structured aspect tables — SCHEMA CREATED (Stage 1, August 11, 2026)
+### 11A.11 Structured aspect tables — SCHEMA CREATED (Stage 1) + MINT-ONCE REFACTOR (Stage 2), August 11, 2026
 
-Today, `contact-engine.mjs` computes rich structured facts for a brief (aspect
+`contact-engine.mjs` computes rich structured facts for a brief (aspect
 type, exact date/degree, window/pass counters, retrograde-at-exact, the
 natal point plus its sign/degree/house, activation facts, eclipse catches,
-engine-minted IDs) but `assemble-brief.mjs` stringifies all of it into brief
-text — only `{id, prose}` survives into `transit_pieces`. This is the first
-of a 3-stage plan to persist the structured version instead of only the
-prose. **Stage 1 (this entry): design + create five EMPTY tables, no writes,
-no engine changes.** Stage 2 (later): refactor calculation to mint these
-records once (not per brief-assembly) and prove the assembler, reading them
-back, produces BYTE-IDENTICAL briefs. Stage 3 (later): wire actual writes.
-All three stages read-only/schema-only until Stage 3.
+engine-minted IDs). Before Stage 2, `assemble-brief.mjs` stringified all of
+it into brief text inline as it rendered, recomputing/re-minting some values
+more than once per call — only `{id, prose}` survived into `transit_pieces`.
+This is a 3-stage plan to persist the structured version instead of only the
+prose. **Stage 1: design + create five EMPTY tables, no writes, no engine
+changes (BUILT).** **Stage 2 (this entry, BUILT): refactor calculation to
+mint these records once per `assembleBrief()` call — not per brief-assembly
+render step — as first-class in-memory objects shaped to the Stage 1 table
+columns, with the assembler reading/stringifying those records instead of
+computing facts inline. Proven the refactor changes nothing observable: a
+byte-diff of the assembled brief text against the pre-refactor code, same
+dogfood reading, same reference date, across all 10 tracked bodies.** Stage
+3 (later, unscheduled): wire actual writes to the five tables. All three
+stages read-only/schema-only until Stage 3.
 
 **Split principle (governs every table below): by DATA NATURE, not by where
 today's code happens to compute it.** A fact that depends on a specific
@@ -1256,9 +1262,55 @@ would 400 loudly) with an exact row count, confirming all five tables exist
 with every intended column present and are genuinely empty (0 rows) —
 `reading_transit_contacts` (25 columns), `reading_natal_activations` (16),
 `reading_eclipse_catches` (9), `sky_pair_activations` (9),
-`eclipse_transiting_catches` (9). Stage 2 (mint-once refactor +
-byte-identical brief proof) and Stage 3 (wire writes) remain pending,
-unscheduled.
+`eclipse_transiting_catches` (9).
+
+**Stage 2 status: BUILT.** New file `scripts/engine/structured-records.mjs`
+holds five pure, side-effect-free builder functions (`buildTransitContactRecord`,
+`buildNatalActivationRecord`, `buildEclipseCatchRecord`,
+`buildSkyPairActivationRecord`, `buildEclipseTransitingCatchRecord`), one per
+Stage 1 table, each returning an object whose plain-named fields match the
+real column names exactly — the only fields Stage 3's future write code
+should read. A field prefixed with `_` (e.g. `_sky`, `_pairAspect`) is a
+render-time convenience holding a reference to an already-fetched row that
+brief text still needs to stringify but the real schema deliberately does
+not persist (reachable instead by foreign key — `sky_aspect_id`,
+`candidate_sky_id`, `pair_sky_id`). One genuinely new ID convention was
+added to `contact-engine.mjs`: `mintReadingEclipseCatchId(readingSlug,
+eclipseId, natalPointName)`, alongside the existing `mint*` functions,
+since `eclipseCatches()` itself never minted an ID and this table's ID
+format (`{reading_slug}-{eclipse_id}-{slug(natal_point)}`) is new to this
+stage, per the Stage 1 design note above. `assemble-brief.mjs` was rewired
+so each fact is minted into its structured record once — at the point it's
+finalized — rather than being recomputed/re-minted inline as it renders;
+grouping, sorting, and the ACTIVATIONS-to-host-contact attachment now key
+off record identity, and every rendering helper reads record fields by
+their schema names instead of ad hoc computed values. `assembleBrief()`'s
+return shape gained one additive field, `records: { readingTransitContacts,
+readingNatalActivations, readingEclipseCatches, skyPairActivations,
+eclipseTransitingCatches }` — the structured records minted during that
+call — without changing `text`/`counts`/`meta`/`entryIds`, so existing
+callers (`exercise-engine.mjs`, `certify-calendars.mjs`) are unaffected.
+Scope note: minting is scoped to what one `assembleBrief()` call already
+computes (the body's current passage/phase), not a full-history backfill
+across 2023–2046 — that broader scope is a Stage 3 (write) decision, not
+foreclosed here.
+
+**Verified byte-identical**, the hard gate for this stage: the true
+pre-refactor code was extracted from git HEAD into a temp copy (not an
+in-place edit) and run fresh against the dogfood reading for all 10 tracked
+bodies (Sun through Pluto, Nodes) at today's reference date; a literal
+`diff` against the refactored code's output on the same reading/bodies came
+back IDENTICAL on all 10, zero differences — including every rendered ID,
+since IDs are embedded directly in the compared text. Two additional,
+pre-existing, read-only, no-API standing checks were also run as bonus
+coverage beyond the single-chart/current-phase scope of the diff (neither
+required by the stage, neither a substitute for the diff): `scripts/certify-
+calendars.mjs` (39/39 checks passed, ~52s, including a live recompute of
+Saturn/Mercury/Nodes through both structural guards) and `scripts/exercise-
+engine.mjs` (271/271 briefs passed the structural differ across all 10
+bodies × multiple synthetic charts × prior/current/future phases — this run
+took 55:58 wall-clock, worth flagging as a slow one; mostly Supabase I/O
+wait, 3% CPU). Stage 3 (wire writes) remains pending, unscheduled.
 
 ---
 
@@ -3232,3 +3284,59 @@ Files touched: `scripts/create_reading_transit_contacts.sql` (new),
 `scripts/create_eclipse_transiting_catches.sql` (new), `docs/SPEC.md`. No
 application code touched, no live database write performed by this session.
 One commit, not pushed.
+
+**August 11, 2026 (structured aspect tables, Stage 2 — mint-once refactor,
+byte-identical brief proof, no writes, no engine-behavior change):** the
+second of the 3-stage plan begun by Stage 1 above. Restructured so
+computation mints the five Stage 1 record shapes as first-class in-memory
+objects, once, with their engine IDs, instead of `assemble-brief.mjs`
+computing/stringifying facts inline as it renders — the assembler is now a
+reader/stringifier of those records. New file
+`scripts/engine/structured-records.mjs`: five pure builder functions
+(`buildTransitContactRecord`, `buildNatalActivationRecord`,
+`buildEclipseCatchRecord`, `buildSkyPairActivationRecord`,
+`buildEclipseTransitingCatchRecord`), each returning an object whose
+plain-named fields match a real Stage 1 column exactly; fields prefixed `_`
+are render-only conveniences (a reference to an already-fetched row the
+real schema reaches by foreign key instead — `sky_aspect_id`,
+`candidate_sky_id`, `pair_sky_id` — so Stage 2 keeps it in memory rather
+than duplicating it), never persisted. One genuinely new ID convention
+added to `contact-engine.mjs`: `mintReadingEclipseCatchId` (`eclipseCatches()`
+itself never minted one; this table's ID format is new to this stage, per
+the Stage 1 design note). `assemble-brief.mjs` rewired: every fact minted
+into its record once, at the point it's finalized; grouping, sorting, and
+ACTIVATIONS-to-host-contact attachment key off record identity;
+`labelAxisContact`'s numeric `dist` input, needed only at render time, is
+reconstructed from the record's own stored `axis_kind` (a 3-entry reverse
+lookup) rather than carried as an extra non-schema field, keeping records
+strictly schema-shaped. `assembleBrief()`'s return shape gained one
+additive `records` field (the five arrays minted during that call) —
+`text`/`counts`/`meta`/`entryIds` unchanged, so `exercise-engine.mjs` and
+`certify-calendars.mjs` needed no changes. Minting is scoped to what one
+call already computes (current passage/phase), not a full-history backfill
+— a Stage 3 scoping question, not decided here.
+
+**Verified byte-identical (the hard gate):** the true pre-refactor code was
+pulled from git HEAD into a temp copy — never edited in place — and run
+fresh against the dogfood reading for all 10 tracked bodies at today's
+reference date; a literal `diff` against the refactored code's output on
+the same reading/bodies/date came back IDENTICAL on all 10 (Sun, Mercury,
+Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Nodes) — zero
+differences, including every rendered ID (IDs are embedded directly in the
+compared text). Two additional standing, read-only, no-API checks were run
+as bonus coverage beyond the diff's single-chart/current-phase scope
+(neither required, neither a substitute for the diff):
+`scripts/certify-calendars.mjs` (39/39 checks passed, ~52s, including a
+live recompute of Saturn/Mercury/Nodes through both structural guards) and
+`scripts/exercise-engine.mjs` (271/271 briefs passed the structural differ
+across all 10 bodies × multiple synthetic charts × prior/current/future
+phases). The `exercise-engine.mjs` run took **55:58 wall-clock** — flagged
+here as a slow one, mostly Supabase I/O wait (3% CPU), not a regression
+introduced by this change (the script itself is unmodified).
+
+Files touched: `scripts/engine/structured-records.mjs` (new),
+`scripts/engine/assemble-brief.mjs` (modified), `scripts/engine/
+contact-engine.mjs` (modified — one function appended, nothing existing
+changed), `docs/SPEC.md`. No table written to, no live database write of
+any kind, no AI/API call made. One commit, not pushed. Stage 3 (wire the
+actual writes) remains pending and unscheduled.

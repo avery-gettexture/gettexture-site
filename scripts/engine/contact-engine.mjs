@@ -765,6 +765,15 @@ export function mintPairActivationId(candidateSkyId, hostSkyId) {
   return `${candidateSkyId}-activates-${hostSkyId}`;
 }
 
+// Reading-scoped eclipse-catch ID (SPEC.md 11A.11): a NEW convention
+// introduced for reading_eclipse_catches -- eclipseCatches() itself mints
+// no ID of its own today, unlike the contact/activation engines above, so
+// Stage 2/3 code constructs this one directly rather than reading it off
+// an engine return value.
+export function mintReadingEclipseCatchId(readingSlug, eclipseId, natalPointName) {
+  return `${readingSlug}-${eclipseId}-${slug(natalPointName)}`.toLowerCase();
+}
+
 // passageCounts: { n, m } -- the PASSAGE-scoped pass index/count (see
 // filterAndGroupForPassage above), NOT the row's own within-window
 // crossing index. This is the STEP 4 semantic change: p{n}of{m} in the
