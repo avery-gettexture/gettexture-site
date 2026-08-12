@@ -1142,6 +1142,115 @@ remain a separate, still-pending display-fix brief — this task changed
 stored data only, no display/render code and no
 `scripts/engine/assemble-brief.mjs`.
 
+### 11A.11 Structured aspect tables — SCHEMA CREATED (Stage 1, August 11, 2026)
+
+Today, `contact-engine.mjs` computes rich structured facts for a brief (aspect
+type, exact date/degree, window/pass counters, retrograde-at-exact, the
+natal point plus its sign/degree/house, activation facts, eclipse catches,
+engine-minted IDs) but `assemble-brief.mjs` stringifies all of it into brief
+text — only `{id, prose}` survives into `transit_pieces`. This is the first
+of a 3-stage plan to persist the structured version instead of only the
+prose. **Stage 1 (this entry): design + create five EMPTY tables, no writes,
+no engine changes.** Stage 2 (later): refactor calculation to mint these
+records once (not per brief-assembly) and prove the assembler, reading them
+back, produces BYTE-IDENTICAL briefs. Stage 3 (later): wire actual writes.
+All three stages read-only/schema-only until Stage 3.
+
+**Split principle (governs every table below): by DATA NATURE, not by where
+today's code happens to compute it.** A fact that depends on a specific
+reading's chart (a natal point's sign/degree/house) is per-reading. A fact
+that is purely sky-to-sky, with no natal point involved at all, is
+chart-independent — the same nature as `aspect_calendar` itself — and lives
+in that general neighborhood, never in a per-reading table, regardless of
+which body's brief-assembly code happens to compute it today.
+
+**TIMELESS FACTS, NOT SNAPSHOTS (governs every table below).** Every column
+is an intrinsic fact about the contact/activation/catch itself, computed
+once across a body's full tracked history. None of these tables store which
+phase was "current" when a row was computed, or which brief rendered it —
+phase membership is a read-time query against each row's own window dates,
+never a stored column. (An earlier draft of this design included a
+`trigger_id` phase-link column; dropped once traced against §11A.8's
+phase-membership rule — strict overlap — which allows one contact window to
+belong to two adjacent phases at once, something a single stored phase link
+could never represent correctly.)
+
+**Per-reading tables (server-role-only, same locked-table world as
+`transit_pieces` — no RPC built yet; if the app ever needs to read these
+directly, a slug-gated function like `get_transit_pieces_by_slug` is the
+noted-but-not-built future path):**
+
+- **`reading_transit_contacts`** — one row per transit-planet-vs-natal-point
+  contact (the NATAL_CONTACT timeline entry): both bodies, the natal point
+  plus its sign/degree/house (axis rows carry north/south sign separately),
+  aspect type, axis-involved kind, window_start/window_end,
+  still-open-at-series-end, exact_date/exact_degree,
+  retrograde-at-exact, and the PASSAGE-scoped WINDOW n/m and PASS n/m
+  counters. Primary key is `{reading_slug}-{contact_id}` — the bare
+  engine-minted `contact_id` (`mintContactId`/`mintAxisContactId`) is NOT
+  globally unique on its own, since it encodes the natal point's NAME but
+  not its sign/degree, so two different charts can mint the identical bare
+  ID for genuinely different placements.
+- **`reading_natal_activations`** — child table of the above (FK
+  `host_contact_id`, `ON DELETE CASCADE`), one row per third-planet
+  ACTIVATION fact. NORMALIZED CHILD TABLE, not a JSONB column — explicit
+  founder call: the point of this stage is queryable structured data, and a
+  JSONB blob on the parent would reintroduce the same unqueryable-blob
+  problem at a smaller scale (calendar/wheel features will want to query
+  activations directly). Follows the `eclipse_aspects` precedent (its own
+  table, own engine-minted ID) rather than an inline blob. The fact's
+  SKY_ASPECT leg (candidate planet vs. the host's own transiting planet) is
+  chart-independent and NOT duplicated here — reached via `sky_aspect_id`,
+  a foreign key into `aspect_calendar`. Only the NATAL_ASPECT leg
+  (candidate's own contact to the SAME natal point — reading-specific,
+  since it depends on that point's placement) and the activation's own
+  computed facts (anchor date, before/after-host-orb) are stored.
+- **`reading_eclipse_catches`** — one row per (reading, eclipse, natal
+  point) caught within 3°. Feeds NATAL_CAUGHT for BOTH the Nodes piece's own
+  TYPE: ECLIPSE entries and a planet piece's TYPE: ECLIPSE_ACTIVATION
+  entries (§11A.8 confirms both call the identical `eclipseCatches()`
+  function) — one row set per (reading, eclipse) serves every brief that
+  needs it, never duplicated per body. Note: `eclipseCatches()` does not
+  mint its own ID today (unlike contacts/activations), so this table's ID
+  format (`{reading_slug}-{eclipse_id}-{slug(natal_point)}`) is a NEW
+  convention introduced for this table, not an existing engine output —
+  Stage 2/3 must construct it this way.
+
+**General / chart-independent tables (server-role-only, same neighborhood as
+`aspect_calendar`/`eclipse_aspects` — no RPC ever expected, nothing
+anon-facing reads this layer directly):**
+
+- **`sky_pair_activations`** — a slow-pair SKY_CONTACT's own ACTIVATIONS: a
+  third transiting planet reaching the 1° exact band with one member of an
+  already-in-orb pair while itself aspecting the pair's OTHER member. Every
+  column resolves to a fact about three `aspect_calendar` rows
+  (`host_sky_id`, `candidate_sky_id`, `pair_sky_id`) and nothing
+  chart-specific, so it belongs in `aspect_calendar`'s own general
+  neighborhood, not a per-reading table — matching `mintPairActivationId`'s
+  own ID, already globally unique with no reading component, "canonical
+  regardless of which body's brief renders it" per the engine's own
+  comment.
+- **`eclipse_transiting_catches`** — whether a given eclipse catches a given
+  TRANSITING planet's own position within 3° (the gating fact for whether a
+  planet piece gets a TYPE: ECLIPSE_ACTIVATION entry at all — distinct from
+  `reading_eclipse_catches`, which is about natal points). Deliberately its
+  own small table mirroring `eclipse_aspects`, rather than a derived,
+  special-cased reading of `eclipse_aspects` — `eclipse_aspects` always
+  excludes the eclipse's own anchor body from its comparison set, so it
+  structurally cannot represent a solar eclipse catching the transiting Sun
+  (the anchor body itself), a real, valid catch under `eclipseCatches()`'s
+  degree-proximity test.
+
+**Status:** all five tables created EMPTY via
+`scripts/create_reading_transit_contacts.sql` (first two tables),
+`scripts/create_reading_eclipse_catches.sql`,
+`scripts/create_sky_pair_activations.sql`, and
+`scripts/create_eclipse_transiting_catches.sql` — run by the founder in the
+Supabase SQL editor. RLS enabled on all five, zero policies (default-deny),
+matching the established pattern; no data written, no backfill, no engine or
+assembler code changed. Stage 2 (mint-once refactor + byte-identical brief
+proof) and Stage 3 (wire writes) remain pending, unscheduled.
+
 ---
 
 ## 12. OPEN — FOUNDER RULINGS NEEDED (do not assume)
@@ -3053,3 +3162,64 @@ BIRTH-DATA path still renders correctly.
 
 Files touched: `lib/date-utils.ts` only. `tsc --noEmit` clean. One commit,
 not pushed.
+
+**August 11, 2026 (structured aspect tables, Stage 1 — schema design +
+empty tables, no writes, no engine changes):** the first of a 3-stage plan
+to stop losing `contact-engine.mjs`'s structured aspect facts (aspect type,
+exact date/degree, window/pass counters, retrograde state, natal point
+placement, activation facts, eclipse catches, engine-minted IDs) to
+`assemble-brief.mjs`'s stringification — today only `{id, prose}` survives
+into `transit_pieces`. Followed a completed read-only audit (prior session)
+of exactly what the engine computes and where it currently dissolves into
+text.
+
+Five tables designed and created EMPTY, split by DATA NATURE (chart-specific
+vs. chart-independent), never by which code happens to compute a fact today
+— full record and rationale in §11A.11:
+
+- `reading_transit_contacts` + child `reading_natal_activations` (per-
+  reading; the natal-activation child table is NORMALIZED, not JSONB, per
+  explicit founder direction — the point of this stage is queryable
+  structured data, and a JSONB blob would reintroduce the same
+  unqueryable-blob problem this stage exists to fix)
+- `reading_eclipse_catches` (per-reading; shared by both the Nodes piece's
+  ECLIPSE entries and a planet piece's ECLIPSE_ACTIVATION entries)
+- `sky_pair_activations` (general/chart-independent — lives with
+  `aspect_calendar`, not per-reading, since every field traces back to
+  three `aspect_calendar` rows and no chart-specific data)
+- `eclipse_transiting_catches` (general/chart-independent, new; mirrors
+  `eclipse_aspects` but explicitly covers the one case `eclipse_aspects`
+  structurally cannot — a solar eclipse catching the transiting Sun, its
+  own anchor body, which `eclipse_aspects` excludes by construction)
+
+Two judgment calls surfaced mid-design and resolved by the founder: (1)
+whether natal-contact activation facts should be a JSONB column or a
+normalized child table — founder chose the child table, explicitly
+rejecting JSONB as reintroducing the unqueryable-blob problem at a smaller
+scale; (2) whether the eclipse-catches-transiting-planet fact should be its
+own table or derived from `eclipse_aspects` with a special case — founder
+chose its own table. A `trigger_id` phase-link column considered early in
+design was dropped once traced against §11A.8's phase-membership rule
+(strict overlap, one window can belong to two adjacent phases) — every
+table instead holds TIMELESS facts only; phase membership stays a read-time
+query against each row's own window dates, never a stored column.
+
+Migration files: `scripts/create_reading_transit_contacts.sql`,
+`scripts/create_reading_eclipse_catches.sql`,
+`scripts/create_sky_pair_activations.sql`,
+`scripts/create_eclipse_transiting_catches.sql` — written for the founder
+to run in the Supabase SQL editor (not run by this session). RLS enabled on
+all five tables, zero policies (default-deny, service-role-only), matching
+the established `aspect_calendar`/`transit_pieces` pattern; no RPC built for
+any of them in this stage. All five tables are unused until Stage 3 wires
+writes. Stage 2 (refactor calculation to mint these records once — not per
+brief-assembly — and prove the assembler, reading them back, produces
+byte-identical briefs) and Stage 3 (wire the actual writes) remain pending
+and unscheduled.
+
+Files touched: `scripts/create_reading_transit_contacts.sql` (new),
+`scripts/create_reading_eclipse_catches.sql` (new),
+`scripts/create_sky_pair_activations.sql` (new),
+`scripts/create_eclipse_transiting_catches.sql` (new), `docs/SPEC.md`. No
+application code touched, no live database write performed by this session.
+One commit, not pushed.
