@@ -3005,3 +3005,51 @@ remains explicitly out of scope for this entry.
 Files touched: `lib/date-utils.ts` (new), `app/components/TransitChartPane.tsx`,
 `app/components/TransitCalendarPane.tsx`. `tsc --noEmit` clean. One commit,
 not pushed.
+
+**August 11, 2026 (device date/time formatting — audit approved, applied to
+the one live CONTEXTUAL date):** full-site audit (read-only) found exactly
+one CONTEXTUAL date currently on screen anywhere — the "today" label shared
+by the Transits CHART and CALENDAR panes (`lib/date-utils.ts`, added the
+prior entry above) — plus two BIRTH-DATA sites correctly left alone: the
+shared `formatDate()` in `app/components/BirthDataSection.tsx` (mobile
+Birth Data screen, desktop natal CHART pane's birth band) and the order
+form's birth date/time entry + review screen (`app/page.tsx`). Two things
+found but not yet visible anywhere (no action taken): `phase_opened_date`
+is fetched into the Transits page but never rendered, and the Calendar
+pane's timeline list is still hardcoded placeholder labels, not real dates.
+Also flagged, not fixed (a founder call, not a formatting-scheme
+question): the order form shows birth date/time raw/unstyled
+(`1997-10-18`, `12:17 PM`) while the reading pages show it through
+`formatDate()` (`October 18, 1997`) — both stay BIRTH-DATA either way.
+Founder approved the categorization as-is.
+
+Applied: `lib/date-utils.ts`'s `formatToday()` now runs through a new
+`formatContextualDate(date, options?)` export built as the general-purpose
+CONTEXTUAL date formatter for reuse, not a one-off — `Intl.DateTimeFormat`
+with locale left `undefined` so month/day ordering and every other
+regional convention follow the visitor's own device automatically, no
+manual format logic. Per the founder's explicit direction, this is the
+one intended home for every future CONTEXTUAL date (the transits calendar
+entries and the `phase_opened_date` above, once either surfaces, plug into
+this same helper rather than a new one-off formatter). `formatToday()`
+itself is unchanged as a call site (`formatContextualDate(new Date())`),
+so neither `TransitChartPane.tsx` nor `TransitCalendarPane.tsx` needed
+edits. BIRTH-DATA formatting (`BirthDataSection.tsx`'s `formatDate()`, the
+order form) is untouched, per the carve-out — birth data stays in its own
+stored, birth-location convention regardless of viewer locale.
+
+Verified with Playwright (throwaway script, not committed): loaded the
+Transits CHART pane under three device locale/timezone combinations —
+`en-US`/`America/New_York` read "August 11, 2026" (month-day-year),
+`en-GB`/`Europe/London` read "12 August 2026" (day-month-year),
+`de-DE`/`Europe/Berlin` read "12. August 2026" (day-period-month-year) —
+confirming the format itself now adapts per device, not just the day.
+Re-ran the far-behind-timezone check from the prior entry
+(`en-US`/`Etc/GMT+12`) and it still read "August 11, 2026," confirming the
+day-selection behavior verified above is unaffected by this formatting
+change. Screenshots of all four reviewed directly, plus the natal CHART
+pane reviewed under `de-DE`/`Etc/GMT+12` to confirm the untouched
+BIRTH-DATA path still renders correctly.
+
+Files touched: `lib/date-utils.ts` only. `tsc --noEmit` clean. One commit,
+not pushed.
