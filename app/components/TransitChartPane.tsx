@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
+import { formatToday } from '@/lib/date-utils';
 
 // The CHART state of the desktop transits page (SPEC §16). A screen-state
 // swap of the reading pane's content, not a scroll target — mirrors
@@ -27,13 +28,6 @@ interface TransitChartPaneProps {
   slug: string;
   chartMode: ChartMode;
   onChartModeChange: (mode: ChartMode) => void;
-}
-
-function formatToday(): string {
-  const months = ['January','February','March','April','May','June',
-    'July','August','September','October','November','December'];
-  const now = new Date();
-  return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
 }
 
 export default function TransitChartPane({

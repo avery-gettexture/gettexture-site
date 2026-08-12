@@ -2954,3 +2954,54 @@ position data; Reference tab placeholder) are unchanged and still open.
 
 Files touched: `app/reading/[slug]/transits/page.tsx` only. One commit,
 not pushed.
+
+**August 11, 2026 (browser-local date — audited, no live bug found;
+duplication tidied):** a founder request to make sure the Transits page
+loads "today" based on the visitor's own timezone, not a server/UTC clock,
+led to a read-only audit before any code changed. Finding: there is no live
+per-request "pick today's data" step anywhere in the transits read path to
+be wrong. `get_transit_pieces_by_slug` (`scripts/lock_readings_and_transit_pieces.sql`)
+takes only the reading slug and returns rows `ORDER BY phase_opened_date
+DESC`; the page (`app/reading/[slug]/transits/page.tsx`) keeps the newest
+row per body client-side — no date value crosses the client→server
+boundary at all. The "today" that actually decides which phase is current
+is computed once, offline, when the founder runs the content-generation
+script (`scripts/engine/assemble-brief.mjs`'s `TODAY =
+new Date().toISOString().slice(0,10)`, a deliberate UTC date matching the
+sky-data layer's UTC-only convention, §11A.4) — generated content then
+stands fixed until the next real sky trigger (sign ingress, station),
+regardless of who views the page or when. This is generation-time scoping,
+not view-time scoping, so no visitor's clock can disagree with it in a way
+that matters to what's rendered.
+
+The only two "today" labels that exist on the page today — the CHART pane's
+date caption and the CALENDAR pane's header date — were already browser-
+local by construction: both live in client components (`'use client'`, no
+server-rendering of this value) and call `new Date()` with local getters
+(`getMonth`/`getDate`/`getFullYear`), which read the visitor's own device
+clock. They were duplicated byte-for-byte between
+`app/components/TransitChartPane.tsx` and `app/components/TransitCalendarPane.tsx`.
+Deduped into one shared `lib/date-utils.ts` (`formatToday`), imported by
+both — same output, no visible change. Verified with a throwaway Playwright
+script (not committed) that loaded the page under two simulated device
+timezones on opposite sides of the date line (`Pacific/Kiritimati`,
+UTC+14, and `Etc/GMT+12`, UTC-12) while real UTC "now" was
+2026-08-12T03:15 — the far-ahead timezone's CHART and CALENDAR labels read
+"August 12, 2026" and the far-behind timezone's read "August 11, 2026,"
+confirming both track the simulated device's own calendar day rather than
+a fixed server/UTC day. Screenshots of both panes in both timezones
+reviewed directly.
+
+**Standing rule for future work:** if/when a live "current sky" data fetch
+is built (already flagged above as an open gap — no live position data
+reaches the browser yet), it must derive "today" from the visitor's own
+browser/device, not default to a server or UTC date, even though the
+underlying `sky_positions`/`transit_calendar` tables are themselves stored
+by UTC calendar day (§11A.4) — the two are compatible (the visitor's local
+calendar date is simply the key used to look up the UTC-dated row), but the
+derivation point must be the browser. Building that live fetch itself
+remains explicitly out of scope for this entry.
+
+Files touched: `lib/date-utils.ts` (new), `app/components/TransitChartPane.tsx`,
+`app/components/TransitCalendarPane.tsx`. `tsc --noEmit` clean. One commit,
+not pushed.

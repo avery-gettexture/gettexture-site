@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatToday } from '@/lib/date-utils';
 
 // The CALENDAR state of the desktop transits page (SPEC §16). Structure
 // only, per docs/mocks/transits-calendar.png and
@@ -17,13 +18,6 @@ const PLACEHOLDER_ENTRIES = [
   { id: 'mid-2', label: null, sideLabel: null },
   { id: 'oldest', label: 'Oldest', sideLabel: '(Latest)' },
 ];
-
-function formatToday(): string {
-  const months = ['January','February','March','April','May','June',
-    'July','August','September','October','November','December'];
-  const now = new Date();
-  return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
-}
 
 export default function TransitCalendarPane() {
   // Current/Upcoming is wired as a real toggle for the visual active-state
