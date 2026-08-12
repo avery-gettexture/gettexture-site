@@ -181,7 +181,19 @@ function TransitBodyCardContent({ body, piece }: { body: TransitBodyConfig; piec
         </div>
         {openSection === 'timeline' && (
           <div className="section-body">
-            <p className="placeholder-text">{PLACEHOLDER_TIMELINE}</p>
+            {piece ? (
+              piece.timeline_entries.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {piece.timeline_entries.map(entry => (
+                    <p className="body-text" key={entry.id}>{entry.prose}</p>
+                  ))}
+                </div>
+              ) : (
+                <p className="placeholder-text">No dated entries this phase.</p>
+              )
+            ) : (
+              <p className="placeholder-text">{PLACEHOLDER_TIMELINE}</p>
+            )}
           </div>
         )}
 

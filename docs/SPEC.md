@@ -2920,3 +2920,37 @@ added, mobile path unchanged), `app/components/TransitChartPane.tsx`
 `Rail.tsx`, `ReadingLayout.tsx`, `NatalChartPane.tsx`,
 `NatalChartWheelWeb.tsx`, `globals.css`, or the natal page — all reused
 as-is. One commit, not pushed.
+
+**August 11, 2026 (desktop Transits — Timeline accordion wired to real
+data; read-only audit first, then a scoped fix; no API calls, not
+deployed):** a founder report that the Timeline section showed no entries
+led to a read-only audit before any code changed. Findings: `transit_pieces`
+rows (via `get_transit_pieces_by_slug`) already carry `timeline_entries` as
+a `jsonb` array of `{id, prose}` on the same row as `synthesis_prose` — no
+separate table, no missing fetch. Confirmed live against the Saturn piece
+(8 real entries, phase opened 2026-07-26). The desktop accordion's Timeline
+branch (`TransitBodyCardContent` in
+`app/reading/[slug]/transits/page.tsx`) simply never read the already-fetched
+`piece` prop there — it rendered `PLACEHOLDER_TIMELINE` unconditionally, a
+deliberate scope limit from the prior build entry above ("Timeline content
+can be placeholder for now"), left in place past the point the real data
+was available. The mobile card's own Timeline branch was never wrong — it
+already mapped over `piece.timeline_entries` correctly.
+
+Fixed by mirroring the mobile card's existing branching exactly, no new
+fetch or parsing: real entries (`piece.timeline_entries.map`, `.body-text`
+styling, 20px gap, matching the Overview section's existing convention)
+when present; "No dated entries this phase" when a piece exists but its
+timeline is genuinely empty (a quiet phase, per §10.2 — not the same as no
+data); the original `PLACEHOLDER_TIMELINE` only when no piece has been
+generated yet. Verified against Saturn's live piece via Playwright
+screenshot: rail-clicking to Saturn's section and opening Timeline renders
+its real entries ("Saturn squares transiting Mercury...", "Saturn moving
+backward trines your natal Mars...") in the card's existing scrollable
+`.section-body`, same as Overview. This closes one of the three gaps
+flagged in the build entry above; the other two (no live current-sky
+position data; Reference tab placeholder) are unchanged and still open.
+`tsc --noEmit` clean.
+
+Files touched: `app/reading/[slug]/transits/page.tsx` only. One commit,
+not pushed.
