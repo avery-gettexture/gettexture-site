@@ -6,7 +6,7 @@ import { DOGFOOD_READING_SLUG } from '@/lib/config';
 import NavBar from '@/app/components/NavBar';
 import Rail, { type RailRow } from '@/app/components/Rail';
 import TransitChartPane, { type ChartMode } from '@/app/components/TransitChartPane';
-import TransitCalendarPane from '@/app/components/TransitCalendarPane';
+import TransitCalendarPane, { type CalendarEntryType } from '@/app/components/TransitCalendarPane';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -16,9 +16,22 @@ interface TransitBodyConfig {
   background: string;
 }
 
+// Widened per SPEC §16 ("Transit Calendar, Part 1"): generate-piece.mjs now
+// stores the engine's already-computed per-entry facts alongside the prose,
+// so the Calendar pane can derive its rows without a fetch of its own. A
+// stale prior-phase row (generated before this change) may still carry only
+// {id, prose} -- fields below are optional to cover that, and
+// TransitCalendarPane skips any entry missing `type`.
 interface TimelineEntry {
   id: string;
   prose: string;
+  type?: CalendarEntryType;
+  aspect?: string;
+  body_1?: string | null;
+  body_2?: string | null;
+  orb_open?: string | null;
+  orb_close?: string | null;
+  exact?: string | null;
 }
 
 interface TransitPieceRow {
@@ -393,13 +406,25 @@ function DesktopTransits({
         {/* CALENDAR pane — a screen-state swap, same mechanism as CHART.
             Unlike CHART, it keeps the cream reading-zone-card framing (per
             docs/TEXTURE_LAYOUT_PROPORTIONS.md's "Aspects & Events /
-            Calendar panel" section) — structure only, per
-            docs/mocks/transits-calendar.png; real filtering/sorting/live
-            data is later work (see TransitCalendarPane.tsx). */}
+            Calendar panel" section). Real, derived rows as of SPEC §16
+            ("Transit Calendar, Part 2") — reads the same `pieces` map READ
+            already fetches, no fetch of its own (see TransitCalendarPane.tsx).
+            Row click reuses the same pendingScrollIndexRef + setPaneMode('read')
+            jump the rail's own row-clicks use below; scrolling to the exact
+            entry inside that body's Timeline accordion section isn't wired
+            (no per-entry anchor exists yet) — flagged as later work. */}
         {paneMode === 'calendar' && (
           <div className="natal-zone">
             <div className="reading-zone-card">
-              <TransitCalendarPane />
+              <TransitCalendarPane
+                pieces={pieces}
+                onEntryClick={(bodyId) => {
+                  const idx = SKY_BODIES.findIndex(b => b.id === bodyId);
+                  if (idx === -1) return;
+                  pendingScrollIndexRef.current = idx;
+                  setPaneMode('read');
+                }}
+              />
             </div>
           </div>
         )}

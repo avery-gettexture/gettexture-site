@@ -3419,3 +3419,91 @@ Files touched: `scripts/engine/assemble-brief.mjs` (modified),
 live write to `transit_pieces` (the dogfood regeneration above, via the
 existing dogfood script — real AI calls, real Supabase writes, all to the
 one pre-existing dogfood reading). One commit, not pushed.
+
+**August 14, 2026 (Transit Calendar, Part 2 — real derived Calendar view,
+no new fetch):** replaces the CALENDAR pane's placeholder (four fake rows,
+per the August 11 desktop-Transits entry above) with a real view derived
+entirely from the richer `timeline_entries` Part 1 now stores — no new
+Supabase call; `TransitCalendarPane` reads the same `pieces` map the READ
+pane already fetches on the transits page.
+
+`app/components/TransitCalendarPane.tsx` rewritten: flattens every fetched
+piece's `timeline_entries` (tagging each with its owning body id), then:
+- **Drops what's fully over**, per the founder's ruling (disappear
+  immediately, no grace period): `NATAL_CONTACT`/`SKY_CONTACT` entries where
+  `orb_close < today`; `ECLIPSE`/`ECLIPSE_ACTIVATION` where `exact < today`.
+- **Current tab** = what's left that's already started (`orb_open <=
+  today`, or `exact === today` for point events — an eclipse only ever
+  shows in Current on its own day). **Upcoming tab** = what hasn't started
+  yet.
+- **Sort** (both tabs, one rule): ascending absolute day-distance between
+  today and `exact`; entries with no `exact` sort after every dated entry,
+  sub-sorted by distance between today and `orb_open`.
+- **Three filter buckets**, real checkboxes behind the existing "Filter ⌄"
+  affordance: Aspects to My Chart (`NATAL_CONTACT`), Sky Aspects
+  (`SKY_CONTACT`), Eclipses & Events (`ECLIPSE` + `ECLIPSE_ACTIVATION`) —
+  per the build brief's explicit instruction. **Flagged discrepancy, not
+  silently overridden:** the older mock (`docs/mocks/transits-calendar.png`)
+  and `docs/TEXTURE_LAYOUT_PROPORTIONS.md`'s "Aspects & Events" section both
+  describe a *per-planet* filter (e.g. "Moon") instead of an eclipses
+  bucket — those predate this entry-type model. Founder confirmed at
+  planning time: build the brief's three-bucket version; the docs are
+  stale, not a signal to follow.
+- **Row label**, name only (no text preview, per the layout doc): `"{body_1}
+  {aspect} natal {body_2}"` for NATAL_CONTACT, `"{body_1} {aspect}
+  transiting {body_2}"` for SKY_CONTACT (both reuse the same
+  `conjunction`→`"conjunct"` wording `assemble-brief.mjs` already uses), and
+  the eclipse's own event label for ECLIPSE/ECLIPSE_ACTIVATION.
+  **Placeholder copy, flagged for Avery's review (not blocking):** how
+  ECLIPSE_ACTIVATION names the affected planet ("{event} — near {body}").
+  **Flagged and confirmed, not a defect:** an axis-involved NATAL_CONTACT
+  renders with the bare label "Axis" (e.g. "Nodes square natal Axis"),
+  since `body_2` stores that literal value (Part 1's judgment call above) —
+  the row links through to the piece's own prose, where the real
+  conjunct/opposite-end language lives.
+- **Row click** calls back to the page with the entry's owning body id; the
+  page reuses the exact mechanism `Rail`'s own row-clicks already use
+  (`pendingScrollIndexRef` + `setPaneMode('read')`) to land on that body's
+  card in READ mode. Scrolling to the *specific entry* inside that card's
+  Timeline accordion section isn't wired (no per-entry anchor exists there
+  yet) — flagged as later work, per the brief's own allowance.
+
+`lib/date-utils.ts` gained one small addition, `getTodayLocalISODate()`
+(today as a plain `YYYY-MM-DD` string in the visitor's own device timezone,
+built from local `Date` getters — same approach `formatToday()` already
+uses, not a competing formatter), for comparing against the stored
+`orb_open`/`orb_close`/`exact` calendar-date strings. Row dates are
+formatted via the existing `formatContextualDate()`, parsed through explicit
+year/month/day components rather than `new Date(isoString)` — the same
+UTC-parse timezone pitfall the site already fixed once for "today" labels
+(see the August 11 date-utils entry above) would otherwise reappear here.
+
+`app/reading/[slug]/transits/page.tsx`: widened the local `TimelineEntry`
+interface to the richer optional shape (optional, not required, so a stale
+prior-phase row generated before Part 1 — bare `{id, prose}` — still
+type-checks; `TransitCalendarPane` itself skips any such entry at render
+time); passes the already-fetched `pieces` map and the row-click handler
+described above into `<TransitCalendarPane>`.
+
+**Verified:** dogfood regeneration and the independent Supabase read are
+recorded in the Part 1 entry above. `tsc --noEmit` clean across the whole
+project. Playwright screenshots (throwaway script, not committed) of the
+dogfood reading's desktop CALENDAR pane at 1440×900:
+
+| Element | Expected | Rendered | Match |
+|---|---|---|---|
+| Current tab, real rows | Derived from timeline_entries, not placeholders | 5 real rows (Mercury, Saturn, Nodes contacts), correct labels + dates | ✅ |
+| Sort order (Current) | Ascending distance from today to exact | Aug 12 (2d) → Aug 22 (8d) → Jul 18 (27d) → Sep 21 (38d) → Oct 1 (48d) — matches exactly | ✅ |
+| Upcoming tab | Not-yet-started entries, same sort rule | 11 rows, correct order, includes SKY_CONTACT entries ("Jupiter trine transiting Saturn," etc.) | ✅ |
+| Disappear-immediately rule | Entries with orb_close/exact < today absent from both tabs | Confirmed: 3 already-separated Mercury contacts and one already-past eclipse correctly missing from all views | ✅ |
+| Filter dropdown | "Filter ⌄" opens 3 checkable buckets | Opens on click, shows ✓ Aspects to My Chart / ✓ Sky Aspects / ✓ Eclipses & Events | ✅ |
+| Filter toggle | Unchecking a bucket hides that type | Unchecked "Aspects to My Chart" → NATAL_CONTACT rows disappeared, list re-sorted correctly among remaining types | ✅ |
+| Row click → READ | Lands on that entry's body, correct card | Clicked "Nodes square natal Moon" → landed on Nodes card in READ mode, rail shows Nodes active, real generated prose visible | ✅ |
+| Cream card framing | Same reading-zone-card as READ (unlike CHART) | Confirmed | ✅ |
+| Date header / title / red rule | Unchanged from Part 1 placeholder's chrome | Unchanged | ✅ |
+
+Files touched: `app/components/TransitCalendarPane.tsx` (rewritten),
+`app/reading/[slug]/transits/page.tsx` (modified), `lib/date-utils.ts`
+(modified — one addition), `docs/SPEC.md`. No new Supabase call, no new
+table, no live database write in this part (Part 1's regeneration covered
+the one live write both parts depend on). One commit, not pushed.

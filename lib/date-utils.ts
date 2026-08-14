@@ -28,3 +28,17 @@ export function formatContextualDate(date: Date, options?: Intl.DateTimeFormatOp
 export function formatToday(): string {
   return formatContextualDate(new Date());
 }
+
+// Today's date as a plain YYYY-MM-DD string, in the visitor's own device
+// locale (same local-getters approach as formatToday() above — no manual
+// timezone math). Built for direct string comparison against stored
+// calendar-date fields (orb_open/orb_close/exact on transit_pieces'
+// timeline_entries, themselves plain YYYY-MM-DD strings), not for display —
+// use formatToday()/formatContextualDate() for anything shown to a reader.
+export function getTodayLocalISODate(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
