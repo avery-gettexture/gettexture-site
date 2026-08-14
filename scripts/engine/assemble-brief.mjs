@@ -889,6 +889,12 @@ export async function assembleBrief(focusBody, options = {}) {
 
   // ── Render TIMELINE blocks ──
   const timelineBlocks = [];
+  // Calendar join data (no storage table -- SPEC.md §16, the "richer
+  // timeline entries" build): one row per standalone entry, keyed by the
+  // same id as entryIds/timelineBlocks, shaped for the Calendar view.
+  // Every field here is read straight off an object this function already
+  // computed for rendering -- no new math.
+  const entryDetails = [];
   // Complete = known ingress AND known egress, both within tracked data --
   // same convention already used elsewhere (ingressDirect, the "predates
   // tracked data" PASSAGE phrasing). Threaded into computeStatus's guard.
@@ -915,6 +921,16 @@ export async function assembleBrief(focusBody, options = {}) {
       block += `\n    ACTIVATIONS:\n${activations.map(f => formatActivationFact(f, c.natal_point)).join('\n')}`;
     }
     timelineBlocks.push({ date: recordAnchorDate(c), text: block, id: c.contact_id });
+    entryDetails.push({
+      id: c.contact_id,
+      type: 'NATAL_CONTACT',
+      aspect: c.aspect,
+      body_1: focusBody,
+      body_2: c.natal_point,
+      orb_open: c.window_start,
+      orb_close: c.window_end,
+      exact: c.exact_date ?? null,
+    });
   }
 
   for (const entry of skyContactEntries) {
@@ -946,10 +962,30 @@ export async function assembleBrief(focusBody, options = {}) {
       block += `\n    ACTIVATIONS:\n${pairActivations.map(formatPairActivationFact).join('\n')}`;
     }
     timelineBlocks.push({ date: anchor, text: block, id: sky.id });
+    entryDetails.push({
+      id: sky.id,
+      type: 'SKY_CONTACT',
+      aspect: sky.event,
+      body_1: sky.body_1,
+      body_2: sky.body_2,
+      orb_open: sky.window_start,
+      orb_close: sky.window_end,
+      exact: sky.exact_date ?? null,
+    });
   }
 
   for (const entry of eclipseActivationEntries) {
     timelineBlocks.push({ date: entry.eclipse.exact_date, text: formatEclipseActivationEntry(entry), id: entry.id });
+    entryDetails.push({
+      id: entry.id,
+      type: 'ECLIPSE_ACTIVATION',
+      aspect: entry.eclipse.event,
+      body_1: focusBody,
+      body_2: null,
+      orb_open: null,
+      orb_close: null,
+      exact: entry.eclipse.exact_date,
+    });
   }
 
   timelineBlocks.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -1019,6 +1055,16 @@ export async function assembleBrief(focusBody, options = {}) {
     eclipseEntryCount = eclipses.length;
     for (const e of eclipses) {
       nodesEclipseIds.push(e.id);
+      entryDetails.push({
+        id: e.id,
+        type: 'ECLIPSE',
+        aspect: e.event,
+        body_1: 'Nodes',
+        body_2: null,
+        orb_open: null,
+        orb_close: null,
+        exact: e.exact_date,
+      });
       const catches = eclipseCatches(e, natalPoints).map(c => buildEclipseCatchRecord(readingSlug, e.id, c, risingKnown));
       allEclipseCatchRecords.push(...catches);
       const anchorSign = eclipseAnchorSign(e);
@@ -1117,6 +1163,12 @@ export async function assembleBrief(focusBody, options = {}) {
     },
     meta,
     entryIds,
+    // Calendar join data (SPEC.md §16, "richer timeline entries" build):
+    // additive, like `records` below -- one row per entryIds member, for
+    // generate-piece.mjs to join onto Call 2's {id, prose} output before
+    // storage. No storage table of its own; the Calendar view reads it back
+    // out of transit_pieces.timeline_entries.
+    entryDetails,
     // STAGE 2 (SPEC.md §11A.11): the structured records minted while
     // building this brief, one array per Stage 1 table shape. Additive --
     // existing callers (exercise-engine.mjs, certify-calendars.mjs)

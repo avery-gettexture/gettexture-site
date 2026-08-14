@@ -3340,3 +3340,82 @@ contact-engine.mjs` (modified — one function appended, nothing existing
 changed), `docs/SPEC.md`. No table written to, no live database write of
 any kind, no AI/API call made. One commit, not pushed. Stage 3 (wire the
 actual writes) remains pending and unscheduled.
+
+**August 14, 2026 (Transit Calendar, Part 1 — richer timeline entries, no
+new storage table):** a derivability check (prior session) found the
+Transit Calendar doesn't need its own table at all — every date/type fact
+it needs is already computed inside `assembleBrief()` while building each
+timeline entry; `generate-piece.mjs` just discarded it afterward, keeping
+only `{id, prose}` per entry before writing to `transit_pieces`. This is a
+separate, lighter mechanism from the Stage 1–3 structured-aspect-tables plan
+above (`reading_transit_contacts` etc., still unused and unscheduled) —
+those tables exist for future queryable per-fact storage; the Calendar only
+needs enough per-entry metadata to filter/sort/label the timeline entries
+already being stored, so it rides on `transit_pieces.timeline_entries`
+itself rather than a new table.
+
+`assembleBrief()` (`scripts/engine/assemble-brief.mjs`) now also returns
+`entryDetails`: one row per entry id already in `entryIds`, `{id, type,
+aspect, body_1, body_2, orb_open, orb_close, exact}`, built at the same
+point each entry's TIMELINE block is rendered, reading straight off objects
+the function already had in memory (the minted `reading_transit_contacts`
+record for NATAL_CONTACT, the raw `aspect_calendar` row for SKY_CONTACT, the
+raw eclipse row for ECLIPSE/ECLIPSE_ACTIVATION) — no new computation.
+Additive alongside the existing `records` field; `exercise-engine.mjs` and
+`certify-calendars.mjs` are unaffected. `generate-piece.mjs`'s
+`generateTransitPiece()` joins Call 2's parsed `{id, prose}` entries against
+`entryDetails` by id before storage (throwing on a join miss — the two
+arrays are built from the same loops, so a miss would mean they'd fallen out
+of sync, not a legitimate gap), so `transit_pieces.timeline_entries` now
+stores `{id, prose, type, aspect, body_1, body_2, orb_open, orb_close,
+exact}` per entry. `orb_open`/`orb_close`/`exact` are the contact's
+`window_start`/`window_end`/`exact_date` for NATAL_CONTACT and SKY_CONTACT
+(`exact` null for a window that never perfects in-phase); ECLIPSE and
+ECLIPSE_ACTIVATION are point events, so `orb_open`/`orb_close` are always
+null and `exact` is the eclipse's own date.
+
+Two judgment calls, flagged to the founder and confirmed rather than
+resolved silently: (1) an axis-involved NATAL_CONTACT's `body_2` stores the
+literal natal point name `"Axis"` (the same value the brief itself already
+uses) rather than which end/kind of axis contact it is — the calendar row
+won't distinguish "conjunct this end" from "opposite that end" the way the
+piece's own prose does; founder confirmed this is fine since the row links
+through to the full entry where that nuance lives. (2) ECLIPSE's `body_1` is
+`'Nodes'` (the piece it belongs to) and ECLIPSE_ACTIVATION's `body_1` is the
+focus body (the planet the eclipse caught); both have `body_2: null` and
+`aspect` carrying the eclipse's own event label (`"Solar Eclipse"` /
+`"Lunar Eclipse"`) rather than a body-to-body relationship, since an eclipse
+isn't an aspect between two named bodies. `get_transit_pieces_by_slug`
+needed no change — it already `SELECT`s `timeline_entries` as a whole jsonb
+column.
+
+Verified in two steps: (1) dry-ran `assembleBrief()` for all three dogfood
+bodies (Saturn, Mercury, Nodes) and diffed `entryDetails`' ids against
+`entryIds` — zero missing, zero extra, for all three (8, 10, and 12 entries
+respectively). (2) Ran `scripts/generate-transits.mjs` for real (not
+`--dry-run`) — real API calls, real writes — then ran a second, independent
+Supabase read (service-role key, this session's own query, not the script's
+own printed log) confirming all three current-phase rows now carry the
+richer shape: `mercury` (10 entries, all `NATAL_CONTACT`), `saturn` (8
+entries, mixed `NATAL_CONTACT`/`SKY_CONTACT`, including one `exact: null`
+-noexact window), `nodes` (12 entries, `NATAL_CONTACT` + `ECLIPSE`). Every
+entry carries `type`/`aspect`/`body_1`/`body_2`/`orb_open`/`orb_close`/
+`exact`. No generation errors. Wall-clock: 4:08 for all three bodies
+(sequential-then-parallel per the script's existing cache-warming pattern) —
+not flagged as slow.
+
+**Noted, not a bug:** the independent read also surfaced a second `mercury`
+row (6 entries, old bare `{id}`-only shape) — a prior phase's edition,
+untouched by this run because regeneration only ever writes the *current*
+phase's row (§3.1's regeneration-trigger model); prior editions are kept,
+never backfilled. `get_transit_pieces_by_slug`'s existing `ORDER BY
+phase_opened_date DESC` plus the page's own "keep only the newest row per
+body" logic (`app/reading/[slug]/transits/page.tsx`) already means only the
+newest, richly-shaped row ever reaches the browser — confirmed by the Part 2
+screenshots below.
+
+Files touched: `scripts/engine/assemble-brief.mjs` (modified),
+`lib/transit-generation/generate-piece.mjs` (modified), `docs/SPEC.md`. One
+live write to `transit_pieces` (the dogfood regeneration above, via the
+existing dogfood script — real AI calls, real Supabase writes, all to the
+one pre-existing dogfood reading). One commit, not pushed.
