@@ -494,7 +494,12 @@ body {
   background: var(--cream);
   color: var(--red-strong);
   font-family: var(--font-geist-mono), monospace;
-  font-weight: 600;
+  /* Only one Geist Mono weight is shipped (Regular/400 —
+     GeistMono-Regular.woff2, no Light). 600 was rendering as a browser
+     fake-bold of that single face. 400 is the font's real, unfaked
+     weight — thinner than before without synthesizing a weight that
+     doesn't exist (home-page-polish task, §16). */
+  font-weight: 400;
   font-size: clamp(16px, 1.8vw, 26px);
   letter-spacing: 1px;
   padding: 8px 20px;

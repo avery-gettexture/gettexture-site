@@ -3671,3 +3671,100 @@ HomeMyChartPanel.tsx` (new), `app/components/HomeTodaySkyPanel.tsx` (new),
 through `public/pluto.png` (new, 10 files), `docs/mocks/
 homepage-variants.png` (new, the founder's reference mock), `docs/SPEC.md`.
 Four commits (one per step), not pushed.
+
+**August 15, 2026 (post-purchase home — polish pass, both panels):** nine
+refinements to the just-built home panels, against the founder's own review
+of `docs/mocks/homepage-variants.png`. No restructuring — same two
+components as the entry above (`HomeMyChartPanel.tsx`,
+`HomeTodaySkyPanel.tsx`).
+
+1. **"Planets" label** added above the Today's Sky positions list (right
+   panel only), paralleling the existing "Aspects and Events" label below
+   it.
+2. **Dead space reduced** between each panel's header and its first list
+   row (both panels): the header's reserved height shrunk from `flex: 0 0
+   14%` to `flex: 0 0 9%` (eyeballed, flagged for founder visual sign-off
+   like other proportions in this build). The header content's own
+   top-anchored position is unchanged — only the empty space below it
+   shrunk.
+3. **Sticker label weight** (`.home-panel-sticker` in `globals.css`, "My
+   Chart" / "Today's Sky"): checked `/public/fonts/` — only one Geist Mono
+   weight is shipped (`GeistMono-Regular.woff2`, Regular/400; no Light).
+   The prior `font-weight: 600` was a browser fake-bold of that single
+   face (no real 600 to draw on) — there's no real weight *lighter* than
+   400 to switch to either. Changed 600 → 400: the font's one real,
+   unfaked weight, thinner than what was rendering, without synthesizing
+   a weight that doesn't exist. Flagged explicitly to the founder as a
+   finding, not a silent call, before making it.
+4. **No cream card in Today's Sky Chart state** (right panel): Chart mode
+   previously wrapped the *entire* panel (header, wheel, footer) in the
+   same cream card List mode uses. Confirmed via screenshot that this
+   didn't match the mock, which shows the whole Chart-state panel sitting
+   directly on the teal image — matching the left panel's own Chart state
+   exactly (no card anywhere). Founder confirmed via AskUserQuestion
+   mid-build: whole panel loses cream in Chart mode, not just the area
+   behind the wheel. `HomeTodaySkyPanel.tsx`'s outer wrapper background is
+   now `paneMode === 'list' ? 'var(--cream)' : 'transparent'`. One
+   knock-on: the "Placeholder — Today's Sky wheel not yet built" label's
+   color was tuned for the cream card (`rgba(22,22,18,0.35)`); switched to
+   a light/faint color (`rgba(253,245,237,0.55)`, matching the equivalent
+   placeholder text in `TransitChartPane.tsx`) so it stays legible on teal.
+5. **Red separator lines** (`var(--red-rule)`, already defined in
+   `globals.css`, previously unused anywhere) now bracket the top and
+   bottom of each contained-scroll region: left panel's placements list;
+   right panel's Planets list and Aspects & Events list (three regions
+   total).
+6. **My Chart rows → one line** (home panel only, not the natal page's own
+   rail): each placement row collapsed from two stacked lines to one —
+   glyph, name, degree, sign glyph, sign, house, retrograde, left to
+   right — with a larger font size using the freed vertical space.
+7. **Entire My Chart row is now the click target** (previously only the
+   `›` caret linked to `/reading/[slug]/natal?open=<id>`). The caret
+   stays as a visual affordance; the whole row is the `<Link>` now.
+   Verified with a live click on a row's name text (not the caret),
+   confirmed it navigates to `?open=moon`.
+8. **Today's Sky positions flow left-to-right after the name** (e.g.
+   "Saturn 14° Aries R") instead of right-aligning the degree/sign/
+   retrograde against the row's far edge — removed the `flex: 1` that was
+   pushing them there.
+9. **Retrograde "R" removed from Nodes — data-correctness fix, both home
+   panels.** Nodes always move backward by nature, so "retrograde" is
+   astrologically meaningless for them. Screenshot confirmed both panels
+   wrongly showed R on the Nodes row before this fix (left: "Nodes 17°
+   R"; right: "North Node ... R" / "South Node ... R"). Checked elsewhere
+   as asked: the natal page's own desktop rail
+   (`app/reading/[slug]/natal/page.tsx`, the `placement.id === 'nodes'`
+   branch) already special-cased this correctly when it was built — no
+   fix needed there. The Transits page rail
+   (`app/reading/[slug]/transits/page.tsx`) shows no degree/retrograde
+   data at all yet for any body (a separate, already-flagged gap, not
+   this bug) — nothing to fix there either. The bug was isolated to the
+   two home panels, which loop over all placements/bodies generically and
+   didn't yet carve out the Nodes case; both now skip the retrograde badge
+   specifically for Nodes.
+
+**Verified** with Playwright (throwaway scripts, not committed) against the
+dogfood reading (`hejkhjq1zns5`) at 1440×900, screenshotting both panels in
+List and Chart states, both lists scrolled to their Nodes row, and a live
+click test on a row's name text:
+
+| Element | Change | Rendered | OK |
+|---|---|---|---|
+| Right panel, positions list | "Planets" label added | Confirmed by screenshot | ✅ |
+| Both panels, header→body gap | Reduced, header stays top-anchored | Confirmed by screenshot | ✅ |
+| Both stickers | Font-weight 600 → 400 | Confirmed via computed style (`getComputedStyle` read 400) | ✅ |
+| Right panel, Chart state | No cream card; sits directly on teal | Confirmed by screenshot, matches left panel's Chart state | ✅ |
+| Right panel, Chart state | Placeholder label recolored for teal | Confirmed by screenshot, legible | ✅ |
+| Left panel list; right panel Planets + Aspects lists | Red top/bottom bracket lines | Confirmed by zoomed-crop screenshots (top and bottom) on all three | ✅ |
+| Left panel rows | Two lines → one line, larger font | Confirmed by screenshot | ✅ |
+| Left panel rows | Whole row clickable | Confirmed — click on row name (not caret) navigated to `?open=moon` | ✅ |
+| Right panel positions | Data flows after name, not right-aligned | Confirmed by screenshot (e.g. "Saturn 14° Aries R") | ✅ |
+| Nodes row, both panels | No "R" | Confirmed by screenshot, both panels, scrolled to Nodes | ✅ |
+| Natal page rail | Already correct, no change needed | Confirmed by reading `natal/page.tsx`'s nodes branch | ✅ |
+| Transits page rail | No retrograde data rendered yet (unrelated gap) | Confirmed by reading `transits/page.tsx` | ✅ |
+
+`tsc --noEmit` clean throughout.
+
+Files touched: `app/components/HomeMyChartPanel.tsx`, `app/components/
+HomeTodaySkyPanel.tsx`, `app/globals.css`, `docs/SPEC.md`. One commit, not
+pushed.

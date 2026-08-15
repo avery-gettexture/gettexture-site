@@ -72,8 +72,10 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header ~14% */}
-      <div style={{ flex: '0 0 14%', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+      {/* Header ~9% (shrunk from 14% — home-page-polish task, §16: same
+          top-anchored title, less reserved empty space below it before
+          the body starts) */}
+      <div style={{ flex: '0 0 9%', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div onClick={() => setExpanded(e => !e)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: expanded ? '2px' : '10px' }}>
           <span style={{
             fontFamily: 'var(--font-anton), sans-serif',
@@ -125,16 +127,29 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
       {/* Body */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {paneMode === 'list' ? (
-          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain' }}>
+          <div style={{
+            position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain',
+            borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
+          }}>
             {PLACEMENTS.map(placement => {
               const meta = getPlanetMeta(reading.chart_data, placement.id);
               const icon = PLACEMENT_ICON[placement.id];
+              // Nodes always move backward by nature — "retrograde" is
+              // meaningless for them, so no R flag here (home-page-polish
+              // task, §16; matches the natal page's own rail, which
+              // already special-cases this the same way).
+              const showRetrograde = meta.retrograde && placement.id !== 'nodes';
               return (
-                <div key={placement.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  borderBottom: '0.5px solid rgba(253,245,237,0.12)',
-                  padding: '10px 0',
-                }}>
+                <Link
+                  key={placement.id}
+                  href={`/reading/${slug}/natal?open=${placement.id}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    borderBottom: '0.5px solid rgba(253,245,237,0.12)',
+                    padding: '10px 0',
+                    textDecoration: 'none',
+                  }}
+                >
                   <div style={{
                     width: '26px', height: '26px', flexShrink: 0, borderRadius: '50%', overflow: 'hidden',
                     background: icon ? 'transparent' : 'rgba(253,245,237,0.08)',
@@ -144,28 +159,21 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
                       ? <img src={icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '13px', color: LIGHT_MUTED }}>{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>}
                   </div>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'baseline', fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1vw, 14px)', color: LIGHT }}>
-                      <span>{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>
-                      <span>{placement.name}</span>
-                      <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.85em', color: LIGHT_MUTED }}>{meta.degree}</span>
-                      {meta.retrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.8em', color: 'var(--red-strong)' }}>R</span>}
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px', fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 0.9vw, 13px)', color: LIGHT_MUTED }}>
-                      <span>{RAIL_SIGN_GLYPHS[meta.sign] ?? ''}</span>
-                      <span>{meta.sign}</span>
-                      {meta.house && <span>· {meta.house}</span>}
-                    </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0, fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(14px, 1.3vw, 17px)', color: LIGHT }}>
+                    <span>{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>
+                    <span>{placement.name}</span>
+                    <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.85em', color: LIGHT_MUTED }}>{meta.degree}</span>
+                    <span style={{ fontSize: '0.9em', color: LIGHT_MUTED }}>{RAIL_SIGN_GLYPHS[meta.sign] ?? ''}</span>
+                    <span style={{ fontSize: '0.85em', color: LIGHT_MUTED }}>{meta.sign}</span>
+                    {meta.house && <span style={{ fontSize: '0.85em', color: LIGHT_MUTED }}>· {meta.house}</span>}
+                    {showRetrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.8em', color: 'var(--red-strong)' }}>R</span>}
                   </div>
-                  {/* Sideways caret — the only link on the row, to that
-                      placement's own body on the natal page. */}
-                  <Link
-                    href={`/reading/${slug}/natal?open=${placement.id}`}
-                    style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '18px', color: LIGHT_FAINT, textDecoration: 'none', flexShrink: 0, padding: '2px 4px' }}
-                  >
+                  {/* Caret — visual affordance only now; the whole row is
+                      the link (home-page-polish task, §16). */}
+                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '18px', color: LIGHT_FAINT, flexShrink: 0, padding: '2px 4px' }}>
                     ›
-                  </Link>
-                </div>
+                  </span>
+                </Link>
               );
             })}
           </div>
