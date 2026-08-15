@@ -18,6 +18,8 @@ Companion references in repo / project knowledge:
 - App-era transit prompts (archive/reference): `transit_a_c1/c3` (collective — archived, ignore), `transit_c_c1/c3` (chart-grounded — base of the current revision), `transit_c_sunmoon_c1/c3` (superseded — retired)
 - App-era `transit_calendar` table (Supabase) and app UI (`transits.tsx`, `detail.tsx`)
 - `create_sky_positions.sql` — the ephemeris table DDL (executed; see §11.1)
+- `create_today_sky_rpcs.sql` — the two open (non-slug-gated) anon RPCs for
+  the home page's "Today's Sky" panel (executed; see §16, August 15, 2026)
 
 **Process law — binding on all sessions working from this document:**
 Founder makes ALL decisions; nothing is marked decided without explicit confirmation. Full verbatim text is surfaced for every proposed change to any prompt or governing document; prompt language is never compressed or summarized; changes are additive-only unless a removal is explicitly ruled; every assembly is verified by snapshot diff with removed lines enumerated; judgment calls and unratified language are flagged, never silently included.
@@ -387,7 +389,13 @@ sign        text        -- derived convenience column
 sign_degree float8      -- derived convenience column
 retrograde  bool        -- longitude decreasing day-over-day
 created_at  timestamptz -- DECIDED: ledger column, default now()
-PK (body, date); index on date; RLS on, server-only reads.
+PK (body, date); index on date; RLS on, server-only reads. **Open anon
+read path added (§16, August 15, 2026):** `get_current_sky_positions()`,
+a slug-less SECURITY DEFINER function (same pattern as
+`get_reading_by_slug`) that returns only today's row per body
+(`WHERE date = CURRENT_DATE`, no house column — houses are
+chart-specific, this table has none). The table itself is still
+locked; this is the only anon read path into it.
 ```
 - **Moon included — DECIDED** (essentially free to compute; feeds Today's Texture's daily sky wheel and positions). The Moon remains excluded as a *subject* of standing transit pieces.
 - **Longitude-keyed by design:** aspect math is angular arithmetic on longitudes; sign/degree are conveniences derived at fill time, never re-derived downstream.
@@ -3046,7 +3054,11 @@ here for the record):
   reads"), and this build makes no API calls, so the 11 rail rows and each
   body's card header show only the glyph and name — degree/sign/house are
   left blank rather than invented. A public sky-position source is future
-  work.
+  work. **Resolved at the data layer, August 15, 2026 (§16):**
+  `get_current_sky_positions()` and `get_current_sky_aspects()` now give
+  anon callers a scoped read path into `sky_positions` and
+  `aspect_calendar` for the home page's "Today's Sky" panel; no frontend
+  built yet, so this build's own rail/header still show no live data.
 - **Moon is in the 11-row rail list, but has no standing transit piece**
   (§3.6: Moon is ambient-only, no per-user generation). Not
   special-cased — its row and card behave exactly like every other body's,
@@ -3507,3 +3519,46 @@ Files touched: `app/components/TransitCalendarPane.tsx` (rewritten),
 (modified — one addition), `docs/SPEC.md`. No new Supabase call, no new
 table, no live database write in this part (Part 1's regeneration covered
 the one live write both parts depend on). One commit, not pushed.
+
+**August 15, 2026 (two open RPCs for the home page's "Today's Sky"
+panel — SQL only, no frontend):** an access audit found the post-purchase
+home's planned right panel needs two things the anon browser currently
+cannot read: `sky_positions` and `aspect_calendar` are both
+service-role-only (RLS on, zero policies). Built two OPEN (non-slug-gated)
+SECURITY DEFINER functions, same lock-table-plus-gate-function pattern as
+`get_reading_by_slug`/`get_transit_pieces_by_slug` (§16, July 29, 2026),
+except neither takes a slug — this is general sky data, not tied to any
+one reading, so it's deliberately open to any visitor rather than gated to
+a customer. Each function filters to the current window SERVER-SIDE so an
+anon caller can never pull the whole table:
+- `get_current_sky_positions()` — reads `sky_positions` `WHERE date =
+  CURRENT_DATE`; returns body, sign, sign_degree, retrograde per body (no
+  house column — `sky_positions` has none; houses are chart-specific, sky
+  data isn't).
+- `get_current_sky_aspects()` — reads `aspect_calendar` `WHERE
+  window_start <= CURRENT_DATE AND (window_end >= CURRENT_DATE OR
+  window_end IS NULL)`; returns body_1, body_2, event, window_start,
+  window_end, exact_date. Eclipse rows (which have no window_start) fail
+  this filter and never come through. Confirmed against §11A.3:
+  `aspect_calendar` holds only chart-independent sky-sky events, nothing
+  personal or per-reading, so open exposure is appropriate here in a way
+  it isn't for `readings`/`transit_pieces`.
+
+Migration: `scripts/create_today_sky_rpcs.sql`, run by the founder against
+Supabase's SQL editor (no direct DB connection available to this session)
+and verified live with the public anon key via
+`scripts/verify-today-sky-rpcs.mjs`: `get_current_sky_positions()`
+returned exactly 12 rows (the 10 tracked bodies plus North/South Node),
+all dated today, sign/degree/retrograde populated; `get_current_sky_aspects()`
+returned 12 active-window rows, all with sane current dates, no eclipse
+rows present; a direct anon read of either table was refused
+(`permission denied for table sky_positions` / `aspect_calendar`),
+confirming the RPCs are the only path in. §11.1 and the August 11 entry's
+"no live current-sky data" flag are both updated in place to point here.
+
+Files touched: `scripts/create_today_sky_rpcs.sql` (new),
+`scripts/verify-today-sky-rpcs.mjs` (new), `docs/SPEC.md`. No application
+code touched (no frontend built in this task). One live database write
+(the founder ran the migration in the Supabase SQL editor), verified by
+fresh anon-key read, not by the SQL editor's own success message. One
+commit, not pushed.
