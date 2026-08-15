@@ -3815,3 +3815,55 @@ gap above the Learn button in List mode, matching
 
 Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 15, 2026 (post-purchase home — same-day second follow-up, right
+panel only):** the cream-card containment fix above (entry 3, prior
+follow-up) had a real bug Avery caught by screenshot comparison: the card
+had no visible margin between its own edges and its content (header text
+and list rows sat flush against the cream edges), and looked
+off-center/awkward as a result.
+
+**Root cause:** the fix moved `padding: '0 3%'` onto the panel's outer
+root, then put the cream background on a child of that padded root — so
+the padding was defining the *cream card's own edges* (already inset 3%
+from the slot) instead of *insetting the content* within a full-width
+card. The original (pre-restructure) version had it right: cream painted
+edge-to-edge, padding applied to something inside that painted region so
+content sat inset from the card's edges, not flush with them.
+
+**Fix, re-verified against the mock with pixel sampling (not eyeballing):**
+used `sharp` to sample `docs/mocks/homepage-variants.png` directly —
+confirmed the cream card sits ~7% in from the panel's own left/right
+edges, and the header text sits a *further* ~5% in from the card's own
+edges (two separate insets, not one collapsed into the other), and that
+the Learn button's right edge aligns with the card's right edge, not the
+panel's outer edge. Moved `padding: '0 3%'` off the root entirely; it now
+lives on the Header+Body wrapper itself (so the wrapper's cream background
+still paints edge-to-edge at the wrapper's own box, and the padding insets
+only the wrapper's *children* — header text, both lists) and, separately,
+on the footer (a sibling of the wrapper, so it needs its own copy to align
+the Learn button with the card's edge the same way).
+
+**Also this pass, per Avery's explicit sizing request:** Planets trimmed by
+roughly 2 planet-rows' worth (`flex: '0 0 60%'` → `'0 0 49%'`) and that
+space given to Aspects & Events (`flex: '1 1 40%'` → `'1 1 51%'`) — a
+further adjustment on top of the full 60/40 swap from the prior follow-up
+entry, not a reversal of it.
+
+**"The links are broken" (prior follow-up entry) — resolved itself,** per
+Avery; no cause identified, no code implicated.
+
+**Verified** with Playwright (throwaway scripts, not committed) at
+1440×900: screenshotted the List state and confirmed by eye the card is
+full-width again (edge-to-edge with the slot, matching the left panel's
+red-bracketed list width) with visible margin around the header/list text;
+scrolled the Aspects & Events list to its end and screenshotted the
+bottom-right corner specifically — confirmed the card still stops cleanly
+above the Learn button (didn't regress the "contained, not flush to the
+bottom" fix from the prior follow-up entry) with the button now sitting at
+the same inset as the list content, matching the mock's button alignment.
+Also screenshotted Chart mode — unaffected, no regression. `tsc --noEmit`
+clean.
+
+Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
+commit, not pushed.

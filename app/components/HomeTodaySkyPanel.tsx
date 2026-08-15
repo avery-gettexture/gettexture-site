@@ -123,7 +123,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   });
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '0 3%' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
       {/* Header + Body wrapper — carries the cream card in List mode
           (matching docs/mocks/homepage-variants.png: the card wraps the
@@ -133,9 +133,21 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
           left panel's Read/Learn buttons never sitting on a card
           (home-page-polish task, §16 follow-up — original cream fill
           wrongly extended the full panel height, flush to the bottom).
-          Chart mode drops the card entirely, same as before. */}
+          Chart mode drops the card entirely, same as before.
+
+          The card's own edges span the FULL slot width (no padding on the
+          outer root) — the `padding: '0 3%'` lives HERE, on the wrapper
+          itself, so it insets the wrapper's CONTENT (header + lists) from
+          the card's edges instead of defining the card's edges. Measured
+          against docs/mocks/homepage-variants.png with a pixel sample
+          (sharp): the card sits ~7% in from the panel's left/right edges
+          and the header text sits a further ~5% in from the card's own
+          edges — this was collapsed into one inset in the prior version of
+          this fix, which is why the card had no visible margin from its
+          own content (Avery caught this — home-page-polish task, §16,
+          second follow-up). */}
       <div style={{
-        flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column',
+        flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
         background: paneMode === 'list' ? 'var(--cream)' : 'transparent',
       }}>
 
@@ -182,9 +194,11 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         {paneMode === 'list' ? (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Current sky ~60% (swapped with Aspects & Events per Avery's
-                request, home-page-polish task, §16 follow-up) */}
-            <div style={{ flex: '0 0 60%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
+            {/* Current sky ~49% (was swapped to 60/40 earlier today, then
+                trimmed back by roughly 2 planet-rows' worth per Avery's
+                follow-up request, giving that space to Aspects & Events —
+                home-page-polish task, §16, second follow-up) */}
+            <div style={{ flex: '0 0 49%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
                 fontSize: 'clamp(15px, 1.6vw, 18px)',
@@ -230,9 +244,10 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               </div>
             </div>
 
-            {/* Aspects & Events ~40% (swapped with Planets per Avery's
-                request, home-page-polish task, §16 follow-up) */}
-            <div style={{ flex: '1 1 40%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
+            {/* Aspects & Events ~51% (gained roughly 2 planet-rows' worth
+                back from the Planets section above — home-page-polish
+                task, §16, second follow-up) */}
+            <div style={{ flex: '1 1 51%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
                 fontSize: 'clamp(15px, 1.6vw, 18px)',
@@ -296,9 +311,12 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
 
       </div>
       {/* Footer ~13% — outside the cream wrapper (see comment above), always
-          directly on the panel's teal image. No Read button (transits
-          hidden). */}
-      <div style={{ flex: '0 0 13%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          directly on the panel's teal image. Same `padding: '0 3%'` as the
+          wrapper above so the Learn button lines up with the card's edge
+          (confirmed against the mock — the button sits flush with the
+          card's right edge, not the panel's outer edge). No Read button
+          (transits hidden). */}
+      <div style={{ flex: '0 0 13%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 3%' }}>
         <Link href={`/reading/${slug}/reference`} style={{
           padding: '10px 24px',
           border: '1px solid rgba(22,22,18,0.30)',
