@@ -201,11 +201,12 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         {paneMode === 'list' ? (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Current sky: 47.3% of Body (was 49% — trimmed by roughly
-                half a planet-row's height, which becomes the bottom
-                breathing-room gap above the Body-sizing comment, not given
-                to Aspects & Events this time — home-page-polish task, §16,
-                third follow-up) */}
+            {/* Current sky: 47.3% of Body, smaller than Aspects & Events'
+                52.7% below — a proportion preference (Planets trimmed by
+                roughly half a planet-row's height from an even 49/51
+                split — home-page-polish task, §16, third follow-up). Not
+                related to the bottom margin mechanism, see the Body
+                comment above. */}
             <div style={{ flex: '0 0 47.3%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
@@ -257,13 +258,11 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               </div>
             </div>
 
-            {/* Aspects & Events: 52.7% of Body — its absolute size is
-                UNCHANGED from before (this section did not grow or shrink;
-                Planets gave its half-row up as bottom breathing room
-                instead this time, not to this section — home-page-polish
-                task, §16, third follow-up). Fixed (`0 0`, not `1 1`) so it
-                can't auto-grow to reclaim the space Planets gave up — that
-                would defeat the gap at the bottom. */}
+            {/* Aspects & Events: 52.7% of Body — larger than Planets'
+                47.3% above, the same proportion preference (home-page-
+                polish task, §16, third follow-up). Fixed (`0 0`, not
+                `1 1`) so its size stays tied to this ratio rather than
+                auto-growing to fill whatever Body happens to have left. */}
             <div style={{ flex: '0 0 52.7%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',

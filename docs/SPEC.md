@@ -3967,6 +3967,15 @@ on top:**
    (Planets trimmed, given to Aspects), not part of today's margin fix,
    so it wasn't touched or reverted.
 
+**Cleanup, spotted on a re-read for this SPEC update:** the Planets and
+Aspects & Events sections still had in-code comments describing the
+*third* follow-up's mechanism ("Planets' half-row becomes the bottom
+breathing-room gap") — no longer true once the Body-sizing trick was
+replaced by the Wrapper's 98% cap in this entry. Corrected both to
+describe only the still-true proportion preference, not the retired
+mechanism. Verified findable via `git diff` alongside this entry, not a
+separate commit.
+
 **Verified** by live DOM measurement after the fix (not just a screenshot
 read): top gap 14.4px, bottom gap 14.1px — symmetric, matching within a
 third of a pixel. Card's bottom edge sits 16px past the Learn button's
