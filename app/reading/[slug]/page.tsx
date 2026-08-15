@@ -1,11 +1,13 @@
 'use client';
 
-// Placeholder — the post-purchase home. Renders the Phase 2 <HomeLayout>
-// skeleton with filler content to prove the template works; real panel
-// content (placements list, today's sky, aspects) is built in Phase 3.
+// The post-purchase home (SPEC §16, post-purchase home build). Two-panel
+// live home: left = "My Chart" (the person's own placements), right =
+// "Today's Sky" (plain, unpersonalized current-sky data). Transits is
+// deliberately hidden here — see HomeTodaySkyPanel's own header comment.
 
 import { use } from 'react';
 import HomeLayout from '@/app/components/HomeLayout';
+import HomeMyChartPanel from '@/app/components/HomeMyChartPanel';
 
 export default function ReadingHomePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -13,8 +15,8 @@ export default function ReadingHomePage({ params }: { params: Promise<{ slug: st
   return (
     <HomeLayout
       slug={slug}
-      leftPanel={<p className="placeholder-text">My Chart panel — built in Phase 3.</p>}
-      rightPanel={<p className="placeholder-text">Today&apos;s Sky panel — built in Phase 3.</p>}
+      leftPanel={<HomeMyChartPanel slug={slug} />}
+      rightPanel={<p className="placeholder-text">Today&apos;s Sky panel — built next.</p>}
     />
   );
 }
