@@ -194,8 +194,11 @@ Event standard:
 - **URL map (routing restructure, August 3, 2026 — Phase 1, §16):**
   - `/` — pre-purchase home (entry point; unchanged this phase, full
     build in Phase 3).
-  - `/reading/[slug]` — post-purchase home (shell only as of Phase 1;
-    the built 2-column My Chart / Transiting home is Phase 3).
+  - `/reading/[slug]` — post-purchase home. Shell only as of Phase 1; the
+    real 2-panel home (desktop only) is BUILT as of August 15, 2026, §16 —
+    left panel "My Chart" (the person's own placements), right panel
+    "Today's Sky" (plain current-sky data, not a Transiting panel —
+    Transits stays hidden here per that entry).
   - `/reading/[slug]/natal` — the natal reading (moved here from
     `/reading/[slug]` in Phase 1, component unchanged at that time;
     **re-housed into the `ReadingLayout`/`Rail` shell at desktop widths
@@ -3562,3 +3565,109 @@ code touched (no frontend built in this task). One live database write
 (the founder ran the migration in the Supabase SQL editor), verified by
 fresh anon-key read, not by the SQL editor's own success message. One
 commit, not pushed.
+
+**Both RPCs now have a real frontend caller — see the August 15, 2026
+"post-purchase home" entry below.**
+
+**August 15, 2026 (post-purchase home — real content for both panels,
+desktop only):** `/reading/[slug]` was a Phase-1/2 shell (`<HomeLayout>`
+with placeholder text in both slots). Built the real "My Chart" (left) and
+"Today's Sky" (right) panels per the founder's mock
+(`docs/mocks/homepage-variants.png`) and `docs/TEXTURE_LAYOUT_PROPORTIONS.md`'s
+"DESKTOP — HOME" section. **Scope: desktop only (>=1024px)**, matching the
+mock's own labeling and the fact that `HomeLayout`/its CSS have no mobile
+breakpoint yet — mobile home is unchanged, out of scope, a later task. This
+is the LIVE/paid home: Transits is deliberately hidden (subscriptions aren't
+wired up), so the right panel is plainer than the left by design — no Read
+button, no per-row link, no personalization.
+
+**Shared plumbing added first, reused by both panels rather than duplicated:**
+`app/reading/[slug]/natal/page.tsx` now exports `PLACEMENTS`, `Reading`,
+`RAIL_PLANET_GLYPHS`, `RAIL_SIGN_GLYPHS`, `getPlanetMeta`, `SIGN_ABBR_MAP`,
+`HOUSE_ORDINALS` (no behavior change — additive exports only). The natal
+page also gained a `?open=<placementId>` deep link — lands scrolled to that
+placement's section once, on both the desktop rail-driven shell and mobile's
+single-column scroll — needed by the My Chart panel's "Read" button (always
+opens Sun) and its row carets (open that row's own placement). Follows this
+repo's established search-param convention (`searchParams: Promise<...>`
+prop unwrapped with `use()`, per `app/success/page.tsx` — not the
+`useSearchParams()` hook). `parseLocalDate` (the UTC-parse timezone fix
+documented as "the one intended home" for date helpers, §16 Aug 11) moved
+from `TransitCalendarPane.tsx` into `lib/date-utils.ts` as a shared export,
+since the new Today's Sky panel needed the identical fix.
+
+**Left panel — `app/components/HomeMyChartPanel.tsx`:** fetches
+`get_reading_by_slug`. Header: name left-aligned, Anton display font; tap
+toggles an `expanded` state modeled on `NatalChartPane.tsx`'s existing
+name/birth-data mechanic but adapted for a top-left anchor instead of that
+component's bottom-center one (name shrinks slightly, birth date/time/
+location appear on a line underneath) — flagged for Avery's visual sign-off
+as a new arrangement, confirmed by screenshot to work as intended. List |
+Chart toggle swaps the body in place (no navigation) between the 13-
+placement list and the real `NatalChartWheelWeb`. Each list row: a
+planet-PNG icon (`/sun.png` etc. — new to this build, the 10 files existed
+in `/public` unwired by anything until now), styled glyph + name + degree +
+retrograde flag (line 1), styled sign glyph + sign + house (line 2), and a
+sideways caret (only the caret links, not the row) to
+`/reading/[slug]/natal?open=<id>`. Ascendant/Midheaven/Nodes have no PNG
+asset — per Avery's explicit call, those three rows render glyph-only, no
+icon. Footer: "Read" (opens natal on Sun) and "Learn" (Reference).
+
+**Right panel — `app/components/HomeTodaySkyPanel.tsx`:** first frontend
+caller of `get_current_sky_positions()`/`get_current_sky_aspects()` (built
+Aug 15, §16 above). Content sits on a cream rectangle over the panel's teal
+background image per the layout doc, so — unlike the left panel — everything
+is dark-on-cream. Header: date only (`formatToday()`, browser-local — no
+name, no birth data), List | Chart toggle labeled literally "Chart" (the
+mock's "Charts" is a stale typo, per the brief). Body: current-sky list
+(~40%, plain — no PNG icons, no house, no link, styled glyphs only, includes
+a retrograde "R" badge as a natural extension of data the RPC already
+returns) over an Aspects & Events list (~60%, one line per aspect, display-
+only, no tabs/filters — the RPC already scopes to "active now" so there's
+nothing to tab between). CHART state renders `NatalChartWheelWeb` fed the
+same reading's real `chart_data` as an explicitly, loudly flagged
+**placeholder** (both in the rendered UI and in a code comment) — same
+precedent as the Transits page's own CHART pane (§16, Aug 11 entry) — since
+the real no-birth-time "Today's Sky" wheel isn't built yet; that's the next
+task, not this one. No Read button; footer is "Learn" only.
+
+**Bug caught and fixed during screenshot verification (not by code review):**
+the Aspects & Events list initially rendered one row per `aspect_calendar`
+row, i.e. one row per exact date. `aspect_calendar`'s own schema comment
+(`create_transit_and_aspect_calendars.sql`) states the governing law
+explicitly — "rows are events, content units are windows... multiple exact
+rows sharing one continuous orb window are ONE story... never separate rows"
+— which a live pair (Neptune sextile Pluto, a ~10-month window with two
+exact dates) violated visibly: two near-identical lines with identical
+window dates. Fixed by grouping RPC rows client-side by
+(body_1, body_2, event, window_start, window_end) before rendering and
+listing every exact date on the one resulting row
+("exact Jul 25, Sep 16") — confirmed by a second screenshot.
+
+**Verified** with Playwright (throwaway scripts, not committed) against the
+dogfood reading (`hejkhjq1zns5`) at 1440×900, and against
+`docs/mocks/homepage-variants.png`:
+
+| Element | Expected | Rendered | Match |
+|---|---|---|---|
+| Both panels render real data | Natal placements left, current sky + aspects right | Confirmed, live Supabase data both sides | ✅ |
+| Name-tap expand | Name shrinks, birth data appears below | Confirmed by screenshot, toggles both ways | ✅ |
+| Carets | Present left panel only, link to that placement | Confirmed — right panel rows have no link | ✅ |
+| List ↔ Chart | Swaps in-panel, no navigation, both sides | Confirmed both sides via screenshot (natal wheel left, placeholder wheel right) | ✅ |
+| Aspects & Events | One line per aspect, orb + exact date(s), display-only | Confirmed; grouping bug (above) caught and fixed | ✅ |
+| Footer buttons | Read+Learn (left), Learn only (right) | Confirmed | ✅ |
+| "Read" button | Opens natal on Sun | Confirmed — landed on Sun's card, Overview open | ✅ |
+| A caret | Opens natal on its own placement | Confirmed — Mercury caret landed on Mercury's card | ✅ |
+| Natal page regression | Unaffected with no `?open` param, desktop + mobile | Confirmed, zero page errors either viewport | ✅ |
+
+`tsc --noEmit` clean throughout.
+
+Files touched: `app/reading/[slug]/natal/page.tsx` (additive exports +
+`?open=` deep link), `lib/date-utils.ts` (`parseLocalDate` added),
+`app/components/TransitCalendarPane.tsx` (imports the moved
+`parseLocalDate` instead of its own copy), `app/components/
+HomeMyChartPanel.tsx` (new), `app/components/HomeTodaySkyPanel.tsx` (new),
+`app/reading/[slug]/page.tsx` (wires both panels in), `public/sun.png`
+through `public/pluto.png` (new, 10 files), `docs/mocks/
+homepage-variants.png` (new, the founder's reference mock), `docs/SPEC.md`.
+Four commits (one per step), not pushed.
