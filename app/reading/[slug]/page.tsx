@@ -8,6 +8,7 @@
 import { use } from 'react';
 import HomeLayout from '@/app/components/HomeLayout';
 import HomeMyChartPanel from '@/app/components/HomeMyChartPanel';
+import HomeTodaySkyPanel from '@/app/components/HomeTodaySkyPanel';
 
 export default function ReadingHomePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -16,7 +17,7 @@ export default function ReadingHomePage({ params }: { params: Promise<{ slug: st
     <HomeLayout
       slug={slug}
       leftPanel={<HomeMyChartPanel slug={slug} />}
-      rightPanel={<p className="placeholder-text">Today&apos;s Sky panel — built next.</p>}
+      rightPanel={<HomeTodaySkyPanel slug={slug} />}
     />
   );
 }
