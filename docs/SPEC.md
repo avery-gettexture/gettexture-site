@@ -3926,3 +3926,55 @@ and Chart mode — unaffected, no regression. `tsc --noEmit` clean.
 
 Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 15, 2026 (post-purchase home — same-day fourth follow-up, right
+panel only):** the prior follow-up's "small gap below the button" was the
+wrong kind of gap. Avery reported the card now touched the panel's true
+bottom edge with zero margin outside it — correct read of what shipped:
+the reserved 2.5% was *cream-colored* trailing space inside the wrapper's
+own painted box (a margin the button couldn't see, not one the panel's
+edge could see either). Before making another change, stopped and
+confirmed the actual ask via a live DOM measurement (not a repeat of the
+same reasoning): panel top-to-card-top gap measured 14px at 1440×900 (2%
+of the panel's height — entirely from the shared `.home-panel-slot`
+CSS's own `top: 2%`, nothing added by this component); card-to-panel-
+bottom gap measured 0px. Avery confirmed: wants a **real teal margin
+outside the card** at the bottom, sized to match the top's, with the
+card's bottom edge landing at the Learn button's own bottom edge (not
+partway through a separately-reserved empty band below it).
+
+**Fix — simpler than the last two follow-ups' approach, not more layers
+on top:**
+1. **Wrapper** (`flex: '1 1 auto'` → `'0 0 98%'`): now a *fixed* 98% of
+   Root's height instead of auto-filling 100%. Root itself has no
+   background, so the unclaimed trailing 2% shows through as real teal —
+   a margin outside the card this time, matching the top's 2% inset
+   exactly (both now 2% of the same reference box, not a coincidence).
+2. **Footer** (`flex: '0 0 13%'` → `'0 0 auto'`, plus `padding: '16px 0'`
+   replacing no padding): now sized to hug the button instead of
+   reserving a big empty band with the button vertically centered inside
+   it. This is what makes the card's bottom edge land right at (16px
+   past) the button's own bottom edge, rather than at the bottom of some
+   larger reserved region.
+3. **Body** (`flex: '0 0 75.8%'` → back to plain `flex: 1`): the fixed-
+   percentage mechanism from the prior follow-up (deliberately
+   under-filling Body so leftover space fell through to the very
+   bottom) is gone — no longer needed now that the real margin lives
+   outside the card via the Wrapper's own 98% cap. Body just auto-fills
+   whatever Header and the now-tight Footer leave it, same as originally.
+4. **Planets/Aspects proportions (47.3%/52.7% of Body) are UNCHANGED** —
+   that was a separate proportion preference from two follow-ups ago
+   (Planets trimmed, given to Aspects), not part of today's margin fix,
+   so it wasn't touched or reverted.
+
+**Verified** by live DOM measurement after the fix (not just a screenshot
+read): top gap 14.4px, bottom gap 14.1px — symmetric, matching within a
+third of a pixel. Card's bottom edge sits 16px past the Learn button's
+own bottom edge (the footer's new padding, not a large reserved band).
+Screenshotted both List and Chart states — List shows the teal margin
+clearly on both top and bottom now; Chart mode unaffected (no card there
+regardless, and the button's slightly different position from the
+Footer's new tighter sizing doesn't look wrong). `tsc --noEmit` clean.
+
+Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
+commit, not pushed.

@@ -12,11 +12,11 @@
 // right panel's List-mode header+lists+footer sit on a cream rectangle laid
 // over the panel's teal background image — so unlike the My Chart panel
 // (light text directly on a dark image), List mode here is dark-on-cream.
-// The card extends down through the footer (home-page-polish task, §16,
-// third follow-up — an earlier version stopped it above the footer, which
-// Avery asked to revert), with a small reserved gap of cream space below
-// the Learn button before the card's true bottom edge. Chart mode drops the
-// cream card entirely and sits directly on the teal image instead, matching
+// The card extends down through the footer, and stops with a teal margin
+// below it (roughly matching the teal margin the shared `.home-panel-slot`
+// CSS already leaves above the card) rather than touching the panel's true
+// bottom edge (home-page-polish task, §16, fourth follow-up). Chart mode
+// drops the cream card entirely and sits directly on the teal image, matching
 // the left panel's Chart state.
 
 import { useEffect, useState } from 'react';
@@ -127,30 +127,33 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
 
       {/* Header + Body + Footer wrapper — carries the cream card in List
           mode (matching docs/mocks/homepage-variants.png: the card wraps
-          the date/toggle header and the two lists). The footer is now
-          INSIDE this wrapper too (moved back in per Avery's request — the
-          card now extends down to the footer's bottom edge, same line as
-          before), with a small reserved gap of cream "white space" below
-          the Learn button before the card's true bottom edge (see the
-          Body-sizing comment below for how that gap is produced). Chart
-          mode still drops the card entirely, unchanged.
+          the date/toggle header and the two lists, with the footer inside
+          it too). Chart mode still drops the card entirely, unchanged.
 
-          The card's own edges span the FULL slot width (no padding on the
-          outer root) — the `padding: '0 3%'` lives HERE, on the wrapper
-          itself, so it insets the wrapper's CONTENT from the card's edges
-          instead of defining the card's edges (home-page-polish task, §16,
-          second follow-up — Avery caught the original version of this
-          collapsing the two into one inset, leaving no visible margin). */}
+          BOTTOM MARGIN (home-page-polish task, §16, fourth follow-up):
+          the card's bottom edge should sit above the panel's true bottom
+          edge by about the same amount the panel's own top:2% slot inset
+          (globals.css `.home-panel-slot`) already leaves above the card's
+          TOP edge — confirmed by measuring the live page: that top gap is
+          14px at 1440×900, i.e. 2% of the panel's own height. `flex: '0 0
+          98%'` below reserves that same 2% as unclaimed trailing space
+          after this wrapper, which Root (transparent, no background)
+          shows through as teal — a REAL margin outside the card, not
+          padding/whitespace inside it (that was the wrong read in the
+          prior follow-up, since undone).
+
+          The card's own LEFT/RIGHT edges still span the full slot width
+          (no horizontal padding on the outer root) — `padding: '0 3%'`
+          lives HERE, on the wrapper itself, insetting the wrapper's
+          CONTENT from the card's edges rather than defining the card's
+          edges (home-page-polish task, §16, second follow-up). */}
       <div style={{
-        flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
+        flex: '0 0 98%', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
         background: paneMode === 'list' ? 'var(--cream)' : 'transparent',
       }}>
 
-      {/* Header 8.7% of the wrapper (unchanged absolute size — was 10% of
-          an 87%-tall wrapper before the footer moved back in below and
-          grew the wrapper to the full 100%; re-expressed as 8.7% of the
-          now-100% wrapper to render at the same size, home-page-polish
-          task, §16, third follow-up) */}
+      {/* Header 8.7% of the wrapper (unchanged absolute size from before
+          the footer moved back in below and grew the wrapper) */}
       <div style={{ flex: '0 0 8.7%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{
           fontFamily: 'var(--font-geist-mono), monospace',
@@ -185,20 +188,16 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Body: 75.8% of the wrapper — a FIXED size now, not `flex: 1`
-          auto-fill. This is the mechanism for the requested bottom
-          breathing room (home-page-polish task, §16, third follow-up):
-          Header (8.7%) + Body (75.8%) + Footer (13%) sum to 97.5%, not
-          100% — the remaining 2.5% (roughly half a planet-row's height)
-          is unclaimed by any flex-grow child, so per normal flexbox
-          behavior it collects as trailing empty space AFTER the footer,
-          inside the wrapper's own cream-painted box. That reserved 2.5%
-          is exactly Planets' reduction below (was 49% of Body, now
-          47.3% of Body — Aspects' 52.7% share is unchanged in absolute
-          terms, so only Planets actually shrinks). If Body were still
-          `flex: 1`, it would auto-refill whatever Planets gave up and no
-          gap would appear. */}
-      <div style={{ flex: '0 0 75.8%', minHeight: 0, position: 'relative' }}>
+      {/* Body: back to `flex: 1`, auto-filling whatever's left in the
+          wrapper after Header and Footer (home-page-polish task, §16,
+          fourth follow-up — a prior version fixed this at a specific %
+          to manufacture bottom breathing room a different way; that
+          mechanism is gone now that the real bottom margin lives outside
+          the card, see the wrapper comment above). Planets/Aspects keep
+          the 47.3%/52.7% split set two follow-ups ago (Planets trimmed,
+          Aspects given more room) — that was a proportion preference, a
+          separate request from today's margin fix, so it's unchanged. */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {paneMode === 'list' ? (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
@@ -327,18 +326,19 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         )}
       </div>
 
-      {/* Footer 13% — back INSIDE the cream wrapper (home-page-polish
-          task, §16, third follow-up: Avery wants the card extended down
-          to the footer's bottom edge, not stopping above it as in the
-          prior follow-up). Its own size is unchanged, so it renders at
-          the same absolute position as before; the reserved 2.5% gap
-          (see the Body-sizing comment above) trails after this, still
-          inside the wrapper's cream box, giving the Learn button a bit of
-          breathing room before the card's true bottom edge. No padding of
-          its own now — it inherits the wrapper's `padding: '0 3%'` like
-          Header and Body do, so the button still lines up with the card's
-          edge. No Read button (transits hidden). */}
-      <div style={{ flex: '0 0 13%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+      {/* Footer — sized to hug the button (`flex: '0 0 auto'`, not a
+          reserved percentage band), so the card's bottom edge ends right
+          around the button's own bottom edge, not partway through a
+          bigger empty band below it (home-page-polish task, §16, fourth
+          follow-up — Avery wants the card's bottom edge AT the button's
+          bottom, with the real breathing room living outside the card as
+          the reserved 2% teal margin instead, see the wrapper comment
+          above). `padding: '16px 0'` gives the button normal click-target
+          breathing room without the old 13%-tall reserved band. Inherits
+          the wrapper's `padding: '0 3%'` horizontally, same as Header and
+          Body, so the button still lines up with the card's edge. No Read
+          button (transits hidden). */}
+      <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '16px 0' }}>
         <Link href={`/reading/${slug}/reference`} style={{
           padding: '10px 24px',
           border: '1px solid rgba(22,22,18,0.30)',
