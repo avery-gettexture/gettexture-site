@@ -9,11 +9,15 @@
 // frontend until now.
 //
 // Per the doc (docs/TEXTURE_LAYOUT_PROPORTIONS.md, "DESKTOP — HOME"), the
-// right panel's List-mode content sits on a cream rectangle laid over the
-// panel's teal background image — so unlike the My Chart panel (light text
-// directly on a dark image), List mode here is dark-on-cream. Chart mode
-// drops the cream card entirely (home-page-polish task, §16) and sits
-// directly on the teal image instead, matching the left panel's Chart state.
+// right panel's List-mode header+lists sit on a cream rectangle laid over
+// the panel's teal background image — so unlike the My Chart panel (light
+// text directly on a dark image), List mode here is dark-on-cream. That
+// card is CONTAINED (docs/mocks/homepage-variants.png): it stops after the
+// Aspects & Events list, and the footer always sits outside it, directly on
+// the teal image — matching the left panel's Read/Learn buttons, which
+// never sit on a card either. Chart mode drops the cream card entirely
+// (home-page-polish task, §16) and sits directly on the teal image instead,
+// matching the left panel's Chart state.
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -119,19 +123,27 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   });
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
-      // Cream card only in List mode. Chart mode drops it entirely — header,
-      // wheel, and footer all sit directly on the panel's own teal image,
-      // matching the left panel's Chart state (home-page-polish task, §16;
-      // confirmed against docs/mocks/homepage-variants.png with Avery).
-      background: paneMode === 'list' ? 'var(--cream)' : 'transparent',
-    }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '0 3%' }}>
 
-      {/* Header ~9% (shrunk from 14% — home-page-polish task, §16: same
-          top-anchored content, less reserved empty space before the body
-          starts) */}
-      <div style={{ flex: '0 0 9%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Header + Body wrapper — carries the cream card in List mode
+          (matching docs/mocks/homepage-variants.png: the card wraps the
+          date/toggle header and the two lists, but stops there — it does
+          NOT extend down behind the footer). The footer sits outside this
+          wrapper, always directly on the panel's teal image, same as the
+          left panel's Read/Learn buttons never sitting on a card
+          (home-page-polish task, §16 follow-up — original cream fill
+          wrongly extended the full panel height, flush to the bottom).
+          Chart mode drops the card entirely, same as before. */}
+      <div style={{
+        flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column',
+        background: paneMode === 'list' ? 'var(--cream)' : 'transparent',
+      }}>
+
+      {/* Header ~10% of the wrapper (was 9% of the full panel before the
+          footer moved outside the cream wrapper — home-page-polish task,
+          §16: same top-anchored content, less reserved empty space before
+          the body starts) */}
+      <div style={{ flex: '0 0 10%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{
           fontFamily: 'var(--font-geist-mono), monospace',
           fontSize: 'clamp(16px, 1.6vw, 22px)',
@@ -170,8 +182,9 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         {paneMode === 'list' ? (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Current sky ~40% */}
-            <div style={{ flex: '0 0 40%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
+            {/* Current sky ~60% (swapped with Aspects & Events per Avery's
+                request, home-page-polish task, §16 follow-up) */}
+            <div style={{ flex: '0 0 60%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
                 fontSize: 'clamp(15px, 1.6vw, 18px)',
@@ -201,7 +214,12 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                       color: DARK,
                     }}>
                       <span>{BODY_GLYPH[pos.body] ?? '○'}</span>
-                      <span>{pos.body}</span>
+                      {/* flex:1 right-aligns the degree/sign/retro against
+                          the row's far edge — reverted back to this per
+                          Avery's request (home-page-polish task, §16
+                          follow-up; briefly changed to left-flow-after-name
+                          and reverted the same day). */}
+                      <span style={{ flex: 1 }}>{pos.body}</span>
                       <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.9em', color: DARK_MUTED }}>{Math.floor(pos.sign_degree)}°</span>
                       <span style={{ fontSize: '0.9em', color: DARK_MUTED }}>{RAIL_SIGN_GLYPHS[pos.sign] ?? ''}</span>
                       <span style={{ color: DARK_MUTED }}>{pos.sign}</span>
@@ -212,8 +230,9 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               </div>
             </div>
 
-            {/* Aspects & Events ~60% */}
-            <div style={{ flex: '1 1 60%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
+            {/* Aspects & Events ~40% (swapped with Planets per Avery's
+                request, home-page-polish task, §16 follow-up) */}
+            <div style={{ flex: '1 1 40%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
                 fontSize: 'clamp(15px, 1.6vw, 18px)',
@@ -275,7 +294,10 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         )}
       </div>
 
-      {/* Footer ~13% — no Read button (transits hidden). */}
+      </div>
+      {/* Footer ~13% — outside the cream wrapper (see comment above), always
+          directly on the panel's teal image. No Read button (transits
+          hidden). */}
       <div style={{ flex: '0 0 13%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
         <Link href={`/reading/${slug}/reference`} style={{
           padding: '10px 24px',

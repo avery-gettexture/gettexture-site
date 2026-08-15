@@ -3768,3 +3768,50 @@ click test on a row's name text:
 Files touched: `app/components/HomeMyChartPanel.tsx`, `app/components/
 HomeTodaySkyPanel.tsx`, `app/globals.css`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**August 15, 2026 (post-purchase home — same-day follow-up, right panel
+only):** four more Avery-requested tweaks to `HomeTodaySkyPanel.tsx`, on
+top of the polish pass above.
+
+1. **Planets/Aspects & Events proportions swapped.** Planets now gets the
+   larger share (`flex: 0 0 60%`, was 40%) and Aspects & Events the
+   smaller (`flex: 1 1 40%`, was 60%).
+2. **Today's Sky positions reverted to right-aligned** — item 8 from the
+   polish pass above (left-flowing data after the name) was undone per
+   Avery's request: `pos.body`'s `flex: 1` is back, pushing degree/sign/
+   retrograde to the row's right edge again.
+3. **Cream card now stops before the footer — a real bug, not a style
+   preference.** The polish-pass cream card (List mode) filled the entire
+   panel including the footer band, flush to the panel's bottom edge.
+   Avery flagged this didn't match the mock, which shows the card
+   containing only the header + two lists, with the Learn button sitting
+   outside it, directly on the teal image (same as the left panel's
+   Read/Learn, which never sit on a card). Restructured: the cream
+   background moved off the panel's outer wrapper (now always
+   transparent) onto a new inner wrapper around Header+Body only; the
+   footer is a sibling outside that wrapper, always on the teal image in
+   both List and Chart mode. Header's flex-basis adjusted 9% → 10% to
+   compensate for now being sized relative to the smaller wrapper instead
+   of the full panel (keeps its absolute height about the same).
+4. **"The links are broken" — investigated, not reproduced.** Avery
+   reported this without specifics. Checked every `<a>` on the page
+   (all 21 hrefs resolve correctly — nav, all 13 My Chart rows deep-
+   linking to their own placement, Read, both Learn buttons), checked for
+   nested-anchor HTML (none), checked the browser console for errors
+   (none), and re-ran the live click test from the polish-pass entry
+   above (clicking a row's name text still navigates to `?open=moon`
+   correctly). No defect found. Flagged back to Avery to ask what
+   specifically broke (which link, what happened) rather than guess and
+   risk an unrelated change — a fix attempt with no reproduction isn't
+   a real fix.
+
+**Verified** with Playwright (throwaway scripts, not committed) at
+1440×900 against the dogfood reading: screenshotted List and Chart states
+after the swap/revert/containment changes — confirmed Planets section
+visibly taller than Aspects & Events, positions right-aligned again
+("Saturn 14° Aries R"), and the cream card now ending with a visible teal
+gap above the Learn button in List mode, matching
+`docs/mocks/homepage-variants.png`. `tsc --noEmit` clean.
+
+Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
+commit, not pushed.
