@@ -9,15 +9,15 @@
 // frontend until now.
 //
 // Per the doc (docs/TEXTURE_LAYOUT_PROPORTIONS.md, "DESKTOP — HOME"), the
-// right panel's List-mode header+lists sit on a cream rectangle laid over
-// the panel's teal background image — so unlike the My Chart panel (light
-// text directly on a dark image), List mode here is dark-on-cream. That
-// card is CONTAINED (docs/mocks/homepage-variants.png): it stops after the
-// Aspects & Events list, and the footer always sits outside it, directly on
-// the teal image — matching the left panel's Read/Learn buttons, which
-// never sit on a card either. Chart mode drops the cream card entirely
-// (home-page-polish task, §16) and sits directly on the teal image instead,
-// matching the left panel's Chart state.
+// right panel's List-mode header+lists+footer sit on a cream rectangle laid
+// over the panel's teal background image — so unlike the My Chart panel
+// (light text directly on a dark image), List mode here is dark-on-cream.
+// The card extends down through the footer (home-page-polish task, §16,
+// third follow-up — an earlier version stopped it above the footer, which
+// Avery asked to revert), with a small reserved gap of cream space below
+// the Learn button before the card's true bottom edge. Chart mode drops the
+// cream card entirely and sits directly on the teal image instead, matching
+// the left panel's Chart state.
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -125,37 +125,33 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header + Body wrapper — carries the cream card in List mode
-          (matching docs/mocks/homepage-variants.png: the card wraps the
-          date/toggle header and the two lists, but stops there — it does
-          NOT extend down behind the footer). The footer sits outside this
-          wrapper, always directly on the panel's teal image, same as the
-          left panel's Read/Learn buttons never sitting on a card
-          (home-page-polish task, §16 follow-up — original cream fill
-          wrongly extended the full panel height, flush to the bottom).
-          Chart mode drops the card entirely, same as before.
+      {/* Header + Body + Footer wrapper — carries the cream card in List
+          mode (matching docs/mocks/homepage-variants.png: the card wraps
+          the date/toggle header and the two lists). The footer is now
+          INSIDE this wrapper too (moved back in per Avery's request — the
+          card now extends down to the footer's bottom edge, same line as
+          before), with a small reserved gap of cream "white space" below
+          the Learn button before the card's true bottom edge (see the
+          Body-sizing comment below for how that gap is produced). Chart
+          mode still drops the card entirely, unchanged.
 
           The card's own edges span the FULL slot width (no padding on the
           outer root) — the `padding: '0 3%'` lives HERE, on the wrapper
-          itself, so it insets the wrapper's CONTENT (header + lists) from
-          the card's edges instead of defining the card's edges. Measured
-          against docs/mocks/homepage-variants.png with a pixel sample
-          (sharp): the card sits ~7% in from the panel's left/right edges
-          and the header text sits a further ~5% in from the card's own
-          edges — this was collapsed into one inset in the prior version of
-          this fix, which is why the card had no visible margin from its
-          own content (Avery caught this — home-page-polish task, §16,
-          second follow-up). */}
+          itself, so it insets the wrapper's CONTENT from the card's edges
+          instead of defining the card's edges (home-page-polish task, §16,
+          second follow-up — Avery caught the original version of this
+          collapsing the two into one inset, leaving no visible margin). */}
       <div style={{
         flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
         background: paneMode === 'list' ? 'var(--cream)' : 'transparent',
       }}>
 
-      {/* Header ~10% of the wrapper (was 9% of the full panel before the
-          footer moved outside the cream wrapper — home-page-polish task,
-          §16: same top-anchored content, less reserved empty space before
-          the body starts) */}
-      <div style={{ flex: '0 0 10%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Header 8.7% of the wrapper (unchanged absolute size — was 10% of
+          an 87%-tall wrapper before the footer moved back in below and
+          grew the wrapper to the full 100%; re-expressed as 8.7% of the
+          now-100% wrapper to render at the same size, home-page-polish
+          task, §16, third follow-up) */}
+      <div style={{ flex: '0 0 8.7%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{
           fontFamily: 'var(--font-geist-mono), monospace',
           fontSize: 'clamp(16px, 1.6vw, 22px)',
@@ -189,16 +185,29 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+      {/* Body: 75.8% of the wrapper — a FIXED size now, not `flex: 1`
+          auto-fill. This is the mechanism for the requested bottom
+          breathing room (home-page-polish task, §16, third follow-up):
+          Header (8.7%) + Body (75.8%) + Footer (13%) sum to 97.5%, not
+          100% — the remaining 2.5% (roughly half a planet-row's height)
+          is unclaimed by any flex-grow child, so per normal flexbox
+          behavior it collects as trailing empty space AFTER the footer,
+          inside the wrapper's own cream-painted box. That reserved 2.5%
+          is exactly Planets' reduction below (was 49% of Body, now
+          47.3% of Body — Aspects' 52.7% share is unchanged in absolute
+          terms, so only Planets actually shrinks). If Body were still
+          `flex: 1`, it would auto-refill whatever Planets gave up and no
+          gap would appear. */}
+      <div style={{ flex: '0 0 75.8%', minHeight: 0, position: 'relative' }}>
         {paneMode === 'list' ? (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
 
-            {/* Current sky ~49% (was swapped to 60/40 earlier today, then
-                trimmed back by roughly 2 planet-rows' worth per Avery's
-                follow-up request, giving that space to Aspects & Events —
-                home-page-polish task, §16, second follow-up) */}
-            <div style={{ flex: '0 0 49%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
+            {/* Current sky: 47.3% of Body (was 49% — trimmed by roughly
+                half a planet-row's height, which becomes the bottom
+                breathing-room gap above the Body-sizing comment, not given
+                to Aspects & Events this time — home-page-polish task, §16,
+                third follow-up) */}
+            <div style={{ flex: '0 0 47.3%', minHeight: 0, display: 'flex', flexDirection: 'column', borderBottom: '0.5px solid rgba(22,22,18,0.15)' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
                 fontSize: 'clamp(15px, 1.6vw, 18px)',
@@ -210,9 +219,14 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                 Planets
               </div>
               <div style={{
-                flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain',
+                flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingRight: '10px',
                 borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
               }}>
+                {/* paddingRight above (and on the Aspects & Events list
+                    below) leaves breathing room for the scrollbar so it
+                    doesn't sit on top of the right-aligned degree/sign/
+                    date text — Avery flagged the scrollbar was covering
+                    data (home-page-polish task, §16, third follow-up). */}
                 {sortedPositions.map(pos => {
                   // Nodes always move backward by nature — "retrograde" is
                   // meaningless for them, so no R flag here (home-page-
@@ -244,10 +258,14 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               </div>
             </div>
 
-            {/* Aspects & Events ~51% (gained roughly 2 planet-rows' worth
-                back from the Planets section above — home-page-polish
-                task, §16, second follow-up) */}
-            <div style={{ flex: '1 1 51%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
+            {/* Aspects & Events: 52.7% of Body — its absolute size is
+                UNCHANGED from before (this section did not grow or shrink;
+                Planets gave its half-row up as bottom breathing room
+                instead this time, not to this section — home-page-polish
+                task, §16, third follow-up). Fixed (`0 0`, not `1 1`) so it
+                can't auto-grow to reclaim the space Planets gave up — that
+                would defeat the gap at the bottom. */}
+            <div style={{ flex: '0 0 52.7%', minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: '10px' }}>
               <div style={{
                 fontFamily: 'var(--font-anton), sans-serif',
                 fontSize: 'clamp(15px, 1.6vw, 18px)',
@@ -259,7 +277,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                 Aspects and Events
               </div>
               <div style={{
-                flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain',
+                flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingRight: '10px',
                 borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
               }}>
                 {sortedAspects.map((a, i) => (
@@ -309,14 +327,18 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         )}
       </div>
 
-      </div>
-      {/* Footer ~13% — outside the cream wrapper (see comment above), always
-          directly on the panel's teal image. Same `padding: '0 3%'` as the
-          wrapper above so the Learn button lines up with the card's edge
-          (confirmed against the mock — the button sits flush with the
-          card's right edge, not the panel's outer edge). No Read button
-          (transits hidden). */}
-      <div style={{ flex: '0 0 13%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 3%' }}>
+      {/* Footer 13% — back INSIDE the cream wrapper (home-page-polish
+          task, §16, third follow-up: Avery wants the card extended down
+          to the footer's bottom edge, not stopping above it as in the
+          prior follow-up). Its own size is unchanged, so it renders at
+          the same absolute position as before; the reserved 2.5% gap
+          (see the Body-sizing comment above) trails after this, still
+          inside the wrapper's cream box, giving the Learn button a bit of
+          breathing room before the card's true bottom edge. No padding of
+          its own now — it inherits the wrapper's `padding: '0 3%'` like
+          Header and Body do, so the button still lines up with the card's
+          edge. No Read button (transits hidden). */}
+      <div style={{ flex: '0 0 13%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
         <Link href={`/reading/${slug}/reference`} style={{
           padding: '10px 24px',
           border: '1px solid rgba(22,22,18,0.30)',
@@ -328,6 +350,8 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         }}>
           Learn
         </Link>
+      </div>
+
       </div>
     </div>
   );

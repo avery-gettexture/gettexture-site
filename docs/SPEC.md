@@ -3867,3 +3867,62 @@ clean.
 
 Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 15, 2026 (post-purchase home — same-day third follow-up, right
+panel only):** Avery asked for the opposite of the "contained" fix two
+entries up — extend the cream card back down to cover the footer, but with
+a small deliberate gap this time (not the earlier bug's zero gap, and not
+the "stops well above the footer" version either). Also fixed a scrollbar
+data-overlap issue on both List-mode scroll regions.
+
+1. **Cream card now covers the footer.** Moved the Footer `<div>` back
+   inside the cream wrapper (it was a sibling, sitting outside it, per the
+   prior follow-up). Footer's own size is unchanged (still `flex: '0 0
+   13%'`), so it renders at the same absolute position as before — it
+   just now sits on cream instead of teal.
+2. **A small reserved gap below the Learn button, inside the card.**
+   Requested precisely: the card's bottom edge stays at the *same line*
+   the footer's bottom used to be at; the button itself moves up a bit
+   within that space, leaving a sliver of cream "white space" below it.
+   Mechanism: the Header+Body+Footer wrapper's children all now use
+   non-growing flex (`'0 0 X%'`, no `'1 1'` anywhere) sized so they sum to
+   97.5%, not 100%, of the wrapper — Header 8.7% (unchanged absolute
+   size, re-expressed since the wrapper itself grew from 87% to 100% of
+   the panel when Footer moved back in), Body 75.8% (a new **fixed**
+   size, replacing the old `flex: 1` auto-fill — this is what makes the
+   gap land in the right place, see below), Footer 13% (unchanged). The
+   unclaimed 2.5% collects as trailing empty space after the last child
+   (Footer) per normal flexbox behavor when nothing has flex-grow — still
+   inside the wrapper's painted cream background, i.e. exactly the
+   requested gap.
+3. **The 2.5% comes from Planets, not Aspects & Events, per Avery's exact
+   instructions.** Aspects & Events' absolute size is unchanged (52.7% of
+   the new, smaller Body — computed to equal exactly what 51%-of-the-old-
+   Body used to be in absolute terms). Planets shrank instead (47.3% of
+   Body, down from 49%) — roughly half a row's height, matching "about
+   half a row" as asked, verified by the earlier row-height read (~32px
+   rows, half ≈16px ≈2.5% of the panel at this viewport). Both sections
+   are now non-growing (`'0 0'`), which matters — either one still having
+   `'1 1'` (flex-grow) would auto-reclaim Planets' freed space and the
+   gap wouldn't reach the bottom.
+4. **Scrollbar breathing room, both List-mode scroll regions (Planets,
+   Aspects & Events).** Avery flagged the scrollbar sitting on top of the
+   right-aligned data. Added `paddingRight: '10px'` to both `overflowY:
+   auto` containers — pulls the text in from the right edge, leaving the
+   scrollbar (overlay or reserved-space, either way) a clear strip that
+   doesn't sit over the degree/sign/date text. Left panel's one scroll
+   region wasn't mentioned ("the **two** contained scroll sections" reads
+   as this panel's Planets + Aspects, not a third region on the other
+   panel) and wasn't touched.
+
+**Verified** with Playwright (throwaway scripts, not committed) at
+1440×900: screenshotted the full List state (Learn button now visibly
+inside the cream card); a zoomed crop on the footer specifically —
+confirmed a visible cream gap between the button's bottom and the card's
+true bottom edge, with teal only beginning after that; scrolled the
+Planets list and screenshotted it — confirmed clear space between the
+right-aligned sign text and the card's edge where a scrollbar would sit;
+and Chart mode — unaffected, no regression. `tsc --noEmit` clean.
+
+Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
+commit, not pushed.
