@@ -42,3 +42,15 @@ export function getTodayLocalISODate(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+// Parses a plain YYYY-MM-DD calendar-date string (orb_open/orb_close/exact,
+// window_start/window_end/exact_date, etc.) as a LOCAL date, not UTC —
+// `new Date(isoString)` parses bare date strings as UTC midnight, which then
+// renders as the PREVIOUS day in any timezone behind UTC (the off-by-one bug
+// already fixed once for the Transit Calendar, SPEC §16 Aug 14 entry). Use
+// this wherever a stored calendar-date string needs to become a Date for
+// display or comparison — do not re-parse with `new Date(iso)` alongside it.
+export function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}

@@ -15,7 +15,7 @@ import Rail, { type RailRow } from '@/app/components/Rail';
 
 type SectionKey = 'overview' | 'reference';
 
-interface Reading {
+export interface Reading {
   slug: string;
   name: string;
   birth_date: string;
@@ -43,7 +43,7 @@ interface Reading {
   chart_data: any;
 }
 
-interface PlacementConfig {
+export interface PlacementConfig {
   id: string;
   name: string;
   background: string;
@@ -58,7 +58,7 @@ interface PlacementConfig {
 // are content-structure changes approved for both platforms; only the
 // desktop shell itself is a layout change.
 
-const PLACEMENTS: PlacementConfig[] = [
+export const PLACEMENTS: PlacementConfig[] = [
   { id: 'sun',     name: 'Sun',        background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sun-background.png',     contentKey: 'sun'     },
   { id: 'moon',    name: 'Moon',       background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/moon-background.png',    contentKey: 'moon'    },
   { id: 'mercury', name: 'Mercury',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mercury-background.png', contentKey: 'mercury' },
@@ -112,20 +112,20 @@ const PLANET_KEY_MAP: Record<string, string> = {
   'nodes-south': 'mean_south_lunar_node',
 };
 
-const SIGN_ABBR_MAP: Record<string, string> = {
+export const SIGN_ABBR_MAP: Record<string, string> = {
   Ari: 'Aries', Tau: 'Taurus', Gem: 'Gemini', Can: 'Cancer',
   Leo: 'Leo', Vir: 'Virgo', Lib: 'Libra', Sco: 'Scorpio',
   Sag: 'Sagittarius', Cap: 'Capricorn', Aqu: 'Aquarius', Pis: 'Pisces',
 };
 
-const HOUSE_ORDINALS: Record<string, string> = {
+export const HOUSE_ORDINALS: Record<string, string> = {
   First_House: '1st House', Second_House: '2nd House', Third_House: '3rd House',
   Fourth_House: '4th House', Fifth_House: '5th House', Sixth_House: '6th House',
   Seventh_House: '7th House', Eighth_House: '8th House', Ninth_House: '9th House',
   Tenth_House: '10th House', Eleventh_House: '11th House', Twelfth_House: '12th House',
 };
 
-function getPlanetMeta(chartData: any, planetId: string): { sign: string; house: string; degree: string; retrograde: boolean } {
+export function getPlanetMeta(chartData: any, planetId: string): { sign: string; house: string; degree: string; retrograde: boolean } {
   if (!chartData?.subject) return { sign: '', house: '', degree: '', retrograde: false };
   const key = PLANET_KEY_MAP[planetId];
   if (!key) return { sign: '', house: '', degree: '', retrograde: false };
@@ -151,13 +151,13 @@ function getReferenceProps(placement: PlacementConfig, referenceData: Record<str
 
 // Desktop rail glyphs (mirrors ChartSection.tsx's mobile glyph maps, keyed
 // to PLACEMENTS' short ids rather than chart_data field names).
-const RAIL_PLANET_GLYPHS: Record<string, string> = {
+export const RAIL_PLANET_GLYPHS: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
   asc: '↑', mc: '↑', nodes: '☊', 'nodes-south': '☋',
 };
 
-const RAIL_SIGN_GLYPHS: Record<string, string> = {
+export const RAIL_SIGN_GLYPHS: Record<string, string> = {
   Aries: '♈︎', Taurus: '♉︎', Gemini: '♊︎', Cancer: '♋︎',
   Leo: '♌︎', Virgo: '♍︎', Libra: '♎︎', Scorpio: '♏︎',
   Sagittarius: '♐︎', Capricorn: '♑︎', Aquarius: '♒︎', Pisces: '♓︎',
@@ -327,11 +327,17 @@ function DesktopNatal({
   reading,
   customerName,
   referenceData,
+  initialOpenId,
 }: {
   slug: string;
   reading: Reading;
   customerName: string;
   referenceData: Record<string, PlacementReferenceResult>;
+  // Deep link (SPEC §16, post-purchase home build): the My Chart panel's
+  // "Read" button and row carets land here with `?open=<placementId>` —
+  // scroll straight to that placement's section once, on arrival, reusing
+  // the same scrollToIndex() rail-row clicks already use.
+  initialOpenId?: string;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   // READ | CHART pane state (SPEC §16, Phase 3A follow-up): a screen-state
@@ -393,6 +399,18 @@ function DesktopNatal({
     pendingScrollIndexRef.current = null;
     requestAnimationFrame(() => scrollToIndex(index));
   }, [paneMode, scrollToIndex]);
+
+  // `?open=<placementId>` deep link (see initialOpenId above) — applied once
+  // on arrival, guarded so it never re-fires (e.g. after a later rail click
+  // changes activeIndex, this must not snap the user back).
+  const appliedInitialOpenRef = useRef(false);
+  useEffect(() => {
+    if (appliedInitialOpenRef.current || !initialOpenId) return;
+    const idx = PLACEMENTS.findIndex(p => p.id === initialOpenId);
+    if (idx === -1) return;
+    appliedInitialOpenRef.current = true;
+    requestAnimationFrame(() => scrollToIndex(idx));
+  }, [initialOpenId, scrollToIndex]);
 
   // The ONLY custom scroll JS left: the rail (and nav bar) are a
   // separate, non-scrolling overlay — genuinely nothing native to scroll
@@ -616,9 +634,19 @@ function DesktopNatal({
 
 // ── Main Reading Page ──────────────────────────────────────────────────────
 
-export default function ReadingPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function ReadingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  // `?open=<placementId>` deep link (SPEC §16, post-purchase home build) —
+  // this repo's established pattern for search params (see app/success/page.tsx)
+  // is a Promise prop unwrapped with use(), not the useSearchParams() hook.
+  searchParams: Promise<{ open?: string }>;
+}) {
   const resolvedParams = use(params);
   const slug = resolvedParams.slug;
+  const openId = use(searchParams).open;
   const [reading, setReading] = useState<Reading | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -676,6 +704,17 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
     scrollToSection(currentIndex + 1);
   }, [scrollToSection]);
 
+  // `?open=<placementId>` deep link, mobile path — applied once, mirroring
+  // DesktopNatal's own appliedInitialOpenRef guard above.
+  const appliedMobileOpenRef = useRef(false);
+  useEffect(() => {
+    if (appliedMobileOpenRef.current || isDesktop !== false || !reading || !openId) return;
+    const idx = PLACEMENTS.findIndex(p => p.id === openId);
+    if (idx === -1) return;
+    appliedMobileOpenRef.current = true;
+    requestAnimationFrame(() => scrollToSection(PLANET_START + idx));
+  }, [isDesktop, reading, openId, scrollToSection]);
+
   if (loading || isDesktop === null) {
     return (
       <div style={{ height: '100dvh', background: 'var(--indigo)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -705,6 +744,7 @@ export default function ReadingPage({ params }: { params: Promise<{ slug: string
         reading={reading}
         customerName={customerName}
         referenceData={referenceData}
+        initialOpenId={openId}
       />
     );
   }

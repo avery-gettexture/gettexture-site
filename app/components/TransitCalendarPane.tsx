@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { formatToday, formatContextualDate, getTodayLocalISODate } from '@/lib/date-utils';
+import { formatToday, formatContextualDate, getTodayLocalISODate, parseLocalDate } from '@/lib/date-utils';
 
 // The CALENDAR state of the desktop transits page (SPEC §16, "Transit
 // Calendar, Part 2"). A DERIVED view -- no fetch of its own, no storage
@@ -73,14 +73,9 @@ function bucketOf(type: CalendarEntryType): FilterBucket {
   return 'eclipse';
 }
 
-// Stored dates are plain YYYY-MM-DD calendar dates (sky_positions/
-// aspect_calendar convention) -- parsed via explicit y/m/d components, not
-// `new Date(isoString)`, to avoid the UTC-parse-then-local-format off-by-one
-// the site has already had to fix once for "today" labels (SPEC §16).
-function parseLocalDate(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
+// parseLocalDate moved to lib/date-utils.ts (SPEC §16, post-purchase home
+// build) — the Today's Sky panel needs the identical UTC-parse fix, so it's
+// now the shared "one intended home" for this helper, imported above.
 
 function daysBetween(a: string, b: string): number {
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
