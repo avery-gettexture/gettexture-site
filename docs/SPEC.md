@@ -3624,12 +3624,10 @@ mock's "Charts" is a stale typo, per the brief). Body: current-sky list
 a retrograde "R" badge as a natural extension of data the RPC already
 returns) over an Aspects & Events list (~60%, one line per aspect, display-
 only, no tabs/filters — the RPC already scopes to "active now" so there's
-nothing to tab between). CHART state renders `NatalChartWheelWeb` fed the
-same reading's real `chart_data` as an explicitly, loudly flagged
-**placeholder** (both in the rendered UI and in a code comment) — same
-precedent as the Transits page's own CHART pane (§16, Aug 11 entry) — since
-the real no-birth-time "Today's Sky" wheel isn't built yet; that's the next
-task, not this one. No Read button; footer is "Learn" only.
+nothing to tab between). CHART state renders the real Today's Sky wheel
+(`TodaySkyWheel`, built later the same day — see the entry below), fed the
+same `get_current_sky_positions()` rows the Planets list above it already
+shows. No Read button; footer is "Learn" only.
 
 **Bug caught and fixed during screenshot verification (not by code review):**
 the Aspects & Events list initially rendered one row per `aspect_calendar`
@@ -3987,3 +3985,60 @@ Footer's new tighter sizing doesn't look wrong). `tsc --noEmit` clean.
 
 Files touched: `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 15, 2026 (Today's Sky wheel — real build, right panel only):** the
+Chart-state placeholder flagged in every entry above (a borrowed natal
+`chart_data` wheel, standing in until this was built) is replaced with a
+real Today's Sky wheel.
+
+**New file `app/components/TodaySkyWheel.tsx`** wraps `NatalChartWheelWeb`
+(the same wheel-drawing engine the natal chart and transits pages already
+use) rather than duplicating any of its drawing logic. It reshapes the
+panel's already-fetched `get_current_sky_positions()` rows — `body`, `sign`,
+`sign_degree`, `retrograde`; no new RPC, no new date logic — into the
+"subject" format that engine expects, and renders it in `birthTimeKnown={
+false}` mode (no ASC/MC labels, no house numbers).
+
+Two things had to be derived, not fetched, since the RPC returns sign +
+degree-within-sign, not an absolute zodiac position:
+- **Absolute position** = the sign's fixed 30°-wide slot in the zodiac
+  (Aries=0, Taurus=30, … Pisces=330) plus `sign_degree`. Plain arithmetic on
+  fixed constants, not new astronomy.
+- **Each planet's wedge**, locked to its own sign (Aries → 1st, Taurus →
+  2nd, …). Required because the engine's collision-avoidance layout groups
+  planets by wedge to keep them from visually overlapping or drifting into
+  a neighboring wedge; every planet defaulting to the same wedge (which is
+  what happens if none is specified) would make the engine treat planets in
+  completely different signs as neighbors and mis-place them — confirmed by
+  reading `resolveCollisions()` before writing this, not by trial and
+  error. This wedge assignment is the concrete meaning of "Aries locked to
+  1st": there's no ascendant, house system, or birth data involved — it's
+  purely how the shared drawing code is told where each sign sits.
+
+No aspect data is passed to the wheel (the panel already lists aspects
+separately below it in List mode), so the wheel shows only the zodiac ring
+and planet glyphs/degrees — no aspect lines. No cream card behind it in
+Chart mode, unchanged from the existing behavior (the wrapper background is
+already transparent there, per the polish-pass entry above).
+
+**`HomeTodaySkyPanel.tsx`:** placeholder block and its "Placeholder —
+Today's Sky wheel not yet built" text removed; renders `TodaySkyWheel` fed
+`sortedPositions` (the same rows/date driving the visible Planets list and
+the date label) instead. The `chartReading` state and its
+`get_reading_by_slug` fetch, which existed only to borrow natal data for the
+placeholder, are removed — this panel no longer fetches natal data at all.
+
+**Verified** with Playwright (throwaway script, not committed) against the
+dogfood reading (`hejkhjq1zns5`) at 1440×900: screenshotted the right
+panel's Chart state and confirmed by reading the rendered SVG directly
+against the panel's own List-mode data — Saturn (14° Aries, retrograde in
+the list) renders in the wedge at the wheel's left/1st position with a
+retrograde mark; Sun/Mercury/Jupiter (all Leo) cluster together; Moon/Venus
+(both Libra) cluster directly opposite Aries, on the right; Mars (Cancer)
+sits at the bottom. No ASC/MC labels, no house numbers, no placeholder text,
+no cream card — wheel sits directly on the panel's teal image. Date label
+("August 15, 2026") matches the wheel's data by construction, since both
+read the same `positions` state. `tsc --noEmit` clean.
+
+Files touched: `app/components/TodaySkyWheel.tsx` (new), `app/components/
+HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One commit, not pushed.

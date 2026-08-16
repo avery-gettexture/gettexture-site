@@ -22,9 +22,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import NatalChartWheelWeb from './NatalChartWheelWeb';
+import TodaySkyWheel from './TodaySkyWheel';
 import { formatToday, formatContextualDate, parseLocalDate, getTodayLocalISODate } from '@/lib/date-utils';
-import { RAIL_SIGN_GLYPHS, type Reading } from '@/app/reading/[slug]/natal/page';
+import { RAIL_SIGN_GLYPHS } from '@/app/reading/[slug]/natal/page';
 
 interface SkyPosition {
   body: string;
@@ -77,19 +77,11 @@ const DARK_FAINT = 'rgba(22,22,18,0.35)';
 export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   const [positions, setPositions] = useState<SkyPosition[] | null>(null);
   const [aspects, setAspects] = useState<SkyAspect[] | null>(null);
-  // Borrowed ONLY to feed the CHART-state placeholder wheel below — not
-  // shown anywhere else on this panel. Same precedent as the Transits
-  // page's own CHART pane (SPEC §16, Aug 11 entry): reuse the real natal
-  // chart_data as a stand-in until the real Today's Sky wheel exists.
-  const [chartReading, setChartReading] = useState<Pick<Reading, 'chart_data' | 'birth_time_known'> | null>(null);
   const [paneMode, setPaneMode] = useState<PaneMode>('list');
 
   useEffect(() => {
     supabase.rpc('get_current_sky_positions').then(({ data }) => setPositions((data as SkyPosition[]) ?? []));
     supabase.rpc('get_current_sky_aspects').then(({ data }) => setAspects((data as SkyAspect[]) ?? []));
-    supabase.rpc('get_reading_by_slug', { p_slug: slug }).single().then(({ data }) => {
-      if (data) setChartReading(data as Reading);
-    });
   }, [slug]);
 
   const sortedPositions = (positions ?? []).slice().sort((a, b) => BODY_ORDER.indexOf(a.body) - BODY_ORDER.indexOf(b.body));
@@ -297,28 +289,16 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
           </div>
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            {/* STAND-IN ONLY — not the real Today's Sky wheel. Renders the
-                natal wheel (borrowed chart_data) purely as a placeholder
-                until a real no-birth-time "current sky" wheel is built
-                (the very next task). Do not treat this as finished. */}
-            <div style={{
-              fontFamily: 'var(--font-geist-mono), monospace',
-              fontSize: 'clamp(10px, 0.9vw, 12px)',
-              // DARK_FAINT was tuned for the cream card this sat on; Chart
-              // mode no longer has one (item 4, home-page-polish task,
-              // §16), so this needs to read against the teal panel image
-              // instead — same faint-light treatment as the equivalent
-              // placeholder text in TransitChartPane.tsx.
-              color: 'rgba(253,245,237,0.55)',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              marginBottom: '10px',
-            }}>
-              Placeholder — Today&apos;s Sky wheel not yet built
-            </div>
-            {chartReading && (
+            {/* Real Today's Sky wheel (SPEC §16, Aug 15 2026) — same
+                positions driving the Planets list above, reshaped for the
+                shared wheel-drawing engine by TodaySkyWheel. No cream card
+                behind it: Chart mode's wrapper background is transparent
+                (see the wrapper comment above), so this sits directly on
+                the panel's teal image, matching the left panel's Chart
+                state. */}
+            {positions && (
               <div style={{ width: '75%', aspectRatio: '1' }}>
-                <NatalChartWheelWeb chartData={chartReading.chart_data} birthTimeKnown={chartReading.birth_time_known} />
+                <TodaySkyWheel positions={positions} />
               </div>
             )}
           </div>
