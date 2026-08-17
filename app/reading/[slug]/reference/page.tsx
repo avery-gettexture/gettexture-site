@@ -55,7 +55,7 @@ export default function ReferenceHomePage({ params }: { params: Promise<{ slug: 
       }
     >
       <div className="card-header">
-        <h1 className="planet-name">{activeCategory.label}</h1>
+        <h1 className="planet-name reference-title">{activeCategory.label}</h1>
         <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
       </div>
 
