@@ -4825,3 +4825,77 @@ example", and "approach" read as clickable — a one-line style change, no
 layout/sizing impact. Screenshot-confirmed. Files touched:
 `app/components/HomeBirthChartPanel.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**August 17, 2026 (pre-purchase home — scroll fallback for extreme window
+sizes, founder-reported bug):** every container in this page's layout
+(`.app-shell`, `.app-stage`, and the pre-purchase-only
+`.prepurchase-panel-slot`) was built as a hard `overflow: hidden` — the
+whole "zero scroll" design assumed the window would never shrink past the
+point where the type's `clamp()` floor sizes stop fitting. Founder
+reported that assumption breaking in practice: shrink the window short
+enough vertically and the right panel's "REVIEW ORDER →" button becomes
+unreachable (silently clipped, no scrollbar); shrink it narrow enough and
+the left panel's title/content gets cut off horizontally with no way to
+see the rest.
+
+Fix, scoped to the one class that's pre-purchase-only (confirmed not
+shared with the post-purchase home's `.home-panel-slot`, `HomeLayout.tsx`
+— zero regression risk there, verified by rendering the post-purchase
+home and confirming `.home-panel-slot` is untouched):
+
+```css
+.prepurchase-panel-slot {
+  ...
+  overflow: auto;                 /* was: hidden */
+  background: var(--cream);       /* new */
+  background-attachment: local;   /* new */
+}
+```
+
+`overflow: hidden → auto` is the actual fix — a native scrollbar (both
+axes) that only ever appears once content genuinely can't fit at its
+floor size, which is exactly "the breakpoint where content can't shrink
+anymore" the founder asked for, and more robust than a hardcoded pixel
+breakpoint since it reacts to whatever the real floor sizes are rather
+than a guessed number. `background` + `background-attachment: local` is
+a small addition to avoid a new artifact this fix would otherwise
+introduce: each panel's cream card color is painted by an inner
+`position:absolute;inset:0` div sized to the card's normal (fitting)
+bounds, which doesn't grow to cover content that overflows past those
+bounds — without this, content revealed by the new fallback scroll would
+sit on the panel's bare photo backdrop instead of cream.
+`background-attachment: local` is the standard technique for making a
+background extend across a scrolled element's full content instead of
+just its visible box. At every size where nothing overflows, this new
+cream sits exactly underneath the existing inner div's own identical
+cream (same `var(--cream)` token) — invisible, zero-impact overlap.
+
+**Confirmed zero baseline visual change** — this was the explicit
+condition for approving this change. Re-verified by Playwright at all
+four sizes already established in SPEC §16 as this layout's tested range
+(1280×800, 1366×768, 1440×900, 1920×1080): identical scroll-content
+dimensions to before the change at every size (no scrollbar, no overflow,
+byte-identical numbers), and a 1440×900 screenshot confirmed pixel-
+identical to the last known-good baseline.
+
+Verified the fallback itself at two deliberately extreme sizes beyond
+that tested range: 1440×450 (vertical) — right panel's slot becomes
+scrollable and scrolling it to the bottom brings "REVIEW ORDER →" fully
+into view, on cream, not the panel's photo backdrop; 700×900 (horizontal)
+— left panel's slot becomes horizontally scrollable and scrolling it
+reveals the title text that was previously clipped past the panel's
+right edge, also on cream.
+
+**Also found and fixed along the way (not part of the design change
+itself):** the local Turbopack dev server had a stale persistent cache —
+`.next/dev/cache/turbopack` — that kept serving the pre-edit CSS after a
+plain file save and even after a full dev-server restart; the served CSS
+chunk's own `Last-Modified` header was still hours old. Deleting `.next`
+and restarting cleared it. Flagging this since it means any verification
+done by simply restarting `next dev` without also clearing `.next` risks
+silently checking stale output — worth remembering if a future session
+sees a change "not showing up" despite the source file being correct.
+
+Files touched: `app/globals.css`, `docs/SPEC.md`. No `.tsx` file changed
+— no `clamp()` value, spacing, color, or font size touched. No console
+errors. One commit, not pushed.

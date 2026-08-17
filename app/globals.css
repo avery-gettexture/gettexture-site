@@ -607,14 +607,31 @@ body {
    cream card (.reading-zone-card's doc-original numbers). Deliberately a
    separate class from .home-panel-slot above (2%/5%) rather than changing
    that shared class — .home-panel-slot is also used by the POST-purchase
-   home (HomeLayout.tsx), which is out of scope here. */
+   home (HomeLayout.tsx), which is out of scope here.
+
+   overflow: auto (page-shrink-scroll-fallback task, SPEC §16) — was
+   `hidden`, which silently clipped content once the window shrank past
+   the point where every clamp()'d size inside had already hit its own
+   floor (e.g. the right panel's purchase button, or the left panel's
+   title going wide enough to get cut off horizontally) with no way to
+   reach it. `auto` only ever shows a scrollbar once content genuinely
+   can't fit at its floor size — so it's a no-op, zero visual change, at
+   every size already designed for and verified (1280×800–1920×1080).
+   `background` + `background-attachment: local` (also new) make sure
+   that fallback-scrolled content sits on cream, not the panel's bare
+   photo backdrop — each panel's own inner div already paints the same
+   cream color at its normal (fitting) bounds, so this sits invisibly
+   underneath it at every already-verified size and only becomes visible
+   in the overflow itself. */
 .prepurchase-panel-slot {
   position: absolute;
   top: 6.5%;
   bottom: 6.5%;
   left: 8%;
   right: 8%;
-  overflow: hidden;
+  overflow: auto;
+  background: var(--cream);
+  background-attachment: local;
 }
 
 /* ── Morph background placeholder (stand-in for <texture-morph-bg>) ── */
