@@ -75,7 +75,7 @@ const footerLinkStyle: React.CSSProperties = {
   fontSize: 'clamp(13px, 1.15vw, 16px)',
   letterSpacing: '0.5px',
   color: RED,
-  textDecoration: 'none',
+  textDecoration: 'underline',
   cursor: 'pointer',
   background: 'none',
   border: 'none',

@@ -4817,3 +4817,11 @@ Files touched: `app/components/HomeBirthChartPanel.tsx`,
 `app/components/HomeOrderForm.tsx`, `docs/SPEC.md`. Not touched:
 `app/page.tsx`, `app/globals.css`, `HomeLayout.tsx`, `NavBar.tsx`,
 `HomeMyChartPanel.tsx`. No console errors. One commit, not pushed.
+
+**August 16, 2026 (pre-purchase home — left panel footer links underlined,
+founder request):** `footerLinkStyle` (`HomeBirthChartPanel.tsx`) changed
+`textDecoration` from `'none'` to `'underline'` so "read more", "see
+example", and "approach" read as clickable — a one-line style change, no
+layout/sizing impact. Screenshot-confirmed. Files touched:
+`app/components/HomeBirthChartPanel.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
