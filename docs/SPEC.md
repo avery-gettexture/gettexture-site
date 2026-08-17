@@ -5265,3 +5265,59 @@ Files touched: `app/reading/[slug]/natal/page.tsx`,
 `app/components/ChartSection.tsx`, `docs/SPEC.md`. Not touched:
 `app/reading/[slug]/transits/page.tsx` (flagged above), any desktop code
 path. One commit, not pushed.
+
+**August 17, 2026 (mobile Today's Sky rebuilt as Chart + List only — mobile
+nav/Home cleanup, part 1):** The mobile Today's Sky page
+(`/reading/[slug]/transits`) was still the old scroll-through of per-body
+reading cards (Sun, Mercury, ... Nodes) — the same reading-content pattern
+mobile My Chart moved away from earlier, and transits reading content is
+still hidden behind a flag on desktop (`SHOW_TRANSIT_CARD_CONTENT`, unchanged
+here). Rebuilt to match mobile My Chart's own first screen: Chart + List
+only, no reading content, no scroll-through, nothing below either view.
+
+New `app/components/TodaySkySection.tsx`, modeled on
+`app/components/ChartSection.tsx`'s Chart/List split (same nav row, same
+`NAV_ROW_TOP`/`CONTENT_TOP` offsets under the fixed mobile nav bar, same
+dark→cream swap between views) but for live sky data instead of birth-chart
+data, and with no down-arrow (this is the whole page, not the first of
+several sections to scroll through):
+- **Chart view** renders `TodaySkyWheel` (the real no-birth-time sky wheel
+  already used by the desktop Home panel and desktop Today's Sky CHART pane)
+  fed live `get_current_sky_positions()`/`get_current_sky_aspects()` data. No
+  birth-data collapse/expand control — there is no birth data for "today's
+  sky."
+- **List view** shows current sky positions (glyph, name, sign, sign glyph,
+  degree, retrograde), ordered/styled per `HomeTodaySkyPanel.tsx`'s
+  established conventions: no house column (transiting bodies have none), no
+  "R" on the Nodes (astrologically meaningless for them, same rule as every
+  other Nodes instance in this app, §16 above). **Founder ruling:** Nodes
+  render as ONE merged row (North Node's own sign/degree only) — the same
+  convention mobile My Chart's own List already uses for its Nodes row —
+  rather than the desktop home panel's two-separate-rows format, so the two
+  mobile screens stay visually consistent. Title placeholder "Current Sky,"
+  flagged for copy review like any other placeholder label.
+
+`app/reading/[slug]/transits/page.tsx`: added a `positions`/`aspects` fetch
+(same RPCs/pattern as `HomeTodaySkyPanel.tsx`) to the top-level `TransitsPage`
+component; replaced the mobile branch's `TRANSIT_BODIES.map(...)` card loop
+with a single `reading-container` > one `reading-section` holding
+`<TodaySkySection>` (the same one-section shape `MobileReference` already
+uses). Removed the now-dead mobile-only `TRANSIT_BODIES` config and
+`TransitBodyCard` component, and the now-unused `sectionRefs`/`containerRef`/
+`scrollToSection` that only that loop needed. This also closes the
+"discovered, not fixed" duplicate-wordmark flag logged above — the leftover
+top-left `.wordmark` div lived inside the exact loop just removed.
+`DesktopTransits` and everything it depends on (`PLACEHOLDER_SYNTHESIS`,
+`PLACEHOLDER_TIMELINE`, `SHOW_TRANSIT_CARD_CONTENT`, `SKY_BODIES`, etc.) is
+untouched.
+
+Verified with a Playwright script against a running dev server, dogfood slug
+(`hejkhjq1zns5`), at 390×844: Chart view screenshot shows the sky wheel only,
+no reading cards, no birth-data band; List view screenshot shows "Current
+Sky" with 11 rows (Sun through Pluto, Nodes), correct retrograde "R" on the
+genuinely-retrograde bodies and none on Nodes; confirmed nothing to scroll to
+below either view. Zero console errors. `tsc --noEmit` clean.
+
+Files touched: `app/components/TodaySkySection.tsx` (new),
+`app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. Not touched: any
+desktop code path. One commit, not pushed.

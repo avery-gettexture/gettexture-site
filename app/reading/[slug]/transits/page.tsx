@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DOGFOOD_READING_SLUG } from '@/lib/config';
+import { getTodayLocalISODate } from '@/lib/date-utils';
 import NavBar from '@/app/components/NavBar';
 import MobileNavShell from '@/app/components/MobileNavShell';
 import Rail, { type RailRow } from '@/app/components/Rail';
 import TransitChartPane, { type ChartMode } from '@/app/components/TransitChartPane';
 import TransitCalendarPane, { type CalendarEntryType } from '@/app/components/TransitCalendarPane';
+import TodaySkySection from '@/app/components/TodaySkySection';
 import { RAIL_SIGN_GLYPHS } from '@/app/reading/[slug]/natal/page';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -51,25 +53,6 @@ interface Reading {
   chart_data: any;
   birth_time_known: boolean;
 }
-
-// ── Body config (mobile — unchanged) ────────────────────────────────────────
-// Order per the build spec: Sun, Mercury, Venus, Mars, Jupiter, Saturn,
-// Uranus, Neptune, Pluto, Nodes. No ASC/MC windows; Nodes is one window.
-// Moon is intentionally absent here (SPEC §3.6: ambient-only, no per-user
-// standing piece) — this list is untouched by the desktop build below.
-
-const TRANSIT_BODIES: TransitBodyConfig[] = [
-  { id: 'sun',     name: 'Sun',     background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sun-background.png' },
-  { id: 'mercury', name: 'Mercury', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mercury-background.png' },
-  { id: 'venus',   name: 'Venus',   background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/venus-background.png' },
-  { id: 'mars',    name: 'Mars',    background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/mars-background.png' },
-  { id: 'jupiter', name: 'Jupiter', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/jupiter-background.png' },
-  { id: 'saturn',  name: 'Saturn',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/saturn-background.png' },
-  { id: 'uranus',  name: 'Uranus',  background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/uranus-background.png' },
-  { id: 'neptune', name: 'Neptune', background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/neptune-background.png' },
-  { id: 'pluto',   name: 'Pluto',   background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/pluto-background.png' },
-  { id: 'nodes',   name: 'Nodes',   background: 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/nodes-background.png' },
-];
 
 // ── Body config (desktop rail/reading pane — 11 rows) ───────────────────────
 // Per the founder's brief: "the current sky" — Sun through Pluto plus Nodes
@@ -115,6 +98,16 @@ interface SkyPosition {
   retrograde: boolean;
 }
 
+// Mobile Today's Sky rebuild (SPEC §16) — TodaySkySection's Chart view needs
+// aspect lines the same way HomeTodaySkyPanel.tsx's Chart mode does; the
+// desktop CHART pane above doesn't (TransitChartPane is a wheel stand-in),
+// so no SkyAspect shape existed in this file until now.
+interface SkyAspect {
+  body_1: string;
+  body_2: string;
+  event: string;
+}
+
 // HIDE (SPEC §16, hide-transits pass): planet card content and the rail's
 // Calendar control are suppressed until transits content is ready to ship.
 // Flip either flag back to true to restore. The shell (rail with live
@@ -130,57 +123,6 @@ const PLACEHOLDER_TIMELINE = 'Timeline entries will appear here once this piece 
 // live "current sky" position data reaching the browser to generate a
 // correct transiting-body equivalent yet.
 const PLACEHOLDER_REFERENCE = 'Reference definitions for this body will appear here.';
-
-// ── Mobile Body Card Component (unchanged) ──────────────────────────────────
-
-function TransitBodyCard({ body, customerName, piece }: { body: TransitBodyConfig; customerName: string; piece?: TransitPieceRow }) {
-  return (
-    <>
-      <div className="card-outer" />
-      <div className="card-inner">
-        <div className="card-header">
-          <h1 className="planet-name">{body.name}</h1>
-          <p className="placeholder-text" style={{ fontSize: 'clamp(11px, 3.4vw, 14px)' }}>current phase — pending</p>
-          <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
-        </div>
-
-        <div className="card-content">
-          <div className="section-row" style={{ cursor: 'default' }}>
-            <span className="section-row-label">Synthesis</span>
-          </div>
-          <div className="section-body">
-            {piece ? (
-              <p>{piece.synthesis_prose}</p>
-            ) : (
-              <p className="placeholder-text">{PLACEHOLDER_SYNTHESIS}</p>
-            )}
-          </div>
-
-          <div className="section-divider" />
-
-          <div className="section-row" style={{ cursor: 'default' }}>
-            <span className="section-row-label">Timeline</span>
-          </div>
-          <div className="section-body">
-            {piece ? (
-              piece.timeline_entries.length > 0 ? (
-                piece.timeline_entries.map(entry => <p key={entry.id}>{entry.prose}</p>)
-              ) : (
-                <p className="placeholder-text">No dated entries this phase.</p>
-              )
-            ) : (
-              <p className="placeholder-text">{PLACEHOLDER_TIMELINE}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="card-footer">
-          <span className="card-name">{customerName}</span>
-        </div>
-      </div>
-    </>
-  );
-}
 
 // ── Desktop body card content (3-section accordion) ─────────────────────────
 // Mirrors natal's PlacementCardContent (app/reading/[slug]/natal/page.tsx)
@@ -529,13 +471,15 @@ export default function TransitsPage() {
   const slug = DOGFOOD_READING_SLUG;
   const [reading, setReading] = useState<Reading | null>(null);
   const [pieces, setPieces] = useState<Record<string, TransitPieceRow>>({});
+  // Mobile Today's Sky rebuild (SPEC §16) — same get_current_sky_positions() /
+  // get_current_sky_aspects(p_local_date) RPCs HomeTodaySkyPanel.tsx already
+  // calls, feeding TodaySkySection's Chart + List views below.
+  const [positions, setPositions] = useState<SkyPosition[]>([]);
+  const [aspects, setAspects] = useState<SkyAspect[]>([]);
   // Desktop shell (>=1024px) vs. today's mobile single-column page — same
   // breakpoint and null-until-measured pattern natal uses to avoid a
   // server/client hydration mismatch.
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
-
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const mql = window.matchMedia('(min-width: 1024px)');
@@ -572,12 +516,10 @@ export default function TransitsPage() {
     fetchPieces();
   }, [slug]);
 
-  const scrollToSection = useCallback((index: number) => {
-    const section = sectionRefs.current[index];
-    const container = containerRef.current;
-    if (!section || !container) return;
-    const top = section.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
-    container.scrollTo({ top, behavior: 'smooth' });
+  useEffect(() => {
+    const today = getTodayLocalISODate();
+    supabase.rpc('get_current_sky_positions').then(({ data }) => setPositions((data as SkyPosition[]) ?? []));
+    supabase.rpc('get_current_sky_aspects', { p_local_date: today }).then(({ data }) => setAspects((data as SkyAspect[]) ?? []));
   }, []);
 
   if (isDesktop === null || (isDesktop && !reading)) {
@@ -594,43 +536,18 @@ export default function TransitsPage() {
     );
   }
 
-  const customerName = reading?.name ?? '';
-
+  // Mobile Today's Sky rebuild (SPEC §16): Chart + List only, no reading
+  // content, no scroll-through — a single section, same one-section shape
+  // MobileReference uses in app/reading/[slug]/reference/page.tsx. The prior
+  // TRANSIT_BODIES card-scroll loop (and pieces/customerName it needed) is
+  // gone; `pieces`/`reading` here are still fetched above for the desktop
+  // branch only.
   return (
-    <div className="reading-container" ref={containerRef}>
+    <div className="reading-container">
       <MobileNavShell slug={slug} active="transits" />
-      {TRANSIT_BODIES.map((body, index) => (
-        <div
-          key={body.id}
-          className="reading-section"
-          ref={el => { sectionRefs.current[index] = el; }}
-        >
-          <div className="wordmark">TEXTURE</div>
-          {index > 0 && (
-            <button
-              className="next-arrow"
-              style={{ bottom: 'auto', top: '0.25%', color: 'rgba(253,245,237,0.50)' }}
-              onClick={() => scrollToSection(index - 1)}
-            >
-              ↑
-            </button>
-          )}
-          <div
-            className="section-bg"
-            style={{ backgroundImage: `url(${body.background})`, backgroundPosition: 'center center' }}
-          />
-          <TransitBodyCard body={body} customerName={customerName} piece={pieces[body.id]} />
-          {index < TRANSIT_BODIES.length - 1 && (
-            <button
-              className="next-arrow"
-              style={{ color: 'rgba(253,245,237,0.50)' }}
-              onClick={() => scrollToSection(index + 1)}
-            >
-              ↓
-            </button>
-          )}
-        </div>
-      ))}
+      <div className="reading-section" style={{ background: '#0e0c1a' }}>
+        <TodaySkySection positions={positions} aspects={aspects} />
+      </div>
     </div>
   );
 }
