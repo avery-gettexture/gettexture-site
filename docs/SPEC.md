@@ -5321,3 +5321,44 @@ below either view. Zero console errors. `tsc --noEmit` clean.
 Files touched: `app/components/TodaySkySection.tsx` (new),
 `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. Not touched: any
 desktop code path. One commit, not pushed.
+
+**August 17, 2026 (mobile Home killed, drawer trimmed to 3 items — mobile
+nav/Home cleanup, part 2):** Mobile Home has no real content built yet (the
+real mobile home is deferred, later work) — `app/reading/[slug]/page.tsx`
+was rendering `HomeLayout` (the desktop two-panel shell) unconditionally,
+with no desktop/mobile branch at all, so mobile visitors landed on the
+desktop layout un-adapted. Until real mobile home content exists, the mobile
+landing route now bypasses Home entirely and redirects to My Chart (natal).
+
+`app/reading/[slug]/page.tsx`: added the same
+`matchMedia('(min-width: 1024px)')` desktop-detection pattern
+`natal/page.tsx` and `transits/page.tsx` already use. When resolved
+non-desktop, `router.replace()`s to `/reading/[slug]/natal` instead of
+rendering `HomeLayout` (a brief loading placeholder — same TEXTURE
+wordmark-on-indigo pattern used elsewhere — covers the redirect). Desktop
+renders `HomeLayout` exactly as before, unchanged.
+
+`app/components/MobileNavShell.tsx`: removed the `home` entry from
+`DRAWER_ITEMS` — the drawer is now exactly three items (My Chart, Today's
+Sky, Reference). The `home` key stays in the `MobileNavKey` type only
+because `HomeLayout.tsx` still passes `active="home"` to its own (desktop)
+`MobileNavShell` mount; that mount is CSS-hidden on desktop regardless, so
+this has no visible effect anywhere.
+
+No mobile home content was built — this is purely a routing bypass, per
+founder instruction that real mobile home is later work.
+
+Verified with a Playwright script against a running dev server, dogfood
+slug (`hejkhjq1zns5`): at 390×844, `/reading/[slug]` resolved to
+`/reading/[slug]/natal` (confirmed via `page.url()`), and the opened drawer
+listed exactly `My Chart`, `Today's Sky`, `Reference` (no Home). At
+1440×900, `/reading/[slug]` still rendered the real two-panel Home
+(My Chart / Today's Sky panels, full content) with the desktop `.nav-bar`
+present and visible (`display: flex`) — confirmed unchanged from before this
+task. Zero console errors at either width. `tsc --noEmit` clean.
+
+Files touched: `app/reading/[slug]/page.tsx`,
+`app/components/MobileNavShell.tsx`, `docs/SPEC.md`. Not touched:
+`app/components/HomeLayout.tsx`, `HomeMyChartPanel.tsx`,
+`HomeTodaySkyPanel.tsx`, `NavBar.tsx`, or any other desktop code path. One
+commit, not pushed.

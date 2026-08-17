@@ -11,14 +11,20 @@ interface MobileNavShellProps {
 }
 
 // Mobile-only nav shell (SPEC §16, mobile nav shell task) — top bar +
-// hamburger drawer for the 4-page mobile site (Home, My Chart, Today's
-// Sky, Reference). Visibility is entirely CSS-driven (.mobile-nav-shell is
+// hamburger drawer. Visibility is entirely CSS-driven (.mobile-nav-shell is
 // display:none outside `@media (max-width: 1023px)` in globals.css) so
 // this is safe to mount on any route regardless of viewport. Route paths
 // mirror NavBar.tsx's ALL_NAV_ITEMS so the desktop and mobile navs never
 // drift apart.
+//
+// Home dropped from the drawer (SPEC §16, mobile Home kill): mobile Home has
+// no real content built yet (deferred, later task) and the mobile landing
+// route now redirects straight to natal (see app/reading/[slug]/page.tsx) —
+// so there is nothing for a "Home" drawer item to usefully lead to. `home`
+// stays in the MobileNavKey type below only because HomeLayout.tsx still
+// passes `active="home"` on desktop's own two-panel page (unaffected — the
+// mobile drawer just never renders a row for it).
 const DRAWER_ITEMS: { key: MobileNavKey; label: string; path: string }[] = [
-  { key: 'home', label: 'Home', path: '' },
   { key: 'natal', label: 'My Chart', path: '/natal' },
   { key: 'transits', label: "Today's Sky", path: '/transits' },
   { key: 'reference', label: 'Reference', path: '/reference' },
