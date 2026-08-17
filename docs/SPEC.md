@@ -4997,3 +4997,65 @@ Files touched: `app/components/MobileNavShell.tsx` (new),
 `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. Not touched: any
 page's content, desktop branches, or the settings placeholder page. One
 commit, not pushed.
+
+**August 17, 2026 (mobile reference relocation — second of the mobile
+multi-page tasks):** `/reading/[slug]/reference` now has a real mobile
+screen, not the squeezed desktop rail/category view. The mobile nav
+shell's drawer (above) already linked its "Reference" item here; until
+this task the route had no mobile-specific layout at all, so visiting it
+on a phone showed the desktop `ReadingLayout`/`CategoryRail` view
+unadapted.
+
+The content itself isn't new — mobile `/natal` (still the old
+single-scroll site) already ends on a working reference-dictionary screen
+(`app/components/ReferencePage.tsx`, the same accordion component used
+here). This task moves that exact screen to live at mobile `/reference`
+instead of rebuilding one: same `.reading-container`/`.reading-section`/
+`.card-inner` classes, same `<ReferencePage />`, same red bottom border,
+same contained internal scroll. Natal's own copy of that screen is
+untouched — mobile `/natal` still ends on it too, pending its own
+later cleanup brief.
+
+Two differences from the natal version, both confirmed with the founder
+before building: (1) the old top-left "TEXTURE" wordmark (which jumped
+back to natal's planet list) and the "↑" arrow (which scrolled to natal's
+previous placement section) are dropped — neither has anywhere to go on a
+standalone route, and the wordmark sat in the exact top-left spot the new
+nav bar's "Menu" button now occupies. (2) A plain, non-interactive
+"TEXTURE" mark was added in the card's own top-right corner instead —
+same Anton/red-strong styling as the dropped mark, no link, purely a
+branding moment.
+
+**Nav-bar overlap, addressed for this page only:** the mobile nav shell
+task above flagged the bar as "overlay, not reserved space" everywhere,
+deferring the fix to each page's own follow-up brief. This is that brief
+for Reference: the card's `top` is overridden inline (`max(6.5%,
+calc(56px + env(safe-area-inset-top) + 12px))`) instead of the shared
+`.card-inner` class's plain `6.5%`, so the fixed 56px bar never sits over
+the card regardless of device height. This only changes this one
+instance — `app/globals.css`'s shared `.card-inner` rule is untouched, so
+natal/transits (whose own nav-bar overlap is still open) are unaffected.
+
+Implementation: `app/reading/[slug]/reference/page.tsx` gained the same
+`min-width: 1024px` `matchMedia` desktop/mobile split natal and transits
+already use (previously this route rendered `ReadingLayout` unconditionally
+at every width). The existing rail/category-list body was moved unchanged
+into an internal `DesktopReference` component; a new `MobileReference`
+component holds the relocated screen; the default export now measures
+viewport and picks one, with the same brief loading placeholder natal uses
+to avoid a flash of the wrong layout on first paint.
+
+Verified with a Playwright-driven headless Chromium against the running
+dev server, dogfood slug (`DOGFOOD_READING_SLUG` = `hejkhjq1zns5`,
+`lib/config.ts`): at 390×844, screenshotted the closed screen (nav bar
+clear of the card, decorative TEXTURE mark clear of the nav bar's own),
+opened the Signs accordion (expands and scrolls inside the card, page
+itself doesn't scroll), and opened the drawer (Reference shown bold/
+active). At 1440×900, screenshotted the same route and confirmed the
+desktop rail/category view renders exactly as before. Zero console errors
+at either width. `tsc --noEmit` clean.
+
+Files touched: `app/reading/[slug]/reference/page.tsx`, `docs/SPEC.md`.
+Not touched: `app/components/ReferencePage.tsx`,
+`app/components/ReadingLayout.tsx`, `app/components/MobileNavShell.tsx`,
+`app/globals.css`, or any desktop code path. One commit, not pushed.

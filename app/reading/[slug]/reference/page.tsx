@@ -16,9 +16,58 @@ import { REFERENCE_TAXONOMY, splitParagraphs } from '@/lib/reference-taxonomy';
 import type { ReferenceEntry } from '@/lib/reference-utils';
 import ReadingLayout from '@/app/components/ReadingLayout';
 import CategoryRail from '@/app/components/CategoryRail';
+import MobileNavShell from '@/app/components/MobileNavShell';
+import ReferencePage from '@/app/components/ReferencePage';
 
-export default function ReferenceHomePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
+// ── Mobile (SPEC §16, "mobile reference relocation") ────────────────────────
+// The reference dictionary screen already existed and worked on mobile as
+// the last section of `/reading/[slug]/natal` — this reuses that exact
+// screen (same classes, same <ReferencePage/>) rather than adapting the
+// desktop rail/category view below to small widths. Two differences from
+// the natal version, both founder-confirmed: the old top-left "TEXTURE"
+// wordmark (jumped back to the planet list) and the "↑" arrow (scrolled to
+// the previous placement) are dropped — neither has a destination on a
+// standalone page, and the wordmark sat exactly where the new nav bar's
+// "Menu" button now sits. A plain, non-interactive "TEXTURE" mark is added
+// top-right instead, purely decorative. The card's `top` is overridden
+// (instead of the shared class's plain 6.5%) so the fixed 56px nav bar
+// never sits over it — this only affects this one instance; natal/transits'
+// own nav-bar-overlap fix is a separate, later brief per the prior SPEC
+// entry.
+function MobileReference({ slug }: { slug: string }) {
+  return (
+    <div className="reading-container">
+      <MobileNavShell slug={slug} active="reference" />
+      <div className="reading-section" style={{ background: 'var(--cream)' }}>
+        <span
+          style={{
+            position: 'absolute',
+            top: 'calc(56px + env(safe-area-inset-top) + 16px)',
+            right: '20px',
+            fontFamily: 'var(--font-anton), sans-serif',
+            fontSize: '14px',
+            color: 'var(--red-strong)',
+            letterSpacing: '2px',
+            zIndex: 20,
+          }}
+        >
+          TEXTURE
+        </span>
+        <div
+          className="card-inner"
+          style={{
+            borderBottom: '1.5px solid rgba(185,18,18,0.50)',
+            top: 'max(6.5%, calc(56px + env(safe-area-inset-top) + 12px))',
+          }}
+        >
+          <ReferencePage />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DesktopReference({ slug }: { slug: string }) {
   const [allEntries, setAllEntries] = useState<ReferenceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSlug, setActiveSlug] = useState(REFERENCE_TAXONOMY[0].slug);
@@ -119,4 +168,30 @@ export default function ReferenceHomePage({ params }: { params: Promise<{ slug: 
       <div className="card-footer" />
     </ReadingLayout>
   );
+}
+
+// ── Route entry point ────────────────────────────────────────────────────
+// Desktop/mobile split, same matchMedia pattern already used by
+// `app/reading/[slug]/natal/page.tsx` and `.../transits/page.tsx`.
+export default function ReferenceHomePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  if (isDesktop === null) {
+    return (
+      <div style={{ height: '100dvh', background: 'var(--indigo)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-anton)', fontSize: '14px', color: 'var(--red-strong)', letterSpacing: '4px' }}>TEXTURE</span>
+      </div>
+    );
+  }
+
+  return isDesktop ? <DesktopReference slug={slug} /> : <MobileReference slug={slug} />;
 }
