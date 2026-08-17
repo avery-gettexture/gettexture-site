@@ -72,7 +72,7 @@ const scrollBoxStyle: React.CSSProperties = {
 
 const footerLinkStyle: React.CSSProperties = {
   fontFamily: 'var(--font-geist-mono), monospace',
-  fontSize: 'clamp(13px, 1.15vw, 16px)',
+  fontSize: 'clamp(10px, 1.2dvh, 12px)',
   letterSpacing: '0.5px',
   color: RED,
   textDecoration: 'underline',
@@ -105,14 +105,14 @@ export default function HomeBirthChartPanel() {
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {state === 'short' && (
           <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1.7dvh, 15px)', color: DARK_MUTED, lineHeight: 1.5, marginBottom: 'clamp(7px, 1dvh, 11px)' }}>
+            <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1.7dvh, 15px)', color: DARK_MUTED, lineHeight: 1.5, marginBottom: 'clamp(6px, 0.85dvh, 9px)' }}>
               Your chart is a woven system of planets, signs, houses, and aspects pushing and pulling on each other in ways unique to you. The more of it you explore, and the more context you hold, the more you&apos;ll start to recognize. This reading walks you through the nuance of your chart, so you can sit with the detail and find what it means to you.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(6px, 1.05dvh, 13px)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(5px, 0.9dvh, 11px)' }}>
               {FEATURES.map(({ label, text }) => (
-                <div key={label} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', paddingBottom: 'clamp(6px, 0.85dvh, 9px)', borderBottom: '0.5px solid rgba(22,22,18,0.08)' }}>
-                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 1.2dvh, 12px)', color: RED, letterSpacing: '1px', flexShrink: 0, paddingTop: '2px', minWidth: '104px' }}>{label}</span>
-                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 1.5dvh, 14px)', color: DARK_MUTED, lineHeight: 1.48 }}>{text}</span>
+                <div key={label} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', paddingBottom: 'clamp(5px, 0.7dvh, 7px)', borderBottom: '0.5px solid rgba(22,22,18,0.08)' }}>
+                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(13px, 1.15vw, 16px)', color: RED, letterSpacing: '1px', flexShrink: 0, paddingTop: '2px', minWidth: '128px' }}>{label}</span>
+                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 1.45dvh, 14px)', color: DARK_MUTED, lineHeight: 1.42 }}>{text}</span>
                 </div>
               ))}
             </div>
@@ -181,7 +181,7 @@ export default function HomeBirthChartPanel() {
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(18px, 1.8vw, 22px)', color: DARK, letterSpacing: '0.5px' }}>Birth Chart</span>
-          <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 2.3vw, 27px)', color: RED, letterSpacing: '0.5px' }}>${NATAL_READING_PRICE_USD}</span>
+          <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 2.3vw, 27px)', color: DARK, letterSpacing: '0.5px' }}>${NATAL_READING_PRICE_USD}</span>
         </div>
       </div>
     </div>

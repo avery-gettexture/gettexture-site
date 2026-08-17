@@ -4825,3 +4825,34 @@ example", and "approach" read as clickable — a one-line style change, no
 layout/sizing impact. Screenshot-confirmed. Files touched:
 `app/components/HomeBirthChartPanel.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**August 16, 2026 (pre-purchase home — left panel size swap + black price,
+founder request):** the left panel's feature-row labels ("13 Placements"
+etc.) and the footer links ("read more"/"see example"/"approach") had
+their font sizes backwards per the founder — the small footer links were
+using the larger of the two sizes and the feature labels (meant to be the
+more legible, primary-reading text) were using the smaller one. Swapped:
+feature-row label `fontSize` is now `clamp(13px, 1.15vw, 16px)` (the
+footer links' old size) and footer-link `fontSize` is now
+`clamp(10px, 1.2dvh, 12px)` (the feature labels' old size, "a little
+smaller" per the founder) — both in `HomeBirthChartPanel.tsx`. Feature
+label column's `minWidth` widened from `104px` to `128px` to keep the
+now-larger labels ("Permanent URL", "~6,500 Words") from wrapping.
+Also: the `$29` price span's color changed from `RED` to `DARK` (black)
+per the founder's explicit request — "Birth Chart" and the price now
+match.
+
+The label-size increase re-tightened the left panel's zero-scroll fit
+(short-state content grew ~11px too tall at 1280×800, the narrowest
+common width checked). Trimmed back with small reductions to feature-row
+gap/padding, the opener paragraph's `marginBottom`, and feature-text
+`lineHeight` (1.48→1.42) — not the label size itself, since a smaller
+label was the opposite of the ask. Re-verified by the same Playwright
+content-height measurement used in prior passes at 1280×800, 1366×768,
+1440×900, 1920×1080: 0px real overflow at every size (sub-pixel noise
+only). Screenshot-confirmed at 1280×800 and 1440×900: feature labels read
+as clearly more legible/primary, footer links read as smaller/secondary,
+and the price is black.
+
+Files touched: `app/components/HomeBirthChartPanel.tsx`, `docs/SPEC.md`.
+No console errors. One commit, not pushed.
