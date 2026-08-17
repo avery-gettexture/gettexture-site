@@ -1,7 +1,11 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import PrePurchaseNavBar from './components/PrePurchaseNavBar';
 import MorphBackgroundPlaceholder from './components/MorphBackgroundPlaceholder';
 import HomeBirthChartPanel from './components/HomeBirthChartPanel';
 import HomeMyChartFormPanel from './components/HomeMyChartFormPanel';
+import MobileHomePage from './components/MobileHomePage';
 
 // Pre-purchase home (home-two-panel-rebuild task, SPEC §16; refined further
 // in the pre-purchase-home-refinements follow-up, SPEC §16). Same two-panel
@@ -19,7 +23,31 @@ import HomeMyChartFormPanel from './components/HomeMyChartFormPanel';
 // side. The order form (HomeOrderForm, inside HomeMyChartFormPanel) is the
 // same working form that was previously inline on this page — unchanged
 // behavior, only re-housed.
+//
+// Mobile branch (recover-old-mobile-home task, SPEC §16): the two-panel
+// frame above is a fixed-height (100dvh), overflow:hidden container built
+// for a no-scroll desktop app — it mis-renders on mobile widths. Below
+// 1024px this page instead renders MobileHomePage, the recovered old
+// single-column layout (git history, pre-Aug-16-2026) rebuilt with current
+// copy. Same matchMedia('(min-width: 1024px)') pattern the reading pages
+// use (app/reading/[slug]/natal/page.tsx, .../transits/page.tsx) — resolved
+// in a useEffect so there's no server/client hydration mismatch; null (not
+// yet measured) renders nothing.
 export default function HomePage() {
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  if (isDesktop === null) return null;
+
+  if (!isDesktop) return <MobileHomePage />;
+
   return (
     <div className="app-shell">
       <PrePurchaseNavBar />

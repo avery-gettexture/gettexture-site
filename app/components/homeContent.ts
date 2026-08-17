@@ -1,0 +1,38 @@
+// Marketing copy shared by the desktop pre-purchase home
+// (HomeBirthChartPanel.tsx) and the mobile pre-purchase home
+// (MobileHomePage.tsx) — extracted to one file so the two can't drift out
+// of sync (recover-old-mobile-home task, SPEC §16). This is the CURRENT
+// copy (13 Placements, the Education row, "reference dictionary" wording),
+// not the stale copy ("14 Placements") that lived in the old pre-Aug-16
+// single-column page.
+
+export const OPENER_PARAGRAPH = 'Your chart is a woven system of planets, signs, houses, and aspects pushing and pulling on each other in ways unique to you. The more of it you explore, and the more context you hold, the more you\'ll start to recognize. This reading walks you through the nuance of your chart, so you can sit with the detail and find what it means to you.';
+
+export const FEATURES = [
+  { label: '13 Placements', text: 'Sun, moon, rising, and all major planets, bodies and points interpreted in full.' },
+  { label: '~6,500 Words', text: 'Explore the depth your chart has to offer with ~500 words of unique copy for each placement, written for only you.' },
+  { label: 'Full Context', text: 'Interpretations written to reflect that your chart is more than the sum of its parts. Sign, house, degree, aspects, and motion are considered for every placement.' },
+  { label: 'Permanent URL', text: 'Your reading lives at a unique link. Save it, revisit it, share it anytime.' },
+  { label: 'Education', text: 'Reference material throughout to define all major astrological terms.' },
+];
+
+export const DESCRIPTION_PARAGRAPHS = [
+  'A chart is a woven system. Your placements are the threads, but how they interact creates the texture. This reading reflects that nuance — sign, house, degree, aspects, and motion are all considered, so your placements are read in context, not isolation.',
+  'The report you\'ll receive is irreducibly specific to your chart. Your Sun at 29 degrees Leo in your 10th house, with a square to Saturn is different than a Sun in Leo in a different house, at a different degree, or with different aspects. If you\'re interested in astrology, and curious about what insights more specific reading could offer beyond an isolated planet in sign or planet in house interpretation, this report will surface the nuance you\'re looking for.',
+  'Astrology resonates when it gets precise, and this report honors that precision. Factors like sign, house, degree, motion, and aspects push and pull on planets to shift what they mean for you. A planet in its home sign might be complicated by the house it\'s in or the aspects pulling against it, or a planet in a challenging sign might be supported by house or aspects. This reading illuminates the unique character of your chart for you to reflect on, consider, and sit with.',
+  'This report is written to deliver a felt sense of your chart regardless of your experience with astrology — you do not need to be fluent in astrological terms to understand it. There are reference sections on each placement to define the planet, sign, house, degree, motion, and aspects referenced in the interpretation, as well as a complete reference section at the end with all terms defined.',
+];
+
+export const WHATS_INCLUDED = [
+  'Birth chart wheel (Whole Sign house system)',
+  'Full placements list',
+  '~500 words of interpretation per placement',
+  '~6,500 words of personalized content total',
+  'Reference sections throughout',
+  'Complete reference dictionary',
+];
+
+export const PLACEMENTS_INTERPRETED = [
+  'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus',
+  'Neptune', 'Pluto', 'Rising Sign / Ascendant', 'Midheaven', 'Nodes',
+];

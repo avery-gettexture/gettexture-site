@@ -5424,3 +5424,79 @@ fully inside the viewport (bottom 843 of 844). Zero console errors. `tsc
 
 Files touched: `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 17, 2026 (recover old mobile pre-purchase home, rebuild as
+mobile-specific):** `/` (the pre-purchase home) had no mobile-specific
+layout — mobile visitors were getting the desktop two-panel layout
+(`.app-shell`/`.app-stage`, a fixed-height `100dvh`, `overflow: hidden`
+frame built for a no-scroll desktop app), which mis-renders on a scrolling
+mobile viewport. The live/production site was still serving the OLD
+single-column mobile layout, because that layout hadn't been redeployed
+since it was replaced in the working tree by the two-panel rebuild
+(commit `fd43c11`, Aug 16, 2026). Recovered that old layout from git
+history (last present in commit `49c3875`) and rebuilt it as `/`'s
+mobile-specific branch, using CURRENT copy throughout (13 Placements, the
+Education row, "reference dictionary" wording — not the old layout's
+stale "14 Placements" copy). Desktop is untouched — same two-panel JSX as
+before, byte-for-byte.
+
+`app/page.tsx` now branches on `matchMedia('(min-width: 1024px)')` (the
+same pattern `app/reading/[slug]/natal/page.tsx` and `.../transits/
+page.tsx` already use — resolved in a `useEffect` so there's no server/
+client hydration mismatch): `>=1024px` renders the existing two-panel
+layout unchanged; `<1024px` renders the new `MobileHomePage` component.
+New file `app/components/homeContent.ts` holds the marketing copy
+(feature table, long description, What's Included, Placements list) that
+used to live only inside `HomeBirthChartPanel.tsx` (the desktop left
+panel) — both desktop and mobile now import from this one file so the two
+can't drift out of copy sync; `HomeBirthChartPanel.tsx` itself is
+otherwise unchanged (same values, just imported instead of inlined).
+
+New `app/components/MobileHomePage.tsx` — plain document flow (no
+app-shell; `body` already supports normal scroll), four sections in the
+order Avery specified: (1) "Take a closer look at your chart" header +
+opener paragraph + feature table, with a two-link row directly under the
+table — "see example" (left, links to the dogfood reading
+`/reading/hejkhjq1zns5/natal`, flagged in a comment as a stand-in to swap
+later) and "Full description ↓" (right, jumps to section 3) — replacing
+the old layout's "ONE-TIME/NO SUBSCRIPTION" flag, which is dropped; (2)
+"My Chart" order form (`id="form"`), reusing `HomeOrderForm` unchanged —
+same component the desktop panel uses, so validation and the Stripe
+checkout redirect behave identically; (3) "About the reading" long
+description (`id="description"`); (4) "About" — What's Included +
+Placements Interpreted. A sticky bottom "MY CHART →" bar (`position:
+fixed`) reuses the old layout's scroll-listener pattern (a section ref +
+`getBoundingClientRect()` on scroll) but simplified to the one condition
+Avery specified — hidden while the form section is in view, sticky
+otherwise — rather than the old file's five-ref version. Own lightweight
+header (TEXTURE wordmark + Privacy/Terms/Support) rather than reusing
+`PrePurchaseNavBar`: that component renders with the `.nav-bar` class,
+which `app/globals.css`'s mobile-nav-shell rule already force-hides below
+1024px for the reading pages (which show `MobileNavShell` instead); `/`
+has no `MobileNavShell` (it needs a reading slug that doesn't exist
+pre-purchase), so reusing `.nav-bar` here rendered nothing — caught during
+mobile-width screenshot verification, not assumed.
+
+Judgment calls confirmed with Avery before building: drop the old
+layout's hero/screenshot showcase section entirely (not in the specified
+4-section order); drop the old layout's inline red "GET YOUR READING"
+CTA buttons under the feature table and long description (the sticky bar
+is the only CTA besides the form); sticky button reads "MY CHART →" with
+no price; the old layout's closing "Texture's Approach" section is also
+dropped for the same not-in-the-4-section-order reason (flagged, not
+separately asked).
+
+Verified with a Playwright script against a running dev server at
+390×844 (mobile) and 1440×900 (desktop): mobile shows all 4 sections in
+order, current copy, the "see example"/"Full description ↓" link row
+with no ONE-TIME flag, the sticky "MY CHART →" bar hiding correctly when
+the form section is scrolled into view, and the form itself accepting
+input (name/date/email fields filled and read back). Desktop screenshot
+confirmed pixel-identical to the pre-existing two-panel layout. `tsc
+--noEmit` clean (repo-wide errors present only in the pre-existing,
+unrelated `docs/mocks/*.tsx` files, not touched by this task).
+
+Files touched: `app/page.tsx`, `app/components/HomeBirthChartPanel.tsx`,
+`app/components/MobileHomePage.tsx` (new), `app/components/
+homeContent.ts` (new), `docs/SPEC.md`. Not touched: any desktop visual or
+behavior. One commit, not pushed.
