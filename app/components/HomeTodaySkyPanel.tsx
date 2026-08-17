@@ -115,7 +115,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   });
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', containerType: 'size' }}>
 
       {/* Header + Body + Footer wrapper — carries the cream card in List
           mode (matching docs/mocks/homepage-variants.png: the card wraps
@@ -299,18 +299,27 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                 directly on the panel's teal image, matching the left
                 panel's Chart state.
 
-                WIDTH: `calc(85% / 0.94)` (~90.43%), not a plain 85% —
-                this container sits inside the wrapper above, which has
-                `padding: '0 3%'` (needed for the List-mode card's text),
-                shrinking its content box to 94% of the panel's true width
-                even in Chart mode. The My Chart panel's wheel (left,
-                HomeMyChartPanel.tsx) has no such padding above it and is a
-                plain 85%. Dividing by 0.94 here cancels that padding out
-                so both wheels land on the same 85%-of-panel diameter —
-                confirmed by measuring both rendered wheels, not just the
-                arithmetic. */}
+                WIDTH: `min(85cqw, 85cqh)` (wheel-fixes follow-up) — 85% of
+                the panel's own width or height, whichever is smaller, using
+                CSS container query units against the root div's
+                `containerType: 'size'` (set where this component returns,
+                above). Keying off the ROOT div rather than this Chart-mode
+                wrapper matters: the Header+Body+Footer wrapper in between
+                has `padding: '0 3%'` (needed for the List-mode card's
+                text, applied in Chart mode too), so cqw/cqh measured from
+                anything inside it would already be 94% of the true panel
+                width — measuring from the root sidesteps that padding
+                entirely rather than needing to cancel it out with a
+                correction factor. This also fixes overflow on a short
+                window: a plain width-percentage (the prior version) never
+                shrinks for reduced height, so the wheel would run into the
+                header/footer; `min(...cqh)` catches that. The My Chart
+                panel's wheel (left, HomeMyChartPanel.tsx) uses the same
+                `min(85cqw, 85cqh)` pattern off its own root, so both stay
+                the same diameter — confirmed by measuring both rendered
+                wheels across several viewport sizes, not just the CSS. */}
             {positions && (
-              <div style={{ width: 'calc(85% / 0.94)', aspectRatio: '1' }}>
+              <div style={{ width: 'min(85cqw, 85cqh)', aspectRatio: '1' }}>
                 <TodaySkyWheel positions={positions} aspects={aspects ?? []} />
               </div>
             )}

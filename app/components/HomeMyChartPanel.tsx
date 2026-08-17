@@ -70,7 +70,7 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
   const formattedBirthDate = formatDate(reading.birth_date);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', containerType: 'size' }}>
 
       {/* Header ~9% (shrunk from 14% — home-page-polish task, §16: same
           top-anchored title, less reserved empty space below it before
@@ -179,7 +179,16 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
           </div>
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: '85%', aspectRatio: '1' }}>
+            {/* `min(85cqw, 85cqh)` (wheel-fixes follow-up) — 85% of the
+                panel's own width or height, whichever is smaller, using CSS
+                container query units against the outer root div's
+                `containerType: 'size'` above (the whole panel, unaffected
+                by anything below it). A plain `85%` (width-only, the prior
+                version) doesn't shrink for a short/squeezed window — the
+                wheel would keep its full width-based size and overflow
+                past the panel's top/bottom edges. This is pure CSS, no
+                measurement/JS involved, so it tracks the window fluidly. */}
+            <div style={{ width: 'min(85cqw, 85cqh)', aspectRatio: '1' }}>
               <NatalChartWheelWeb chartData={reading.chart_data} birthTimeKnown={reading.birth_time_known} />
             </div>
           </div>

@@ -4111,3 +4111,42 @@ match the aspect rows visible in that day's "Aspects and Events" list.
 Files touched: `app/components/NatalChartWheelWeb.tsx`,
 `app/components/TodaySkyWheel.tsx`, `app/components/HomeTodaySkyPanel.tsx`,
 `docs/SPEC.md`. One commit, not pushed.
+
+**August 16, 2026 (wheel fixes, follow-up — height-aware sizing):**
+founder feedback on the entry above: the two home wheels' sizing was still
+purely width-based (`85%` / `calc(85% / 0.94)` of the panel's width), with
+nothing constraining it against the panel's height. Checked by shrinking
+the browser window's height in a Playwright test (not committed) rather
+than assumed — confirmed real overflow: at a short window height, both
+wheels kept their full width-based diameter and ran into their own
+panel's header/footer text.
+
+**Fix:** both home wheels now size off `min(85cqw, 85cqh)` — 85% of the
+panel's own width or height, whichever is smaller — using CSS container
+query units, not a JS-measured pixel value. Each panel's outer root div
+(`HomeMyChartPanel.tsx`, `HomeTodaySkyPanel.tsx`) is marked
+`containerType: 'size'`, and the Chart-mode wheel wrapper in each reads
+cqw/cqh off that root. Reading from the root rather than the Chart-mode
+wrapper itself matters for Today's Sky specifically: the wrapper in
+between has `padding: '0 3%'` (needed for the List-mode card's text), so
+cqw measured from anything inside it would already be 94% of the true
+panel width — reading from the root sidesteps that instead of needing a
+correction factor for it (replaces the `calc(85% / 0.94)` from the entry
+above with something that no longer needs to know about that padding at
+all). This is the same "size off whichever dimension is smaller" approach
+already used on the full natal/transits chart panes
+(`NatalChartPane.tsx`/`TransitChartPane.tsx`, ResizeObserver-based
+there), applied here as pure CSS instead since these two wheels didn't
+already have a per-instance sizing effect to extend.
+
+**Verified** with the same throwaway Playwright script, viewport-resize
+tested (not committed): wheel diameter tracks width changes as before
+(1920×1000 → 653.6px, 1440×900 → 490.2px, 1200×800 → 408.5px, 1024×768 →
+348.6px, both wheels always equal to each other), and now also tracks
+height changes (1440×900 → 490.2px, 1440×700 → 465.9px, 1440×560 →
+372.7px) — confirmed by screenshot that the short-height case no longer
+clips the header or footer on either panel. `tsc --noEmit` clean.
+
+Files touched: `app/components/HomeMyChartPanel.tsx`,
+`app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
