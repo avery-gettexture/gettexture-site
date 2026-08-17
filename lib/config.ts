@@ -18,3 +18,13 @@ export const TRANSIT_GENERATION_PRICING_USD_PER_MILLION_TOKENS = {
   cacheWrite: 0,
   cacheRead: 0,
 };
+
+// Natal generation cost tracking (dry/real-run script console output only --
+// readings has no cost column, unlike transit_pieces, so this isn't
+// persisted). Same placeholder-until-Avery-sets-real-prices rule as above.
+export const NATAL_GENERATION_PRICING_USD_PER_MILLION_TOKENS = {
+  input: 0,
+  output: 0,
+  cacheWrite: 0,
+  cacheRead: 0,
+};

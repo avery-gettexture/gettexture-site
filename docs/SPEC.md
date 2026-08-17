@@ -313,7 +313,7 @@ Methodology page, product-spec posture. **Disclose:**
 9. **Education layer** (after transits — DECIDED order): chart orientation page ("planets are what, signs are how, houses are where"), how-to-read-a-wheel, profections, finding-your-birth-time. Methodology page can interleave (zero dependencies).
 10. **Natal parity:** unknown-birth-time purchase path live and correct.
 11. **Sample reading** page (subject deferred).
-12. **Natal engine + schema updates** from the natal sweep: decan, sect, degree flags, MC whole-sign house, axis-merged nodal aspects, widened sign-consonant orbs; 14 → 13 interpretation columns; node background assets.
+12. **Natal engine + schema updates** from the natal sweep: decan, sect, degree flags, MC whole-sign house, axis-merged nodal aspects, widened sign-consonant orbs; 14 → 13 interpretation columns; node background assets. **Engine build (decan/sect/degree-flags/MC-house/aspect-engine/combined-nodes assembly) STAGE 1 BUILT August 17, 2026 — see §16.** Prompt wiring + live generation is Stage 2, pending founder approval of the Stage 1 dry-run.
 
 ---
 
@@ -410,7 +410,7 @@ locked; this is the only anon read path into it.
 
 ### 11.2 Computations the engine owes
 - **Transit side:** sign-consonant pre-filter (in Whole Sign, sign-to-sign relationships are fixed, so a planet's candidate receiving points are known before any degree math); contact windows (3° applying → exact → separating) via threshold crossings + interpolation; pass n-of-m (free — `ORDER BY date` on the crossings); natal copresence (points where sign = transited sign); sky copresence with spans; sky-sky aspects (chart-independent, computed once, shared by all subscribers); natal intersections; stable **entry IDs**; eclipse dataset (base data loaded — §11A.5; per-eclipse configurations and natal points caught remain downstream per-user work); phase detection (ingress/station boundaries) and the regeneration schedule.
-- **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7.
+- **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7. **STAGE 1 BUILT August 17, 2026** — see §16 ("complete natal generation, Stage 1"). Sect implemented as the whole-sign rule (Sun's own house 1–6 → night, 7–12 → day) rather than altitude/horizon math — a founder-specified simplification, cross-checked against the astrology proxy's own `is_diurnal` (horizon math) on the dogfood chart, which agreed. Prompts not yet wired to this input — that's Stage 2, pending founder approval of the Stage 1 dry-run.
 - **Shared:** the sky event stream (normalized ingresses, stations, eclipses) feeding triggers, calendar, notifications, and Today's Texture.
 
 **ACTIVATION QUALIFICATION RULE (DECIDED July 19, 2026 — replaces the
@@ -5519,3 +5519,120 @@ clean.
 Files touched: `app/components/homeContent.ts`, `app/components/
 HomeBirthChartPanel.tsx`, `app/components/MobileHomePage.tsx`,
 `docs/SPEC.md`. One commit, not pushed.
+
+**August 17, 2026 (complete natal generation, Stage 1 — engine input +
+assembly, no prompt swap yet):** builds the input the finalized natal
+prompts (`docs/SYNTHESIS_CALL_1_v12.md` / `SYNTHESIS_CALL_2_v1.md`) need
+that the live generation route (`app/api/generate/route.ts`, still on the
+old prompts) doesn't build yet — the §11.2 / §9 item 12 "natal side (new)"
+owed work. `route.ts` and `lib/prompts/` are untouched this stage per
+founder instruction; only new, additive modules were built.
+
+New module `lib/natal-generation/engine.mjs` (pure computation, the only
+part that touches Supabase — one query against the existing
+`decan_reference` table, cached in-process):
+- **Decan** (§4.3): `decan_number = floor(degree_in_sign / 10) + 1`,
+  looked up against `decan_reference` (36 rows, confirmed live) — never
+  computed by hand.
+- **Degree flags** (§4.4): 29° → anaretic, 0° → ingress, else none.
+- **Sect** (§4.5): implemented as the whole-sign rule per this task's
+  explicit brief — the Sun's own house 1–6 → night, 7–12 → day — rather
+  than altitude/horizon math. Cross-checked against the astrology proxy's
+  own `is_diurnal` field (which the proxy computes via true horizon math)
+  on the dogfood chart: they agree (Sun in the 10th → day chart both
+  ways). `is_diurnal` is not used as the source of truth; the house rule
+  is, per the task's explicit instruction.
+- **MC house**: reads `chart_data.subject.medium_coeli.house`, which the
+  astrology proxy already computes and populates — it was simply discarded
+  by `route.ts`'s `isAngle` exclusion before this change. No new
+  computation was needed, just stopping the discard. The Ascendant's HOUSE
+  is a constant "1st House" per Call 1 §27 (the Ascendant establishes the
+  1st house, §25 — it is never "in" a house).
+- **Aspect engine, rebuilt from longitudes (scope addition beyond the
+  original 4-item task list, flagged and approved by the founder before
+  building):** `chart_data.aspects` (written by the astrology proxy at
+  chart-creation time) is a flat angular calculation with NO sign-
+  consonance check and effectively no orb ceiling below ~8° regardless of
+  aspect type — verified live on the dogfood chart (slug `hejkhjq1zns5`):
+  5 of 29 stored aspects are angle-in-range but not sign-consonant (e.g.
+  Mercury Libra square Uranus Aquarius is a 4-sign gap, not the 3-sign gap
+  a true square requires). SYNTHESIS_CALL_1_v12.md's locked parameters
+  (§9) require 8° conjunction/opposition/square/trine (10° with the Sun or
+  Moon involved), 6° sextile (never extended), sign-consonant only (§4.7).
+  `engine.mjs`'s `computeAspect` recomputes every aspect fresh from raw
+  longitudes: the sign-gap between two placements determines the only
+  eligible aspect type (0/2/3/4/6 signs → conjunction/sextile/square/
+  trine/opposition), so an angle-in-range, wrong-sign-gap contact is
+  structurally impossible to return — sign-consonance isn't a separate
+  filter, it's how the type is chosen. Live-verified: all 5 previously
+  false proxy aspects are now excluded from every placement's ASPECTS
+  list; a genuinely new aspect (Sun opposition Saturn, 9.21° — valid only
+  under the luminary-extended 10° orb) now correctly appears. Angles
+  (Ascendant, Midheaven) are included as full aspect subjects, matching
+  §4.2 ("copresence and aspects apply in full with the angle as
+  subject") — this surfaces contacts the old code never computed at all
+  (e.g. Sun conjunct Midheaven, Saturn square Ascendant).
+- **Combined node axis** (§4.1, §24): North and South are always exactly
+  180° apart, so a planet's angular residual to the axis is identical on
+  both ends (verified live: Venus square North 6.13°, square South
+  6.13°) — only the *named* aspect type differs per end (conjunction↔
+  opposition and sextile↔trine are complementary pairs; square is
+  self-complementary). `computeAxisAspect` checks both ends with the same
+  engine and merges: square → one line, "square the nodal axis"
+  (symmetric, orb equal both ends, matches SYNTHESIS_CALL_1_v12.md's own
+  example verbatim); conjunction/opposition → always co-valid (same 8/10°
+  threshold both ends) → dual-named, "conjunct the North Node (opposite
+  the South Node)" (verb forms, matching the prompt's own example
+  literally — not the noun forms "conjunction"/"opposition" used for
+  ordinary planet-planet aspect lines); sextile/trine → co-valid (dual-
+  named) when the residual is ≤6°, single-named ("trine the South Node"
+  alone) when only the wider trine orb (8–10°) admits it and the sextile
+  side's tighter 6° orb does not — read at its honest, wider-orb size per
+  §4.7's orb-weight law. The internal North-opposite-South entry the proxy
+  emits, and any Lilith contact, are dropped (Lilith isn't a receiving
+  point in this system). Copresence needed no merge logic: North and South
+  sit in different (opposite) signs by construction, so a given planet can
+  only ever be co-present with one end.
+
+New module `lib/natal-generation/generate-piece.mjs` (mirrors
+`lib/transit-generation/generate-piece.mjs`'s separation of pure assembly
+from API calls): 13 `PLACEMENTS` (10 planets + Ascendant + Midheaven + one
+combined `nodes` entry, replacing the live route's 14-entry
+North-Node/South-Node split), `assembleGenerationInputs()` (dry-run, zero
+API calls), `generateNatalPlacement()` (real Call 1 → Call 2, `[START]/
+[END]` parse, `max_tokens` truncation guard — reads
+`lib/prompts/synthesis_c1_prompt.txt` / `synthesis_c2_prompt.txt` lazily,
+only when actually called, since `synthesis_c2_prompt.txt` doesn't exist
+yet this stage). Assembled field blocks were checked field-for-field
+against Call 1 §27's USER MESSAGE FORMAT (including the NODES VARIANT and
+the ANGLES note) and match, with one resolved ambiguity flagged for
+founder review at the dry-run gate: the ANGLES note in §27 excludes only
+RETROGRADE and DECAN, so SECT is included for Ascendant/Midheaven as chart
+context (matching Call 2 §15's "the SECT field, where present, is chart
+context"); the NODES VARIANT template omits SECT entirely, matching §24's
+"no motion, no decan" silence on sect read as exclusion by omission from
+the template.
+
+New script `scripts/generate-natal.mjs` (mirrors
+`scripts/generate-transits.mjs`): `--dry-run` prints all 13 assembled
+inputs for the dogfood reading with zero API calls; real-run mode (Stage
+2) generates the first placement alone to warm the prompt cache, the rest
+in parallel, upserts to `readings`, then re-reads the row from Supabase to
+confirm state rather than trusting its own log (AGENTS.md hard rule) — it
+is also the single-reading regeneration path called for in the task brief
+(no batch, dogfood slug only).
+
+`lib/config.ts`: added `NATAL_GENERATION_PRICING_USD_PER_MILLION_TOKENS`
+(placeholder zeros, mirrors the existing transit constant) for the
+scripts' console cost logging — not persisted; `readings` has no cost
+column and none was requested.
+
+**Not done this stage (Stage 2, pending founder approval of the dry-run):**
+`lib/prompts/synthesis_c1_prompt.txt`/`synthesis_c3_prompt.txt` still hold
+the old prompts; `route.ts` still writes `north_node`/`south_node` via the
+old 14-entry loop; no paid generation has run.
+
+Files touched: `lib/natal-generation/engine.mjs` (new),
+`lib/natal-generation/generate-piece.mjs` (new),
+`scripts/generate-natal.mjs` (new), `lib/config.ts`, `docs/SPEC.md`. One
+commit, not pushed.
