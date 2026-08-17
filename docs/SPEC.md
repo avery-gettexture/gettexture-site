@@ -5059,3 +5059,14 @@ Files touched: `app/reading/[slug]/reference/page.tsx`, `docs/SPEC.md`.
 Not touched: `app/components/ReferencePage.tsx`,
 `app/components/ReadingLayout.tsx`, `app/components/MobileNavShell.tsx`,
 `app/globals.css`, or any desktop code path. One commit, not pushed.
+
+**August 17, 2026 (mobile reference relocation — correction, same day):**
+the decorative top-right "TEXTURE" mark added on the card above (2) turned
+out to visually double up with `MobileNavShell`'s own top-right "TEXTURE"
+wordmark (which links home) — two stacked marks in the same corner,
+flagged by the founder on review. Removed the card's decorative mark
+entirely; the nav bar's existing wordmark is the only "TEXTURE" mark on
+the page now, unchanged and still linking home. No other part of the task
+changed. Files touched: `app/reading/[slug]/reference/page.tsx`,
+`docs/SPEC.md`. Screenshot-reverified at 390×844: single wordmark,
+card unobstructed. One commit, not pushed.
