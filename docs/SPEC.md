@@ -5217,3 +5217,51 @@ console errors at any width.
 Files touched: `app/globals.css`, `app/components/MobileNavShell.tsx`,
 `app/components/ChartSection.tsx`, `docs/SPEC.md`. Not touched: any
 desktop code path. One commit, not pushed.
+
+**August 17, 2026 (mobile natal — duplicate wordmark + Nodes retrograde
+flag, two founder-flagged fixes from a screenshot):**
+
+1. **Duplicate "TEXTURE" wordmark removed from the mobile natal placement
+   screens.** `app/reading/[slug]/natal/page.tsx`'s per-placement mobile
+   section loop still rendered its own top-left `.wordmark` div (leftover
+   from before `MobileNavShell` existed, sitting under the "Menu" button)
+   on top of the nav shell's own top-right wordmark — the same duplicate
+   already caught and removed on the Reference page and in
+   `ChartSection.tsx`'s Chart tab, but missed here. Removed the div;
+   its "jump back to the placement list" tap behavior is dropped with it
+   (the nav shell's wordmark links elsewhere — home — so there's no
+   equivalent replacement). The adjacent "↑" (scroll to previous section)
+   button is untouched — separate, still-working control, not part of
+   this bug.
+2. **Retrograde "R" removed from Nodes in the mobile placement list.**
+   `ChartSection.tsx`'s `ListView` built every row's `retrograde` flag
+   straight from chart data (`data.retrograde ?? false`), and the Nodes
+   row (keyed `mean_north_lunar_node`) is retrograde=true in the source
+   data by convention (constant mean node) — so it wrongly showed "R".
+   Nodes always move backward by nature, so retrograde is astrologically
+   meaningless for them. Fixed the same way as the two prior instances of
+   this bug (the desktop rail's `placement.id === 'nodes'` branch, and
+   `HomeMyChartPanel.tsx`'s `placement.id !== 'nodes'` guard, both §16
+   above): `mean_north_lunar_node` is now hardcoded to `retrograde: false`
+   in the row-building `map`, independent of the source data's flag. Every
+   other placement, including genuinely retrograde ones, is unaffected.
+
+**Discovered, not fixed — flagged for a separate task:**
+`app/reading/[slug]/transits/page.tsx` has the identical leftover top-left
+`.wordmark` div (line ~608) duplicating `MobileNavShell`'s wordmark on the
+mobile Transits page. Out of scope here — the founder's brief named only
+the natal pages — left untouched pending explicit sign-off.
+
+Verified with a Playwright throwaway script against a running dev server,
+dogfood slug (`hejkhjq1zns5`), at 390×844: screenshotted a placement
+section (Sun) and confirmed exactly one "TEXTURE" element in the DOM,
+visible top-right only, nothing under "Menu"; screenshotted the Chart
+tab's List view and confirmed the Nodes row reads "Nodes · Virgo · 17° ·
+9th" with no "R", while Saturn's row (genuinely retrograde in this chart)
+still correctly shows "R". `tsc --noEmit` clean (pre-existing unrelated
+errors in `docs/mocks/*.tsx` only, unaffected).
+
+Files touched: `app/reading/[slug]/natal/page.tsx`,
+`app/components/ChartSection.tsx`, `docs/SPEC.md`. Not touched:
+`app/reading/[slug]/transits/page.tsx` (flagged above), any desktop code
+path. One commit, not pushed.

@@ -782,13 +782,6 @@ export default function ReadingPage({
             className="reading-section"
             ref={el => { sectionRefs.current[PLANET_START + index] = el; }}
           >
-            <div
-              className="wordmark"
-              style={{ cursor: 'pointer' }}
-              onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}
-            >
-              TEXTURE
-            </div>
             <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(253,245,237,0.50)' }} onClick={() => scrollToSection(PLANET_START + index - 1)}>↑</button>
             <div
               className="section-bg"

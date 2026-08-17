@@ -233,7 +233,12 @@ function ListView({
         key: p.key, label: p.label,
         glyph: PLANET_GLYPHS[p.glyphKey] ?? '○',
         sign, signGlyph: SIGN_GLYPHS[sign] ?? '',
-        degree, house, retrograde: data.retrograde ?? false,
+        degree, house,
+        // Nodes always move backward by nature — "retrograde" is
+        // meaningless for them, so no R flag here (matches the desktop
+        // rail and the homepage My Chart panel, which special-case this
+        // the same way; SPEC §16).
+        retrograde: p.key === 'mean_north_lunar_node' ? false : (data.retrograde ?? false),
       };
     })
     .filter((p): p is NonNullable<typeof p> => p !== null);
