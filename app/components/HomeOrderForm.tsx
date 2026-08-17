@@ -11,6 +11,16 @@
 // whole form fits the right panel with ZERO scroll (Avery's non-negotiable
 // constraint) — plain white input boxes no longer needed once the field
 // itself is just an underline over the cream panel.
+//
+// Type sizing (fill-the-frame pass, SPEC §16): row spacing, label/input font
+// sizes, and the submit button are now dvh-based clamps (not fixed px) so
+// they shrink together with the panel on a shorter viewport instead of
+// staying a fixed size while the available room shrinks under them — the
+// same fixed-px-vs-shrinking-panel mismatch the left panel's title already
+// had to correct for. Without this, the form still fit at 1440×900 but
+// actually overflowed (submit button below the card's bottom edge) at
+// 1366×768 and 1280×800. Verified with no overflow at 1280×800, 1366×768,
+// 1440×900, 1920×1080 — the ZERO-scroll constraint holds at all of them.
 
 import { useState, useRef, useEffect } from 'react';
 
@@ -105,18 +115,18 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
   // form fits the right panel with zero scroll. Sizes shrunk specifically
   // for that fit, not a general style change.
   const rowStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px',
+    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'clamp(9px, 2.1dvh, 20px)',
   };
 
   const inlineLabelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px',
+    fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(11px, 1.5dvh, 15px)',
     color: 'rgba(22,22,18,0.45)', letterSpacing: '0.5px',
-    flex: '0 0 auto', minWidth: '100px',
+    flex: '0 0 auto', minWidth: '112px',
   };
 
   const underlineInputStyle = (field: string): React.CSSProperties => ({
-    width: '100%', padding: '3px 2px 6px',
-    fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: '#161612',
+    width: '100%', padding: 'clamp(2px, 0.5dvh, 5px) 2px clamp(4px, 0.9dvh, 8px)',
+    fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1.6dvh, 16px)', color: '#161612',
     backgroundColor: 'transparent',
     border: 'none',
     borderBottom: `1px solid ${errors[field] ? 'rgba(185,18,18,0.75)' : 'rgba(22,22,18,0.30)'}`,
@@ -148,13 +158,13 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
         <div style={rowStyle}>
           <label style={inlineLabelStyle}>time of birth:</label>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: '8px' }}>
-            <select value={form.birthHour} onChange={e => setForm(f => ({ ...f, birthHour: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 40px' }}>
+            <select value={form.birthHour} onChange={e => setForm(f => ({ ...f, birthHour: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 48px' }}>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
-            <select value={form.birthMinute} onChange={e => setForm(f => ({ ...f, birthMinute: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 40px' }}>
+            <select value={form.birthMinute} onChange={e => setForm(f => ({ ...f, birthMinute: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 48px' }}>
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-            <select value={form.birthAmPm} onChange={e => setForm(f => ({ ...f, birthAmPm: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 50px' }}>
+            <select value={form.birthAmPm} onChange={e => setForm(f => ({ ...f, birthAmPm: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 60px' }}>
               <option value="AM">AM</option>
               <option value="PM">PM</option>
             </select>
@@ -176,7 +186,7 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
         </div>
         <button
           type="submit"
-          style={{ marginTop: '8px', padding: '13px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer', width: '100%' }}>
+          style={{ marginTop: '8px', padding: 'clamp(9px, 1.9dvh, 16px)', fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(11px, 1.5dvh, 14px)', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer', width: '100%' }}>
           REVIEW ORDER →
         </button>
       </form>

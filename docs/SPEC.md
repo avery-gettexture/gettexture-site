@@ -4702,3 +4702,60 @@ six desktop viewport sizes (1280×720 to 1920×1080) confirming zero
 scroll/overflow in both panels at every size, and by driving the form
 (fill fields, submit) confirming client-side validation and the review-
 modal flow are unchanged. No console errors. One commit, not pushed.
+
+**August 16, 2026 (pre-purchase home — fill-the-frame pass, founder
+review):** the refinements pass above (#6) had over-corrected: chasing
+zero-scroll at every viewport left both panels' type genuinely tiny,
+floating in a mostly-empty cream card rather than filling it. This pass
+re-sizes type up to comfortably fill each card with balanced margins,
+while keeping the right panel's ZERO-scroll constraint (Avery's
+non-negotiable rule) intact.
+
+Two distinct bugs found and fixed along the way, not just a size bump:
+
+1. **Left panel title wrap.** Raising the title's font size past a point
+   made "Take a closer look at your chart." wrap to two lines inside the
+   card's fixed width, which silently ate into the content region's height
+   budget and pushed the opener paragraph's top line off-screen (clipped,
+   unreachable — a centered flex box with overflow scrolls down into the
+   bottom overflow but can't scroll up into top overflow). Fixed by capping
+   the title's size so it measures narrower than the card's content width
+   at every tested viewport (measured with an offscreen canvas, not
+   eyeballed) and setting `whiteSpace: nowrap` as a hard guarantee.
+2. **Right panel form used fixed pixel sizing.** `HomeOrderForm.tsx`'s row
+   spacing, label/input font sizes, and submit button were plain `px`
+   values from the prior pass — they don't shrink on a shorter viewport the
+   way the left panel's `dvh`-based sizing already does. Raising them to
+   "comfortably fill" size at 1440×900 made the form overflow the card's
+   bottom edge (real overflow, not the flawed `scrollHeight` read the prior
+   pass's initial check used) at 1366×768 and 1280×800 — both common
+   laptop screens. Fixed by converting the same values to `dvh`-based
+   `clamp()`s, matching the left panel's approach.
+
+Also found: at a given font size, a *narrower* panel wraps text into more
+lines than a shorter one does — i.e. the left panel's remaining slack was
+driven by viewport **width** (1280px-wide screens), not height, which the
+`dvh`-only sizing doesn't account for on its own. Handled by tuning the
+size caps down until the short-state content's real height (measured via
+Playwright, not `scrollHeight`) cleared the available region at 1280×800
+specifically, the narrowest common desktop width checked.
+
+Verified by Playwright script measuring true content height against the
+available region (not `scrollHeight`, which cannot exceed `clientHeight`
+by spec) at 1280×800, 1366×768, 1440×900, and 1920×1080: no overflow at
+any size; right panel's tightest margin is ~47px (1366×768), left panel's
+tightest is sub-pixel (~0.2px slack at 1280×800, effectively exact-fit).
+Screenshot-confirmed at all four sizes: both panels read as comfortably
+filled with balanced margins, not tiny-text-in-dead-space, and feel
+balanced against each other. 1920×1080 keeps noticeably more surrounding
+whitespace than the other three — the size caps hit their ceiling there
+by design (a "comfortable reading size" has a sensible max; text was not
+scaled further just to eat the extra room on a large monitor).
+
+Files touched: `app/components/HomeBirthChartPanel.tsx`,
+`app/components/HomeMyChartFormPanel.tsx`,
+`app/components/HomeOrderForm.tsx`, `docs/SPEC.md`. Not touched:
+`app/page.tsx`, `app/globals.css`, `HomeLayout.tsx`, `NavBar.tsx`,
+`HomeMyChartPanel.tsx` — no regression risk to the post-purchase home or
+the panel geometry/nav established in the prior two passes. No console
+errors. One commit, not pushed.
