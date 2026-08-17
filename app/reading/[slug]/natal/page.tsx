@@ -9,6 +9,7 @@ import BirthDataSection from '@/app/components/BirthDataSection';
 import ChartSection from '@/app/components/ChartSection';
 import NatalChartPane from '@/app/components/NatalChartPane';
 import NavBar from '@/app/components/NavBar';
+import MobileNavShell from '@/app/components/MobileNavShell';
 import Rail, { type RailRow } from '@/app/components/Rail';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -751,6 +752,7 @@ export default function ReadingPage({
 
   return (
     <div className="reading-container" ref={containerRef}>
+      <MobileNavShell slug={slug} active="natal" />
 
       {/* ── 0. COVER ── */}
       <div className="reading-section" ref={el => { sectionRefs.current[0] = el; }}>

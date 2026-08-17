@@ -4899,3 +4899,101 @@ sees a change "not showing up" despite the source file being correct.
 Files touched: `app/globals.css`, `docs/SPEC.md`. No `.tsx` file changed
 — no `clamp()` value, spacing, color, or font size touched. No console
 errors. One commit, not pushed.
+
+**August 17, 2026 (mobile nav shell — first of the mobile multi-page
+tasks):** Mobile is moving from one long scrolling page to four real pages
+(Home, My Chart, Today's Sky, Reference), matching the existing route map
+(§5.1). This task builds only the shared shell those four pages sit
+inside on mobile — a persistent top bar plus a slide-in drawer — not the
+pages themselves; the four pages' own mobile content (home, natal cleanup,
+today's sky, reference relocation) are separate, later briefs.
+
+New component: `app/components/MobileNavShell.tsx` — a fixed top bar
+("Menu" trigger top-left, "TEXTURE" wordmark top-right, linking to
+`/reading/[slug]`) and a drawer (Home, My Chart, Today's Sky, Reference —
+no planets, no sub-items) that opens on tapping "Menu," closes on a nav
+tap, a tap outside the drawer, or Escape. Route paths mirror `NavBar.tsx`'s
+existing `ALL_NAV_ITEMS` so the desktop and mobile navs can't drift apart.
+The active page is shown bold/full-opacity, others dimmed — the same
+active/inactive convention already used elsewhere in the app
+(`.nav-link.active`, `.rail-control.active`), since neither mock showed an
+active-state treatment to copy directly.
+
+Two mocks were shared for this task, `docs/mocks/mobile-nav.png` (drawer
+open) and `docs/mocks/mobile-home.png` (drawer closed) — both disagreed
+with the written brief in ways checked with the founder directly before
+building: (1) the brief's stated default was wordmark top-left/hamburger
+top-right; both mocks show the reverse (Menu top-left, TEXTURE top-right)
+— **built to match the mocks.** (2) the mock's third drawer item reads
+"Transits"; the brief's wording is "Today's Sky" — **built to match the
+brief's wording**, since it also matches the existing Home page's own
+"Today's Sky" panel label. Also per the mocks (not a glyph icon): "Menu"
+is rendered as literal text, styled in the same Anton/red-strong treatment
+as the "TEXTURE" wordmark, not a hamburger glyph.
+
+**Design choice, flagged for founder review — overlay, not reserved
+space:** the mobile home mock shows the bar reserving real vertical space
+(content sits below it). But `.reading-container`/`.reading-section`
+(the natal/transits mobile-only scroll-snap mechanic) are hardcoded to
+`height: 100dvh` per section — recalculating that to make room for a bar
+would mean reaching into those pages' own mobile layout, which is
+explicitly out of scope for this task (separate follow-up briefs). Built
+instead as a `position: fixed` overlay pinned to the top of the viewport,
+the same pattern the existing per-section `.wordmark`/`.next-arrow`
+already use — it sits on top of whatever's currently at the top of each
+page rather than pushing content down. Making room for it precisely is
+left to each page's own follow-up brief.
+
+**Also found and fixed along the way:** Home (`/reading/[slug]`, via
+`HomeLayout`) and Reference (`/reading/[slug]/reference`, via
+`ReadingLayout`) render the desktop `NavBar` unconditionally — unlike
+`/natal` and `/transits`, they have no `matchMedia` gate, so the desktop
+top nav was already rendering (squeezed, unstyled) on mobile at those two
+URLs before this task. Not introduced by this task, but it now visibly
+conflicts with the new mobile bar (two bars), so fixing it was necessary
+to wire the shell in: `app/globals.css` now hides `.nav-bar` below
+1024px. Presentational only — no page logic or content touched, zero
+effect at `>=1024px` (screenshot-confirmed, see below).
+
+This is also the **first `@media` query added to `app/globals.css`** —
+every other desktop/mobile split in the codebase so far is done via JS
+`matchMedia` branching in each page. `.mobile-nav-shell` and its
+descendants are `display: none` by default and only shown inside
+`@media (max-width: 1023px)`, so the component is inert at desktop widths
+regardless of where it's mounted.
+
+Mounted on all four routes: `app/components/HomeLayout.tsx` and
+`app/components/ReadingLayout.tsx` (covers Home and Reference, the two
+routes that already always render those shared layout components), and
+directly in the mobile-branch return of `app/reading/[slug]/natal/page.tsx`
+and `app/reading/[slug]/transits/page.tsx` (the two routes with no shared
+layout component on mobile today). `ReadingLayout` guards against
+`active="settings"` (a value its existing `NavKey` prop type allows but
+that has no mobile route in the 4-page site); in practice it's only ever
+called with `active="reference"`.
+
+Verified with a Playwright-driven headless Chromium (no `chromium-cli` in
+this environment) against the dev server, dogfood slug
+(`DOGFOOD_READING_SLUG`): at 390×844 (matching the mocks' iPhone frame),
+screenshotted the closed bar and the open drawer on all four routes,
+confirmed the correct item is bold/active on each, tapped "My Chart" from
+Home and confirmed it navigated to `/natal` and the drawer closed. At
+1440×900, screenshotted all four routes and confirmed `.nav-bar`/the rail
+render exactly as before with the new mobile bar computed as not visible.
+Zero console errors on any page at either width.
+
+**Flagging a dev-environment gotcha hit again:** the already-running local
+dev server (started earlier, separate from this session) served stale CSS
+after the edits here, for the same reason logged in the entry immediately
+above (stale `.next/dev/cache/turbopack`) — confirmed via computed styles
+in the browser (`.mobile-nav-bar` still showed `display: block`/
+`position: static`, its pre-edit defaults) before restarting the server
+with that cache cleared fixed it. Worth remembering as a recurring trap,
+not a one-off.
+
+Files touched: `app/components/MobileNavShell.tsx` (new),
+`app/globals.css`, `app/components/HomeLayout.tsx`,
+`app/components/ReadingLayout.tsx`, `app/reading/[slug]/natal/page.tsx`,
+`app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. Not touched: any
+page's content, desktop branches, or the settings placeholder page. One
+commit, not pushed.

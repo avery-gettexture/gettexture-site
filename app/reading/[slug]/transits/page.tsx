@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DOGFOOD_READING_SLUG } from '@/lib/config';
 import NavBar from '@/app/components/NavBar';
+import MobileNavShell from '@/app/components/MobileNavShell';
 import Rail, { type RailRow } from '@/app/components/Rail';
 import TransitChartPane, { type ChartMode } from '@/app/components/TransitChartPane';
 import TransitCalendarPane, { type CalendarEntryType } from '@/app/components/TransitCalendarPane';
@@ -597,6 +598,7 @@ export default function TransitsPage() {
 
   return (
     <div className="reading-container" ref={containerRef}>
+      <MobileNavShell slug={slug} active="transits" />
       {TRANSIT_BODIES.map((body, index) => (
         <div
           key={body.id}

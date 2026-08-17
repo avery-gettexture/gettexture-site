@@ -1,4 +1,5 @@
 import NavBar, { NavKey } from './NavBar';
+import MobileNavShell from './MobileNavShell';
 
 interface ReadingLayoutProps {
   slug: string;
@@ -41,6 +42,11 @@ export default function ReadingLayout({
   return (
     <div className="app-shell">
       <NavBar slug={slug} active={active} />
+      {/* Settings has no mobile route in the 4-page mobile site (SPEC §16,
+          mobile nav shell task) — ReadingLayout is only ever called with
+          active="reference" today, but this guard keeps the mobile shell
+          correct if that changes. */}
+      {active !== 'settings' && <MobileNavShell slug={slug} active={active} />}
       <div className="app-stage">
         {background && (
           <div

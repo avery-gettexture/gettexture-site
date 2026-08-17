@@ -436,6 +436,105 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* ── Mobile nav shell (mobile nav shell task, SPEC §16) — hamburger top bar
+   + drawer for the 4-page mobile site. This is the codebase's first
+   `@media` rule: every other desktop/mobile split so far is done via JS
+   matchMedia branching. `.mobile-nav-shell` is display:none by default so
+   the component is inert at desktop widths regardless of where it's
+   mounted; the query below is the only place it becomes visible.
+   Overlay, not reserved space (see docs/SPEC.md §16 for why): the bar is
+   `position: fixed`, sitting on top of page content the same way the
+   existing per-section `.wordmark`/`.next-arrow` already do, rather than
+   pushing content down. ── */
+.mobile-nav-shell {
+  display: none;
+}
+
+/* Hides the pre-existing desktop `.nav-bar` on mobile widths — Home and
+   Reference render it unconditionally today (no matchMedia gate), a
+   pre-existing gap this shell's arrival makes visible (two bars would
+   otherwise stack). Purely presentational; no effect at >=1024px. */
+@media (max-width: 1023px) {
+  .nav-bar {
+    display: none;
+  }
+
+  .mobile-nav-shell {
+    display: block;
+  }
+
+  .mobile-nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 56px;
+    padding-top: env(safe-area-inset-top);
+    padding-left: 20px;
+    padding-right: 20px;
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mobile-menu-trigger {
+    font-family: var(--font-anton), sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--red-strong);
+    background: none;
+    border: none;
+    padding: 8px 0;
+    cursor: pointer;
+  }
+
+  .mobile-nav-wordmark {
+    font-family: var(--font-anton), sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--red-strong);
+    text-decoration: none;
+  }
+
+  .mobile-drawer-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 101;
+    background: rgba(22, 22, 18, 0.35);
+  }
+
+  .mobile-drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 72%;
+    max-width: 320px;
+    z-index: 102;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: calc(56px + env(safe-area-inset-top) + 24px) 28px 24px;
+    overflow-y: auto;
+  }
+
+  .mobile-drawer-item {
+    font-family: var(--font-questrial), sans-serif;
+    font-size: 22px;
+    color: rgba(22, 22, 18, 0.45);
+    text-decoration: none;
+  }
+
+  .mobile-drawer-item.active {
+    font-family: var(--font-anton), sans-serif;
+    color: var(--dark);
+    letter-spacing: 0.5px;
+  }
+}
+
 /* ── PrePurchaseNavBar (pre-purchase-only header, home-two-panel-rebuild
    task, SPEC §16) — three-zone row inside the shared .nav-bar frame: small
    wordmark+email (left), big active-style TEXTURE mark (center, true grid

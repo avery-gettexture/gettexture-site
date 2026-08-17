@@ -1,4 +1,5 @@
 import NavBar from './NavBar';
+import MobileNavShell from './MobileNavShell';
 import MorphBackgroundPlaceholder from './MorphBackgroundPlaceholder';
 
 interface HomeLayoutProps {
@@ -15,6 +16,7 @@ export default function HomeLayout({ slug, leftPanel, rightPanel }: HomeLayoutPr
   return (
     <div className="app-shell">
       <NavBar slug={slug} active="home" />
+      <MobileNavShell slug={slug} active="home" />
       <div className="app-stage">
         <MorphBackgroundPlaceholder />
         <div className="home-panels">
