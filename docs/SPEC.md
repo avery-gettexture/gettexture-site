@@ -5070,3 +5070,95 @@ the page now, unchanged and still linking home. No other part of the task
 changed. Files touched: `app/reading/[slug]/reference/page.tsx`,
 `docs/SPEC.md`. Screenshot-reverified at 390×844: single wordmark,
 card unobstructed. One commit, not pushed.
+
+**August 17, 2026 (natal mobile cleanup — closes the "pending its own
+later cleanup brief" note above):** mobile `/natal` was still the entire
+old single-scroll site (Cover → Birth Data → "Your Texture" intro → Chart
+→ 13 placement cards → Reference). Trimmed to start directly on the chart
+and end on the last placement card — Cover, Birth Data, the intro screen,
+and the trailing Reference screen (superseded by its own route,
+`/reading/[slug]/reference`, per the Aug 17 entries above) are all
+removed from the mobile scroll document. `CoverSection.tsx` and
+`BirthDataSection.tsx` are not deleted — `BirthDataSection.tsx` still
+exports the shared `formatDate()` helper `NatalChartPane.tsx` (desktop)
+depends on; this task only stopped importing/rendering both components
+from natal's mobile branch. `CHART_INDEX`/`PLANET_START` (and the
+`PLANET_TO_INDEX` map) shifted from `3`/`4` to `0`/`1` accordingly. The
+last placement card (Nodes) no longer renders a "↓" arrow, since there's
+nothing after it to scroll to.
+
+Removing the standalone Birth Data screen left birth data with nowhere to
+view it on mobile — Avery flagged this gap, and separately flagged that
+it wasn't viewable from the chart/placement list either. Fixed by adding
+a name→birth-data collapse/expand control directly on the chart page
+(`app/components/ChartSection.tsx`, new `BirthDataToggle` sub-component),
+ported from the native app's proven version of this exact control
+(`docs/mocks/app-chart-screen.tsx`, confirmed against
+`docs/mocks/mobile-chart.png`): collapsed shows just the name, centered,
+below the wheel; tapping it expands to name (left) + a date/time +
+location line; tapping again collapses. Visual styling (cream text on the
+dark sky background, sizes/positions) targets the mock screenshot
+directly, per founder confirmation. The app file's graceful degradation
+for long dates/locations on narrow screens was also ported: spelled date
+first, falling back to a numeric date (`M/D/YYYY` — a new small local
+formatter, `formatDateNumeric`, no numeric formatter existed in this repo
+before), falling back further to stacking location onto its own line if
+still too wide. The app measured this with a hardcoded character-width
+constant (no easy text measurement in React Native); the web version
+measures its actual container via `ResizeObserver` instead — the same
+pattern `NatalChartPane.tsx` (desktop's own prior-art version of this same
+control) already uses to size its wheel. The same `BirthDataToggle` is
+also rendered at the bottom of the List view, so birth data is reachable
+from either tab, not just Chart.
+
+`ChartView`'s layout inside `ChartSection.tsx` changed from one
+absolutely-centered block (wheel filling 100% of the available height) to
+a flex column — wheel wrapper `flex:1`, birth-data band `flex-shrink:0` —
+so the new band has guaranteed, non-overlapping space below the wheel.
+Same wheel component, same sizing approach (still a `min(...)` across
+width/height/dvh, per the existing convention), just reserved less total
+height for it than before. This is a spacing change only, not a rebuild
+of the wheel itself.
+
+**Nav-bar overlap, addressed for this page (closes the natal half of the
+"still open" note from the mobile-nav-shell task, Aug 15 2026):** the
+page's own internal "TEXTURE" wordmark (duplicating `MobileNavShell`'s
+own top-right one — the same duplicate-mark issue already fixed on the
+standalone mobile Reference screen, commit `3c9da12`) was removed, and
+the Chart | List toggle nav + content area were both pushed down below
+the fixed 56px + `env(safe-area-inset-top)` bar (`NAV_ROW_TOP`/
+`CONTENT_TOP` constants in `ChartSection.tsx`), mirroring the `max(6.5%,
+calc(56px + env(safe-area-inset-top) + 12px))` pattern already shipped
+for `MobileReference`'s card. Transits' own nav-bar overlap (flagged in
+the same original note) is untouched — out of scope for this task.
+
+No "Focus" view was added — Chart/List remain the only two tabs, per
+explicit scope (the native app also has a Focus view; backlogged
+separately, not part of this task).
+
+Verified with a Playwright-driven headless Chromium against the running
+dev server (restarted with a cleared Turbopack cache first, per the
+recurring stale-cache gotcha logged in the mobile-nav-shell entry above),
+dogfood slug (`DOGFOOD_READING_SLUG` = `hejkhjq1zns5`): at 390×844,
+confirmed the scroll opens directly on the chart wheel (no splash/intro/
+birth-data screens before it) with the nav bar clear of both the toggle
+nav and the wheel; tapped the name below the wheel and confirmed it
+expands to date/time + location, then collapses back on a second tap;
+switched to List and confirmed the same control works there; clicked a
+planet row from List and confirmed it still scrolls to that placement
+card (Venus, screenshot-confirmed); scrolled to the bottom and confirmed
+it ends cleanly on the last placement card (Nodes) with no trailing
+Reference screen. At 320×568 (iPhone SE width), confirmed the
+degradation logic actually engages: the spelled date ("October 18, 1997")
+switched to numeric ("10/18/1997") once the line no longer fit. At
+1440×900, confirmed desktop `/natal` renders pixel-identical to before
+(separate code path, untouched). Zero console errors at any width.
+`tsc --noEmit` clean (pre-existing unrelated errors in
+`docs/mocks/*.tsx` — untyped native-app reference files, not part of the
+Next.js build — are unaffected and unchanged by this task).
+
+Files touched: `app/reading/[slug]/natal/page.tsx`,
+`app/components/ChartSection.tsx`, `docs/SPEC.md`. Not touched:
+`app/components/CoverSection.tsx`, `app/components/BirthDataSection.tsx`,
+`app/components/NatalChartPane.tsx`, any desktop code path, or
+`/reading/[slug]/transits`. One commit, not pushed.

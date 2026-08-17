@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState, useCallback, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchAllPlanetReferences, type PlacementReferenceResult } from '@/lib/reference-utils';
-import ReferencePage from '@/app/components/ReferencePage';
-import CoverSection from '@/app/components/CoverSection';
-import BirthDataSection from '@/app/components/BirthDataSection';
 import ChartSection from '@/app/components/ChartSection';
 import NatalChartPane from '@/app/components/NatalChartPane';
 import NavBar from '@/app/components/NavBar';
@@ -81,20 +78,21 @@ export const PLACEMENTS: PlacementConfig[] = [
 const PLACEHOLDER_SYNTHESIS = 'This interpretation is being prepared. Check back shortly.';
 
 // ── Section indices (mobile scroll document) ───────────────────────────────
-// 0: Cover
-// 1: Birth Data
-// 2: Intro
-// 3: Chart
-// 4-16: Placements (13 total)
-// 17: Reference
+// Natal mobile cleanup (SPEC §16): the scroll used to open on a Cover /
+// Birth Data / "Your Texture" intro sequence before the chart, and ended
+// on a Reference screen (Reference now has its own route,
+// /reading/[slug]/reference). Both are gone — the mobile scroll now starts
+// directly on the chart and ends on the last placement card.
+// 0: Chart
+// 1-13: Placements (13 total)
 
-const CHART_INDEX = 3;
-const PLANET_START = 4;
+const CHART_INDEX = 0;
+const PLANET_START = 1;
 
 const PLANET_TO_INDEX: Record<string, number> = {
-  sun: 4, moon: 5, mercury: 6, venus: 7, mars: 8,
-  jupiter: 9, saturn: 10, uranus: 11, neptune: 12, pluto: 13,
-  ascendant: 14, medium_coeli: 15, mean_north_lunar_node: 16,
+  sun: 1, moon: 2, mercury: 3, venus: 4, mars: 5,
+  jupiter: 6, saturn: 7, uranus: 8, neptune: 9, pluto: 10,
+  ascendant: 11, medium_coeli: 12, mean_north_lunar_node: 13,
 };
 
 // ── Helper: get placement meta from chart_data ─────────────────────────────
@@ -754,67 +752,7 @@ export default function ReadingPage({
     <div className="reading-container" ref={containerRef}>
       <MobileNavShell slug={slug} active="natal" />
 
-      {/* ── 0. COVER ── */}
-      <div className="reading-section" ref={el => { sectionRefs.current[0] = el; }}>
-        <CoverSection customerName={customerName} onScrollNext={() => scrollToNext(0)} />
-      </div>
-
-      {/* ── 1. BIRTH DATA ── */}
-      <div className="reading-section" ref={el => { sectionRefs.current[1] = el; }}>
-        <BirthDataSection
-          name={customerName}
-          birthDate={birthDate}
-          birthTime={birthTime}
-          birthLocation={birthLocation}
-          birthLat={reading?.birth_lat}
-          birthLng={reading?.birth_lng}
-          onScrollNext={() => scrollToNext(1)}
-        />
-      </div>
-
-      {/* ── 2. INTRO ── */}
-      <div
-        className="reading-section"
-        style={{ background: 'var(--cream)' }}
-        ref={el => { sectionRefs.current[2] = el; }}
-      >
-        <div className="wordmark" style={{ color: 'var(--red-strong)' }}>TEXTURE</div>
-        <div className="intro-card">
-          <div className="card-header">
-            <h2 className="planet-name" style={{ fontSize: 'clamp(24px, 6vw, 36px)' }}>Your Texture</h2>
-            <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '4px' }} />
-          </div>
-          <div className="intro-content">
-            <p className="body-text">
-              A chart is a woven system. Your placements are the threads, but how they interact creates the texture. This reading reflects that nuance — sign, house, degree, aspects, and motion are all considered, so your placements are read in context, not isolation.
-            </p>
-            <p className="body-text">
-              Astrology describes patterns. It does not dictate them. Nothing here is a verdict about who you are or what will happen — it&apos;s a description of tendencies, qualities, and the ways energy characteristically moves in your chart. What you recognize, what you set aside, and what you do with any of it is entirely yours. The most useful way to read this is as a mirror, not a map of a fixed destination.
-            </p>
-            <p className="body-text">
-              What follows is your whole chart. First the wheel and a list of your placements — tap any one to go straight to it. Tap TEXTURE in the top left corner at any point to jump back to the planet list. Then a section for each of your thirteen placements, where the full detail of that part of your chart is interpreted in context. At the end, a reference section defines every term used along the way, so nothing here requires prior knowledge to follow.
-            </p>
-            <div style={{
-              marginTop: '8px',
-              paddingTop: '16px',
-              borderTop: '0.5px solid rgba(22,22,18,0.10)',
-            }}>
-              <p style={{
-                fontFamily: 'var(--font-geist-mono), monospace',
-                fontSize: 'clamp(10px, 2.6vw, 12px)',
-                color: 'rgba(22,22,18,0.35)',
-                lineHeight: '1.7',
-                letterSpacing: '0.2px',
-              }}>
-                A note on method: astrology is a tradition thousands of years in the making. The interpretations here were generated by a language model trained on that body of knowledge and directed at the specific configuration of your chart, calculated using the Whole Sign house system.
-              </p>
-            </div>
-          </div>
-        </div>
-        <button className="next-arrow" style={{ color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToNext(2)}>↓</button>
-      </div>
-
-      {/* ── 3. CHART ── */}
+      {/* ── 0. CHART ── */}
       <div
         className="reading-section"
         style={{ background: '#0e0c1a' }}
@@ -823,6 +761,9 @@ export default function ReadingPage({
         <ChartSection
           chartData={reading?.chart_data}
           customerName={customerName}
+          birthDate={birthDate}
+          birthTime={birthTime}
+          birthLocation={birthLocation}
           activeViewOverride={jumpToList ? 'list' : undefined}
           onScrollToPlanet={(planetId) => {
             const index = PLANET_TO_INDEX[planetId];
@@ -832,7 +773,7 @@ export default function ReadingPage({
         />
       </div>
 
-      {/* ── 4–16. PLACEMENT SECTIONS ── */}
+      {/* ── 1–13. PLACEMENT SECTIONS ── */}
       {PLACEMENTS.map((planet, index) => {
         const refProps = getReferenceProps(planet, referenceData);
         return (
@@ -867,23 +808,15 @@ export default function ReadingPage({
               referenceData={refProps.referenceData}
               referenceDataSecondary={refProps.referenceDataSecondary}
             />
-            <button className="next-arrow" style={{ color: planet.id === 'mc' ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
+            {/* No down-arrow on the last placement (Nodes) — the scroll
+                document now ends here (Reference moved to its own route,
+                SPEC §16), so there's nothing below to scroll to. */}
+            {index < PLACEMENTS.length - 1 && (
+              <button className="next-arrow" style={{ color: planet.id === 'mc' ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)' }} onClick={() => scrollToNext(PLANET_START + index)}>↓</button>
+            )}
           </div>
         );
       })}
-
-      {/* ── 17. REFERENCE ── */}
-      <div
-        className="reading-section"
-        style={{ background: 'var(--cream)' }}
-        ref={el => { sectionRefs.current[PLANET_START + PLACEMENTS.length] = el; }}
-      >
-        <div className="wordmark" style={{ color: 'var(--red-strong)', cursor: 'pointer' }} onClick={() => { setJumpToList(true); scrollToSection(CHART_INDEX); setTimeout(() => setJumpToList(false), 500); }}>TEXTURE</div>
-        <button className="next-arrow" style={{ bottom: 'auto', top: '0.25%', color: 'rgba(22,22,18,0.35)' }} onClick={() => scrollToSection(PLANET_START + PLACEMENTS.length - 1)}>↑</button>
-        <div className="card-inner" style={{ borderBottom: '1.5px solid rgba(185,18,18,0.50)' }}>
-          <ReferencePage />
-        </div>
-      </div>
 
     </div>
   );

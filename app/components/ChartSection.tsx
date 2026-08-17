@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
+import { formatDate } from './BirthDataSection';
 
 type ChartView = 'chart' | 'list';
 
 interface ChartSectionProps {
   chartData: any;
   customerName: string;
+  birthDate: string;
+  birthTime: string;
+  birthLocation: string;
   onScrollToPlanet?: (planetId: string) => void;
   activeViewOverride?: ChartView;
   onScrollNext?: () => void;
@@ -21,9 +25,9 @@ const PLANET_GLYPHS: Record<string, string> = {
 };
 
 const SIGN_GLYPHS: Record<string, string> = {
-  Aries: '♈\uFE0E', Taurus: '♉\uFE0E', Gemini: '♊\uFE0E', Cancer: '♋\uFE0E',
-  Leo: '♌\uFE0E', Virgo: '♍\uFE0E', Libra: '♎\uFE0E', Scorpio: '♏\uFE0E',
-  Sagittarius: '♐\uFE0E', Capricorn: '♑\uFE0E', Aquarius: '♒\uFE0E', Pisces: '♓\uFE0E',
+  Aries: '♈︎', Taurus: '♉︎', Gemini: '♊︎', Cancer: '♋︎',
+  Leo: '♌︎', Virgo: '♍︎', Libra: '♎︎', Scorpio: '♏︎',
+  Sagittarius: '♐︎', Capricorn: '♑︎', Aquarius: '♒︎', Pisces: '♓︎',
 };
 
 const SIGN_ABBR_MAP: Record<string, string> = {
@@ -64,9 +68,152 @@ const HOUSE_ORDINALS: Record<string, string> = {
 const SKY_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png';
 const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png';
 
+// Mobile nav shell (MobileNavShell.tsx) is a fixed 56px + safe-area-inset-top
+// overlay bar. This page's own Chart|List toggle and content need to sit
+// below it — same "overlay, not reserved space, each page pushes its own
+// content down" fix already shipped for the standalone mobile Reference
+// screen (SPEC §16, Aug 17 2026).
+const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 14px)';
+const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 50px)';
+
+// Converts a stored "YYYY-MM-DD" birth date into a compact numeric form
+// (e.g. "10/18/1997") — the narrower fallback used when the spelled date
+// (formatDate, from BirthDataSection.tsx) doesn't fit the measured width.
+// Mirrors docs/mocks/app-chart-screen.tsx's spelled/numeric degradation.
+function formatDateNumeric(dateStr: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
+// ── Birth data collapse/expand ───────────────────────────────────────────
+// Ports the exact mechanic from docs/mocks/app-chart-screen.tsx (the proven
+// native-app chart screen): collapsed shows just the name, centered; tap
+// expands to name (left) + a date/time + location line below; tap again
+// collapses. Also ports that file's three-tier graceful degradation —
+// spelled date, falling back to numeric, falling back to a stacked
+// location line — so long dates/locations don't overflow on narrow phones.
+// The app measured this with a hardcoded character-width constant (no easy
+// text measurement in React Native); the web version measures its actual
+// container via ResizeObserver instead, the same pattern already used to
+// size the wheel in NatalChartPane.tsx (desktop's own version of this same
+// control). Shared by both ChartView and ListView below so birth data is
+// reachable from either tab, themed dark (on the sky background) or light
+// (on the cream list).
+function BirthDataToggle({
+  name,
+  birthDate,
+  birthTime,
+  birthLocation,
+  theme,
+}: {
+  name: string;
+  birthDate: string;
+  birthTime: string;
+  birthLocation: string;
+  theme: 'dark' | 'light';
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(entries => setWidth(entries[0].contentRect.width));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const dateSpelled = birthDate ? formatDate(birthDate) : '';
+  const dateNumeric = birthDate ? formatDateNumeric(birthDate) : '';
+  const timePart = birthTime ? `  ${birthTime}` : '';
+
+  const CHAR_W = 7.4; // approx px/char for the 12px Geist Mono birth-data line
+  const maxChars = width > 0 ? Math.floor(width / CHAR_W) : Infinity;
+  const singleLineSpelled = `${dateSpelled}${timePart}    ${birthLocation}`;
+  const singleLineNumeric = `${dateNumeric}${timePart}    ${birthLocation}`;
+  const useNumericDate = singleLineSpelled.length > maxChars;
+  const stackLocation = useNumericDate && singleLineNumeric.length > maxChars;
+  const birthDateStr = useNumericDate ? dateNumeric : dateSpelled;
+
+  const nameColor = theme === 'dark' ? 'rgba(253,245,237,0.85)' : '#161612';
+  const dataColor = theme === 'dark' ? 'rgba(253,245,237,0.45)' : 'rgba(22,22,18,0.45)';
+
+  return (
+    <div
+      ref={containerRef}
+      onClick={() => setExpanded(e => !e)}
+      style={{
+        width: '100%',
+        minHeight: '52px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: expanded ? 'stretch' : 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        padding: expanded ? '10px 24px' : '10px 24px',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
+    >
+      <div style={{
+        fontFamily: 'var(--font-geist-mono), monospace',
+        fontSize: 'clamp(14px, 3.8vw, 16px)',
+        color: nameColor,
+        letterSpacing: '1px',
+        textAlign: expanded ? 'left' : 'center',
+      }}>
+        {name}
+      </div>
+
+      {expanded && (stackLocation ? (
+        <>
+          <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
+            {birthDateStr}{timePart}
+          </div>
+          {!!birthLocation && (
+            <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
+              {birthLocation}
+            </div>
+          )}
+        </>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+          <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
+            {birthDateStr}{timePart}
+          </span>
+          {!!birthLocation && (
+            <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
+              {birthLocation}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── List View ─────────────────────────────────────────────────────────────
 
-function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToPlanet?: (planetId: string) => void }) {
+function ListView({
+  chartData,
+  onScrollToPlanet,
+  customerName,
+  birthDate,
+  birthTime,
+  birthLocation,
+}: {
+  chartData: any;
+  onScrollToPlanet?: (planetId: string) => void;
+  customerName: string;
+  birthDate: string;
+  birthTime: string;
+  birthLocation: string;
+}) {
   const subject = chartData?.subject;
   if (!subject) return null;
 
@@ -115,6 +262,7 @@ function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToP
       {/* Planet rows — no scroll, use space-evenly to fill */}
       <div style={{
         flex: 1,
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-evenly',
@@ -143,32 +291,64 @@ function ListView({ chartData, onScrollToPlanet }: { chartData: any; onScrollToP
           </div>
         ))}
       </div>
+
+      {/* Birth data — same collapse/expand control as Chart view, so birth
+          data is reachable from List too (previously only viewable on the
+          removed standalone Birth Data screen). */}
+      <div style={{ flexShrink: 0, borderTop: '0.5px solid rgba(22,22,18,0.10)' }}>
+        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="light" />
+      </div>
     </div>
   );
 }
 
 // ── Chart View ────────────────────────────────────────────────────────────
 
-function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKnown: boolean }) {
+function ChartView({
+  chartData,
+  birthTimeKnown,
+  customerName,
+  birthDate,
+  birthTime,
+  birthLocation,
+}: {
+  chartData: any;
+  birthTimeKnown: boolean;
+  customerName: string;
+  birthDate: string;
+  birthTime: string;
+  birthLocation: string;
+}) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{
-        position: 'absolute',
-        width: 'min(130vw, 85dvh)',
-        aspectRatio: '1',
-        borderRadius: '50%',
-        backgroundImage: `url(${RADIAL_BG})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }} />
-      <div style={{
-        width: 'min(calc(100dvh - 120px), calc(100vw - 24px), 70dvh)',
-        aspectRatio: '1',
-        borderRadius: '50%',
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
-        <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Wheel — takes the remaining space above the birth-data band below,
+          same wheel sizing/component as before, just no longer filling
+          100% of the view's height (a dedicated band is reserved below it
+          instead of the wheel centering across the whole area). */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          position: 'absolute',
+          width: 'min(130vw, 85dvh)',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          backgroundImage: `url(${RADIAL_BG})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+        <div style={{
+          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          overflow: 'hidden',
+          position: 'relative',
+        }}>
+          <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
+        </div>
+      </div>
+
+      {/* Birth data — collapsed default (name only), tap to expand. */}
+      <div style={{ flexShrink: 0 }}>
+        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" />
       </div>
     </div>
   );
@@ -176,7 +356,16 @@ function ChartView({ chartData, birthTimeKnown }: { chartData: any; birthTimeKno
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-export default function ChartSection({ chartData, customerName, onScrollToPlanet, activeViewOverride, onScrollNext }: ChartSectionProps) {
+export default function ChartSection({
+  chartData,
+  customerName,
+  birthDate,
+  birthTime,
+  birthLocation,
+  onScrollToPlanet,
+  activeViewOverride,
+  onScrollNext,
+}: ChartSectionProps) {
   const [activeView, setActiveView] = useState<ChartView>('chart');
   const currentView = activeViewOverride ?? activeView;
   const isLight = currentView === 'list';
@@ -191,19 +380,12 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
       backgroundPosition: 'center',
     }}>
 
-      {/* TEXTURE wordmark */}
+      {/* Nav — Chart | List only. Pushed below the fixed mobile nav bar
+          (MobileNavShell, 56px + safe-area-inset-top) — that bar already
+          renders this page's one TEXTURE wordmark (top-right), so no
+          second one is rendered here. */}
       <div style={{
-        position: 'absolute', top: '16px', left: '20px',
-        fontFamily: 'var(--font-anton), sans-serif',
-        fontSize: '14px', color: 'rgba(185,18,18,0.75)',
-        letterSpacing: '2px', zIndex: 20,
-      }}>
-        TEXTURE
-      </div>
-
-      {/* Nav — Chart | List only */}
-      <div style={{
-        position: 'absolute', top: '16px', left: 0, right: 0,
+        position: 'absolute', top: NAV_ROW_TOP, left: 0, right: 0,
         display: 'flex', justifyContent: 'center', gap: '32px', zIndex: 20,
       }}>
         {(['chart', 'list'] as ChartView[]).map(view => (
@@ -227,9 +409,27 @@ export default function ChartSection({ chartData, customerName, onScrollToPlanet
         ))}
       </div>
 
-      <div style={{ position: 'absolute', top: '44px', bottom: '36px', left: 0, right: 0 }}>
-        {currentView === 'chart' && <ChartView chartData={chartData} birthTimeKnown={!!chartData} />}
-        {currentView === 'list' && <ListView chartData={chartData} onScrollToPlanet={onScrollToPlanet} />}
+      <div style={{ position: 'absolute', top: CONTENT_TOP, bottom: '36px', left: 0, right: 0 }}>
+        {currentView === 'chart' && (
+          <ChartView
+            chartData={chartData}
+            birthTimeKnown={!!chartData}
+            customerName={customerName}
+            birthDate={birthDate}
+            birthTime={birthTime}
+            birthLocation={birthLocation}
+          />
+        )}
+        {currentView === 'list' && (
+          <ListView
+            chartData={chartData}
+            onScrollToPlanet={onScrollToPlanet}
+            customerName={customerName}
+            birthDate={birthDate}
+            birthTime={birthTime}
+            birthLocation={birthLocation}
+          />
+        )}
       </div>
 
       {/* Arrow */}
