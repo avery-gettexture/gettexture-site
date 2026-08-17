@@ -15,20 +15,11 @@ const ZODIAC_GLYPHS: Record<string, string> = {
   Sagittarius: '♐\uFE0E', Capricorn: '♑\uFE0E', Aquarius: '♒\uFE0E', Pisces: '♓\uFE0E',
 };
 
-const ELEMENT_COLORS: Record<string, string> = {
-  Aries:       'rgba(196,122,90,0.18)',
-  Taurus:      'rgba(120,160,110,0.18)',
-  Gemini:      'rgba(195,185,100,0.18)',
-  Cancer:      'rgba(100,160,170,0.18)',
-  Leo:         'rgba(195,145,40,0.22)',
-  Virgo:       'rgba(140,170,130,0.18)',
-  Libra:       'rgba(200,140,160,0.20)',
-  Scorpio:     'rgba(110,70,90,0.18)',
-  Sagittarius: 'rgba(110,130,185,0.18)',
-  Capricorn:   'rgba(100,120,120,0.18)',
-  Aquarius:    'rgba(100,140,180,0.18)',
-  Pisces:      'rgba(100,110,170,0.18)',
-};
+// Flat, uniform sign-ring fill — no per-sign color, no transparency
+// (replaces the old ELEMENT_COLORS per-sign palette). Same brand cream as
+// --cream (app/globals.css), at full opacity since this ring sits behind
+// planet ticks/labels and needs to read as solid, not tinted-by-sign.
+const ZODIAC_RING_FILL = '#FDF5ED';
 
 const ASPECT_COLORS: Record<string, string> = {
   conjunction: 'rgba(26,42,58,0.28)',
@@ -416,7 +407,7 @@ export default function NatalChartWheelWeb({ chartData, birthTimeKnown = true, s
           const gp = pointOnCircle(CX, CY, (R_ZODIAC_OUTER + R_ZODIAC_INNER) / 2, glyphAngle);
           return (
             <g key={sign}>
-              <path d={path} fill={ELEMENT_COLORS[sign]} stroke="rgba(26,42,58,0.12)" strokeWidth={0.5} />
+              <path d={path} fill={ZODIAC_RING_FILL} stroke="rgba(26,42,58,0.12)" strokeWidth={0.5} />
               <text x={gp.x} y={gp.y} fontSize={W * 0.030} textAnchor="middle" dominantBaseline="central" fill="rgba(26,42,58,0.90)" fontFamily="Questrial, sans-serif">{ZODIAC_GLYPHS[sign]}</text>
             </g>
           );

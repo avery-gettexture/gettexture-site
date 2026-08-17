@@ -1,10 +1,12 @@
 'use client';
 
 // The real "Today's Sky" wheel (SPEC §16, August 15, 2026 — replaces the
-// natal-chart-data placeholder that stood in until this was built). Reuses
+// natal-chart-data placeholder that stood in until this was built; aspect
+// lines wired in as a follow-up, see the wheel-fixes entry). Reuses
 // NatalChartWheelWeb's drawing engine rather than duplicating it: this file
 // only shapes get_current_sky_positions() rows into the "subject" format
-// that engine expects, then renders it in no-birth-time mode.
+// that engine expects, and get_current_sky_aspects() rows into the
+// "aspects" format it expects, then renders it in no-birth-time mode.
 //
 // No Ascendant/Midheaven/houses exist for "the sky today" — there's no
 // birth data involved at all. Each planet is still assigned a 30°-wide
@@ -20,6 +22,12 @@ interface SkyPosition {
   sign: string;
   sign_degree: number;
   retrograde: boolean;
+}
+
+interface SkyAspect {
+  body_1: string;
+  body_2: string;
+  event: string;
 }
 
 const ZODIAC_SIGNS = [
@@ -41,13 +49,14 @@ const BODY_TO_SUBJECT_KEY: Record<string, string> = {
   'North Node': 'mean_north_lunar_node', 'South Node': 'mean_south_lunar_node',
 };
 
-export default function TodaySkyWheel({ positions, size }: { positions: SkyPosition[]; size?: number }) {
+export default function TodaySkyWheel({ positions, aspects, size }: { positions: SkyPosition[]; aspects?: SkyAspect[]; size?: number }) {
   const subject: Record<string, any> = {};
   for (const pos of positions) {
     const key = BODY_TO_SUBJECT_KEY[pos.body];
     const signIndex = ZODIAC_SIGNS.indexOf(pos.sign);
     if (!key || signIndex === -1) continue;
     subject[key] = {
+      name: pos.body,
       sign: pos.sign,
       house: HOUSE_NAMES[signIndex],
       abs_pos: signIndex * 30 + pos.sign_degree,
@@ -56,5 +65,12 @@ export default function TodaySkyWheel({ positions, size }: { positions: SkyPosit
     };
   }
 
-  return <NatalChartWheelWeb chartData={{ subject }} birthTimeKnown={false} size={size} />;
+  // get_current_sky_aspects() rows -> the {p1_name, p2_name, aspect} shape
+  // NatalChartWheelWeb's mapChartData() already expects and matches against
+  // each subject entry's `name` (set above), same as natal chart_data.
+  const chartAspects = (aspects ?? []).map(a => ({
+    p1_name: a.body_1, p2_name: a.body_2, aspect: a.event,
+  }));
+
+  return <NatalChartWheelWeb chartData={{ subject, aspects: chartAspects }} birthTimeKnown={false} size={size} />;
 }

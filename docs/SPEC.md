@@ -4042,3 +4042,72 @@ read the same `positions` state. `tsc --noEmit` clean.
 
 Files touched: `app/components/TodaySkyWheel.tsx` (new), `app/components/
 HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One commit, not pushed.
+
+**August 16, 2026 (wheel fixes — aspect lines, size match, flat cream sign
+ring):** three fixes to the two home-page wheels, investigated and applied
+in one pass.
+
+**1. Today's Sky wheel now draws aspect lines.** Diagnosed cause: DATA, not
+rendering, and not "never computed." `HomeTodaySkyPanel.tsx` already calls
+`get_current_sky_aspects()` (real RPC over `aspect_calendar`, returning
+`body_1`/`body_2`/`event` for every sky-to-sky aspect active today) to
+drive the "Aspects and Events" list — but `TodaySkyWheel.tsx` never
+forwarded that data to the wheel; it built only a `subject` object and
+passed `{ subject }` as `chartData`, so `NatalChartWheelWeb`'s
+`mapChartData()` always saw `chartData.aspects` as empty. The aspect-line
+drawing code itself is shared and unchanged — it simply had nothing to
+draw for Today's Sky. This matches the prior entry's own note ("No aspect
+data is passed to the wheel"), which was a deliberate scope cut at the
+time, not a bug — this entry closes that gap. Fix: `HomeTodaySkyPanel.tsx`
+passes its already-fetched `aspects` state to `TodaySkyWheel` as a new
+prop; `TodaySkyWheel.tsx` reshapes each `SkyAspect` row into
+`{p1_name: body_1, p2_name: body_2, aspect: event}` (matching the shape
+`mapChartData()` already expects from natal `chart_data`) and adds a
+`name` field to each subject entry so the p1_name/p2_name lookup can match
+it — no changes needed to `NatalChartWheelWeb.tsx` for this part.
+
+**2. Today's Sky wheel now matches the My Chart wheel's diameter exactly.**
+Diagnosed cause: the two wheels' containers were built with different
+padding upstream, so an unmatched "85%" vs "75%" produced visibly
+different sizes even though both home panels are equal-width halves of
+the page. `HomeMyChartPanel.tsx` has no horizontal padding anywhere above
+its wheel container (`width: '85%'`) — wheel diameter = 85% of the panel.
+`HomeTodaySkyPanel.tsx`'s outer wrapper carries `padding: '0 3%'`
+(needed for the List-mode cream card's text, applied regardless of pane
+mode), shrinking the Body to 94% of the panel width before the old
+`width: '75%'` Chart-mode container was even applied — net ~70.5% of the
+panel, not 85%. Fix: changed that container's width to
+`calc(85% / 0.94)` (~90.43%), which cancels the 3%-each-side padding and
+nets out to the same 85%-of-panel diameter as the natal wheel. Verified
+by measuring both rendered `<svg>` elements directly (not just the
+arithmetic): both are exactly 490.2px wide at a 1440×900 viewport.
+
+**3. Flat, uniform cream sign ring — both wheels, and every other wheel in
+the app.** This lives in the shared drawing engine,
+`NatalChartWheelWeb.tsx`: the zodiac wedge ring's fill was
+`ELEMENT_COLORS`, a 12-entry semi-transparent per-sign color map. Replaced
+with a single flat, fully-opaque fill, `ZODIAC_RING_FILL = '#FDF5ED'`
+(the site's brand `--cream`, `app/globals.css`), and deleted the now-unused
+`ELEMENT_COLORS` map. Per founder confirmation, this is intended to be
+global, not scoped to the two home panels: since `NatalChartWheelWeb` is
+the one shared wheel-drawing engine, this change reaches every page that
+renders a chart wheel — confirmed by screenshot on all four:
+- Home page, My Chart panel, Chart view
+- Home page, Today's Sky panel, Chart view
+- `/reading/[slug]/natal`, Chart pane
+- `/reading/[slug]/transits`, Chart pane
+
+The old per-sign transparent colors no longer appear anywhere in the app.
+
+**Verified** with a throwaway Playwright script (not committed) against
+the dogfood reading (`hejkhjq1zns5`) at 1440×900: screenshotted all four
+wheel instances above; confirmed by direct SVG inspection that both home
+wheels are pixel-identical in diameter (490.2px) and that the Today's Sky
+wheel's `<line>` count rose from a fixed 24 (12 house spokes + 12 planet
+ticks, unavoidable even with zero aspects) to 35 — the 11 added lines
+match the aspect rows visible in that day's "Aspects and Events" list.
+`tsc --noEmit` clean.
+
+Files touched: `app/components/NatalChartWheelWeb.tsx`,
+`app/components/TodaySkyWheel.tsx`, `app/components/HomeTodaySkyPanel.tsx`,
+`docs/SPEC.md`. One commit, not pushed.

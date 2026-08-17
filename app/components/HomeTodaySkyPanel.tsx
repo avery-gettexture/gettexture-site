@@ -289,16 +289,29 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
           </div>
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            {/* Real Today's Sky wheel (SPEC §16, Aug 15 2026) — same
+            {/* Real Today's Sky wheel (SPEC §16, Aug 15 2026; aspect lines
+                and size-match added in the wheel-fixes follow-up) — same
                 positions driving the Planets list above, reshaped for the
-                shared wheel-drawing engine by TodaySkyWheel. No cream card
-                behind it: Chart mode's wrapper background is transparent
-                (see the wrapper comment above), so this sits directly on
-                the panel's teal image, matching the left panel's Chart
-                state. */}
+                shared wheel-drawing engine by TodaySkyWheel, plus the same
+                aspects state driving the Aspects & Events list below. No
+                cream card behind it: Chart mode's wrapper background is
+                transparent (see the wrapper comment above), so this sits
+                directly on the panel's teal image, matching the left
+                panel's Chart state.
+
+                WIDTH: `calc(85% / 0.94)` (~90.43%), not a plain 85% —
+                this container sits inside the wrapper above, which has
+                `padding: '0 3%'` (needed for the List-mode card's text),
+                shrinking its content box to 94% of the panel's true width
+                even in Chart mode. The My Chart panel's wheel (left,
+                HomeMyChartPanel.tsx) has no such padding above it and is a
+                plain 85%. Dividing by 0.94 here cancels that padding out
+                so both wheels land on the same 85%-of-panel diameter —
+                confirmed by measuring both rendered wheels, not just the
+                arithmetic. */}
             {positions && (
-              <div style={{ width: '75%', aspectRatio: '1' }}>
-                <TodaySkyWheel positions={positions} />
+              <div style={{ width: 'calc(85% / 0.94)', aspectRatio: '1' }}>
+                <TodaySkyWheel positions={positions} aspects={aspects ?? []} />
               </div>
             )}
           </div>
