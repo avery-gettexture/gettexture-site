@@ -1,23 +1,45 @@
 'use client';
 
-// Placeholder — Reference is a shell in this phase. Renders the Phase 2
-// <ReadingLayout> + <Rail> skeleton to prove the template works; the rows
-// below are dummy data in Rail's generic flat 2-line shape, not real
-// Reference content (Reference's real shape is a nested outline — a
-// Phase 3 concern). Real content is built in Phase 3.
+// Desktop Reference page (SPEC §16, Part 2 of the reference-dictionary
+// rewrite) — replaces the Phase 2 placeholder shell. Follows the natal
+// page's ("My Chart") reading-pane pattern: rail on the left, a cream
+// reading-pane card on the right bounded top and bottom by the two red
+// bars (.card-header's border-bottom, .card-footer's border-top), with an
+// accordion inside. Unlike the natal page, there's no scroll-snap between
+// sections — the rail just selects which category's content the one
+// reading pane shows, so none of DesktopNatal's IntersectionObserver /
+// wheel-forwarding machinery is needed here.
 
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { REFERENCE_TAXONOMY, splitParagraphs } from '@/lib/reference-taxonomy';
+import type { ReferenceEntry } from '@/lib/reference-utils';
 import ReadingLayout from '@/app/components/ReadingLayout';
-import Rail, { type RailRow } from '@/app/components/Rail';
-
-const DEMO_ROWS: RailRow[] = [
-  { id: 'sun', glyph: '☉', name: 'Sun', degree: '14°', signGlyph: '♌', sign: 'Leo', house: '5th', active: true },
-  { id: 'moon', glyph: '☽', name: 'Moon', degree: '2°', signGlyph: '♋', sign: 'Cancer', house: '4th' },
-  { id: 'mercury', glyph: '☿', name: 'Mercury', degree: '29°', retrograde: true, signGlyph: '♍', sign: 'Virgo', house: '6th' },
-];
+import CategoryRail from '@/app/components/CategoryRail';
 
 export default function ReferenceHomePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const [allEntries, setAllEntries] = useState<ReferenceEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeSlug, setActiveSlug] = useState(REFERENCE_TAXONOMY[0].slug);
+  const [openEntryName, setOpenEntryName] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchAll() {
+      const { data, error } = await supabase
+        .from('reference_content')
+        .select('category, name, description')
+        .eq('version', 1);
+      if (!error && data) setAllEntries(data);
+      setLoading(false);
+    }
+    fetchAll();
+  }, []);
+
+  const activeCategory = REFERENCE_TAXONOMY.find(c => c.slug === activeSlug)!;
+  const entries = activeCategory.entryNames
+    .map(name => allEntries.find(e => e.category === activeCategory.slug && e.name === name))
+    .filter(Boolean) as ReferenceEntry[];
 
   return (
     <ReadingLayout
@@ -26,14 +48,46 @@ export default function ReferenceHomePage({ params }: { params: Promise<{ slug: 
       background="/sky-background.png"
       zoneBackground="/transits-background.png"
       rail={
-        <Rail
-          title="Reference"
-          controls={[]}
-          rows={DEMO_ROWS}
+        <CategoryRail
+          activeSlug={activeSlug}
+          onSelect={(next) => { setActiveSlug(next); setOpenEntryName(null); }}
         />
       }
     >
-      <p className="placeholder-text">Reference content — built in Phase 3.</p>
+      <div className="card-header">
+        <h1 className="planet-name">{activeCategory.label}</h1>
+        <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
+      </div>
+
+      <div className="reference-card-content">
+        {loading ? (
+          <p className="placeholder-text">Loading...</p>
+        ) : (
+          entries.map(entry => {
+            const isOpen = openEntryName === entry.name;
+            return (
+              <div key={entry.name}>
+                <div
+                  className="section-row"
+                  onClick={() => setOpenEntryName(isOpen ? null : entry.name)}
+                >
+                  <span className="section-row-label">{entry.name}</span>
+                  <span className="section-row-chevron">{isOpen ? '−' : '+'}</span>
+                </div>
+                {isOpen && (
+                  <div style={{ padding: '4px 4px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {splitParagraphs(entry.description).map((para, i) => (
+                      <p key={i} className="body-text">{para}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="card-footer" />
     </ReadingLayout>
   );
 }

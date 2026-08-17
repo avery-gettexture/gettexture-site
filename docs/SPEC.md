@@ -4257,3 +4257,86 @@ Reference pages) is a separate commit.
 
 Files touched: `scripts/update_reference_content.sql`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 16, 2026 (reference dictionary rewrite, Part 2 — site port):**
+both Reference surfaces now render the 9-category structure from the
+entry above.
+
+**New shared taxonomy, `lib/reference-taxonomy.ts`:** one ordered list of
+`{ slug, label, entryNames[] }` for all 9 categories — display labels
+(e.g. `planet` → "Planets and Points") live here, separate from the
+`category` column values for the reasons in the entry above. Both
+mobile and desktop build their sections from this instead of each
+keeping its own hardcoded order list. Also exports `splitParagraphs()`
+(splits on a blank line) so the new multi-paragraph entries (How to Read
+a Chart, Sect, Nodes, Orb, Eclipses) render as separate `<p>` tags
+instead of one run-on block.
+
+**Mobile (`app/components/ReferencePage.tsx`), rebuilt:** loops over the
+shared taxonomy instead of its old hardcoded Signs/Houses/Planets/
+Motion/Degree/Aspects sections. Drops Degree (the category is gone);
+adds the 4 new categories and the 2 appended entries (Orb, Station);
+fixes a pre-existing bug where "Empty House" never rendered (it was
+filtered against `category = 'occupied'`, which never matches — the row
+is actually in `house`). Collapsing is now two-level: a category header
+opens/closes the section (unchanged), and each entry inside it is its
+own collapsible row — previously the whole category's entries all
+showed at once whenever the section was open.
+
+**Desktop (`app/reading/[slug]/reference/page.tsx`), built for real:**
+replaces the Phase 2 placeholder ("built in Phase 3", dummy rows) with
+the natal page's ("My Chart") rail + reading-pane pattern. New
+`app/components/CategoryRail.tsx` is the left rail — not a reuse of
+`Rail.tsx` (its row shape is placement-specific: glyph/degree/sign/
+house, fields a category doesn't have, and it's shared live by the
+natal and transits pages) — it reuses the same CSS classes (`.rail`,
+`.rail-header`, `.rail-rect`/`.rail-list`/`.rail-row` plus the `--fill`
+variants, so all 9 categories show with no rail scroll, matching
+natal's 13-row rail) with a single-line row instead of Rail's two-line
+layout. The reading pane reuses `.card-header`/`.section-row`/
+`.section-body`/`.card-footer` from the natal page: header shows the
+active category's label where My Chart shows the planet name, no
+subtitle; body is one collapsible row per entry name, each toggling
+independently. One new CSS class, `.reference-card-content`
+(`app/globals.css`) — natal/transits' `.card-content` is deliberately
+`overflow: hidden` (their fixed 2-row Overview/Reference toggle always
+fits; only the open row's own `.section-body` should scroll), but
+Reference can stack up to 14 rows in one category, so its own content
+wrapper needs to scroll as a whole between the header's and footer's
+red bars — that's the new class, `.card-content` itself is untouched.
+Clicking a rail row swaps which category's entries the one reading pane
+shows; there's no scroll-snap between categories (unlike the natal
+page), so none of `DesktopNatal`'s `IntersectionObserver`/wheel-
+forwarding machinery was needed.
+
+**Verified** with a throwaway Playwright script (not committed) against
+the dogfood reading (`hejkhjq1zns5`): screenshotted the desktop
+Reference page at 1440×900 (rail shows all 9 categories including "How
+to Read a Chart" with no "Degree"; Signs category opens with Aries/
+Taurus collapsible, Taurus expanded shows its paragraph, content
+scrolls between the two red bars past Scorpio) and mobile's Reference
+section at 390×844 (all 9 categories, Signs → Aries expands correctly,
+Degree gone). Also confirmed the live per-placement natal "Reference"
+accordion (screenshotted Ascendant) still resolves ASCENDANT/CAPRICORN/
+DIRECT MOTION/EARLY DEGREE correctly — the naming-preservation rule from
+Part 1 didn't break it. `tsc --noEmit` clean; browser console had no
+errors on any of the three pages. The four brand-new categories
+(How to Read a Chart, System, Points and Calculations, Configurations
+and Events) and the two appended entries (Orb, Station) currently render
+empty on both pages — expected, since the founder hasn't run
+`scripts/update_reference_content.sql` against the live database yet;
+confirmed by querying the live table directly (still the original 6
+categories, 49 rows).
+
+Note: verifying this required restarting the local dev server (a
+pre-existing `next dev -p 3001` process, up ~55 minutes) — its Turbopack
+build was serving stale CSS that didn't include a newly-added class
+despite the file being saved and the server logging a recompile. A
+plain restart picked up the current files correctly; flagging in case
+this recurs.
+
+Files touched: `lib/reference-taxonomy.ts` (new),
+`app/components/CategoryRail.tsx` (new),
+`app/components/ReferencePage.tsx`,
+`app/reading/[slug]/reference/page.tsx`, `app/globals.css`,
+`docs/SPEC.md`. One commit, not pushed.

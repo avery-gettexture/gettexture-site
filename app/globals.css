@@ -917,3 +917,20 @@ body {
 .rail-row-retro {
   color: var(--red-strong);
 }
+
+/* ── Desktop Reference page ──────────────────────────────────────────────
+   The reading-pane body between the two red bars (.card-header's own
+   border-bottom above, .card-footer's border-top below) — unlike
+   .card-content (natal/transits, deliberately overflow:hidden since their
+   2-row Overview/Reference toggle always fits and only the OPEN row's own
+   .section-body should scroll), Reference can have up to 14 entry rows
+   stacked in one category, so the row list itself needs to scroll, not
+   just whichever row is expanded. */
+.reference-card-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 4px;
+}
