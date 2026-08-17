@@ -5500,3 +5500,22 @@ Files touched: `app/page.tsx`, `app/components/HomeBirthChartPanel.tsx`,
 `app/components/MobileHomePage.tsx` (new), `app/components/
 homeContent.ts` (new), `docs/SPEC.md`. Not touched: any desktop visual or
 behavior. One commit, not pushed.
+
+**August 17, 2026 (mobile pre-purchase home follow-up — restore the
+Approach section):** Founder request: the old layout's closing "Texture's
+Approach" section (dropped in the rebuild above as "not in the specified
+4-section order") should be restored on mobile after all, placed at the
+bottom of the page — after the About section (§4), before the footer,
+rather than after the form the way the old layout had it (the form moved
+earlier in the section order during the rebuild, so "after the form" and
+"at the bottom" are no longer the same position). `APPROACH_PARAGRAPHS`/
+`APPROACH_METHOD_NOTE` moved from `HomeBirthChartPanel.tsx` into the
+shared `homeContent.ts` (same treatment as the other four content blocks)
+so desktop and mobile read the same copy. Verified by screenshot at
+390×844: the section renders between About and the footer with the same
+copy the desktop panel's "approach" state already shows. `tsc --noEmit`
+clean.
+
+Files touched: `app/components/homeContent.ts`, `app/components/
+HomeBirthChartPanel.tsx`, `app/components/MobileHomePage.tsx`,
+`docs/SPEC.md`. One commit, not pushed.

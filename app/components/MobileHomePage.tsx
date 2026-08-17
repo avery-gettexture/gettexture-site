@@ -7,12 +7,16 @@
 // app, which doesn't work as a scrolling mobile page. This component is
 // the recovered OLD single-column layout (git history, pre-Aug-16-2026
 // two-panel rebuild) rebuilt with CURRENT copy: plain document flow (no
-// app-shell), 4 sections in the order Avery specified, reusing the same
-// HomeOrderForm the desktop panel uses so purchase behavior is identical,
-// and the old page's sticky-bottom-CTA scroll-listener pattern (here
-// simplified to the one condition Avery specified: hidden while the form
-// section is in view, sticky otherwise — the old file tracked 5 refs,
-// this only needs the form section's own ref).
+// app-shell), 4 sections in the order Avery specified plus the old
+// layout's closing Approach section (restored per Avery's follow-up
+// request, placed after the About section rather than after the form —
+// the form was section 2 in this rebuild, not the last section it was in
+// the old layout), reusing the same HomeOrderForm the desktop panel uses
+// so purchase behavior is identical, and the old page's sticky-bottom-CTA
+// scroll-listener pattern (here simplified to the one condition Avery
+// specified: hidden while the form section is in view, sticky otherwise
+// — the old file tracked 5 refs, this only needs the form section's own
+// ref).
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -24,6 +28,8 @@ import {
   DESCRIPTION_PARAGRAPHS,
   WHATS_INCLUDED,
   PLACEMENTS_INTERPRETED,
+  APPROACH_PARAGRAPHS,
+  APPROACH_METHOD_NOTE,
 } from './homeContent';
 
 const DARK = 'var(--dark)';
@@ -133,7 +139,7 @@ export default function MobileHomePage() {
       </section>
 
       {/* Section 4 — About (What's Included / Placements Interpreted) */}
-      <section style={{ borderTop: '1px solid rgba(22,22,18,0.08)', padding: '40px 24px 64px' }}>
+      <section style={{ borderTop: '1px solid rgba(22,22,18,0.08)', padding: '40px 24px' }}>
         <div style={sectionLabelStyle}>About</div>
         <div style={{ marginBottom: '28px' }}>
           <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px' }}>What's included</p>
@@ -152,6 +158,21 @@ export default function MobileHomePage() {
               <li key={p} style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '13px', color: 'rgba(22,22,18,0.55)', lineHeight: 1.6 }}>{p}</li>
             ))}
           </ul>
+        </div>
+      </section>
+
+      {/* Section 5 — Texture's Approach (restored per Avery's follow-up
+          request, placed after the About section / at the bottom of the
+          content, before the footer) */}
+      <section style={{ borderTop: '1px solid rgba(22,22,18,0.08)', padding: '40px 24px 64px' }}>
+        <div style={sectionLabelStyle}>Texture's approach</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {APPROACH_PARAGRAPHS.map((text, i) => (
+            <p key={i} style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: 'rgba(22,22,18,0.80)', lineHeight: 1.7 }}>{text}</p>
+          ))}
+          <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px', color: 'rgba(22,22,18,0.35)', lineHeight: 1.7, paddingTop: '16px', borderTop: '0.5px solid rgba(22,22,18,0.10)' }}>
+            {APPROACH_METHOD_NOTE}
+          </p>
         </div>
       </section>
 
