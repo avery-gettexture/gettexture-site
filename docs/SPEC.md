@@ -5362,3 +5362,45 @@ Files touched: `app/reading/[slug]/page.tsx`,
 `app/components/HomeLayout.tsx`, `HomeMyChartPanel.tsx`,
 `HomeTodaySkyPanel.tsx`, `NavBar.tsx`, or any other desktop code path. One
 commit, not pushed.
+
+**August 17, 2026 (mobile Today's Sky follow-up — Nodes both ends, date under
+the wheel; founder corrections from a screenshot):**
+
+1. **Nodes row corrected to show both ends of the axis.** The List view's
+   Nodes row (added in the rebuild above) had collapsed to the North Node's
+   own sign/degree only, following mobile My Chart List's own
+   single-end-row convention. Founder correction: this page should instead
+   follow the desktop rail's Nodes row pattern (`Rail.tsx`'s `secondary`
+   branch) — both ends shown together. `TodaySkySection.tsx`'s `SkyListView`
+   now looks up 'South Node' alongside 'North Node' and renders one
+   two-line row: line 1 is north glyph - south glyph, "Nodes," and the
+   shared degree (axis math guarantees the same degree-within-sign on both
+   ends, so only one degree is shown, same as the desktop rail); line 2 is
+   north sign (+ sign glyph) - south sign (+ sign glyph). Still no
+   retrograde badge (unaffected, unchanged rule). Checked the row's actual
+   rendered position against the 390×844 viewport directly (not just the
+   screenshot) — both lines sit fully inside the viewport with no clipping;
+   what looked like a cut-off row in an earlier screenshot was Next.js's
+   own dev-mode indicator button overlapping the corner, not a real layout
+   bug — confirmed by removing that dev-only element and re-screenshotting.
+2. **Today's date added below the sky wheel in Chart view.** Founder
+   correction: Chart view had no date, unlike mobile My Chart's own Chart
+   view, which shows the person's name in the same band below the wheel.
+   `SkyChartView` now reserves the same fixed band `ChartSection.tsx`'s
+   `ChartView` uses for its (tappable) name, showing `formatToday()`
+   (`lib/date-utils.ts`, already used by `TransitChartPane.tsx`'s desktop
+   CHART pane) in the same position/font — centered, geist mono, not
+   tappable/expandable (there is no birth data underneath it to reveal, so
+   no expand behavior was added).
+
+Verified with a Playwright script against a running dev server, dogfood
+slug (`hejkhjq1zns5`), at 390×844: Chart view screenshot shows "August 17,
+2026" centered below the wheel; List view screenshot (dev indicator removed
+for a clean check) shows the Nodes row reading "☊-☋ Nodes 0°" / "Pisces ♓ -
+Virgo ♍," both lines confirmed inside the viewport via direct
+`getBoundingClientRect()` checks, not just visual inspection. Zero console
+errors. `tsc --noEmit` clean.
+
+Files touched: `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. Not
+touched: any other file from the rebuild above, any desktop code path. One
+commit, not pushed.
