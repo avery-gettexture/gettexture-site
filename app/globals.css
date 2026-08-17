@@ -483,6 +483,43 @@ body {
   white-space: nowrap;
 }
 
+/* ── Nav refinement (pre-purchase-home-refinements task, SPEC §16): TEXTURE
+   is the only centered item now; Privacy/Terms/Support (formerly the page
+   footer) moves into this nav's right corner, small like the old footer
+   links. Copyright moves OUT of the nav entirely — see
+   .prepurchase-bg-copyright below, painted on the page background instead. ── */
+.prepurchase-nav-legal {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: rgba(22, 22, 18, 0.30);
+  white-space: nowrap;
+}
+
+.prepurchase-nav-legal a {
+  color: rgba(22, 22, 18, 0.30);
+  text-decoration: none;
+}
+
+/* Copyright line, relocated off the nav and onto the full-bleed background
+   itself (founder's call) — bottom-left corner of .app-stage, light-on-dark
+   like the post-purchase home's on-photo text (e.g. HomeMyChartPanel's
+   LIGHT_FAINT token), since it sits over the Saturn backdrop image. */
+.prepurchase-bg-copyright {
+  position: absolute;
+  bottom: 2dvh;
+  left: 4%;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(253, 245, 237, 0.45);
+  z-index: 1;
+}
+
 /* ── HomeLayout (doc: DESKTOP — HOME) ── */
 .home-panels {
   position: absolute;
@@ -560,6 +597,23 @@ body {
   left: 5%;   /* content inset */
   right: 5%;
   bottom: 0;
+  overflow: hidden;
+}
+
+/* ── PrePurchaseNavBar's panels only (pre-purchase-home-refinements task,
+   SPEC §16) — the cream rectangle fully contained/inset within the panel's
+   own background image, using the SAME 6.5% (top/bottom) / 8% (left/right)
+   buffer docs/TEXTURE_LAYOUT_PROPORTIONS.md specifies for the reading-page
+   cream card (.reading-zone-card's doc-original numbers). Deliberately a
+   separate class from .home-panel-slot above (2%/5%) rather than changing
+   that shared class — .home-panel-slot is also used by the POST-purchase
+   home (HomeLayout.tsx), which is out of scope here. */
+.prepurchase-panel-slot {
+  position: absolute;
+  top: 6.5%;
+  bottom: 6.5%;
+  left: 8%;
+  right: 8%;
   overflow: hidden;
 }
 

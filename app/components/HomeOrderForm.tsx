@@ -4,12 +4,13 @@
 // `/` page (home-two-panel-rebuild task, SPEC §16) so it can be re-housed
 // inside the new right-panel cream rectangle. State, validation, the Google
 // Places autocomplete wiring, and the submit → review → /api/checkout →
-// Stripe redirect flow are UNCHANGED from the prior page — only the visual
-// container around the form moved. The only styling change is the input
-// background (white instead of cream): the form previously sat on a page
-// whose background was cream, so cream inputs stood out; now it sits ON a
-// cream panel, so inputs are white instead so they're still visible as
-// distinct fields.
+// Stripe redirect flow are UNCHANGED — only the visual field markup/styling
+// has ever changed. Restyled again in the pre-purchase-home-refinements
+// follow-up (SPEC §16): each field is now an inline `label: input` row with
+// an underline instead of a boxed input, and text/spacing shrunk, so the
+// whole form fits the right panel with ZERO scroll (Avery's non-negotiable
+// constraint) — plain white input boxes no longer needed once the field
+// itself is just an underline over the cream panel.
 
 import { useState, useRef, useEffect } from 'react';
 
@@ -99,66 +100,83 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
     setLoading(false);
   }
 
-  const inputStyle = (field: string) => ({
-    width: '100%', padding: '12px 14px',
-    fontFamily: 'var(--font-questrial), sans-serif', fontSize: '15px', color: '#161612',
-    backgroundColor: '#FFFFFF',
-    border: `1px solid ${errors[field] ? 'rgba(185,18,18,0.75)' : 'rgba(22,22,18,0.20)'}`,
-    borderRadius: '2px', outline: 'none', boxSizing: 'border-box' as const,
-  });
-
-  const labelStyle = {
-    fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px',
-    color: 'rgba(22,22,18,0.45)', letterSpacing: '1px',
-    textTransform: 'uppercase' as const, marginBottom: '6px', display: 'block',
+  // Inline label + underline styling (pre-purchase-home-refinements task,
+  // SPEC §16) — replaces the old label-above/white-box fields so the whole
+  // form fits the right panel with zero scroll. Sizes shrunk specifically
+  // for that fit, not a general style change.
+  const rowStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px',
   };
 
-  const errorStyle = {
-    fontFamily: 'var(--font-geist-mono), monospace', fontSize: '10px',
-    color: 'rgba(185,18,18,0.75)', letterSpacing: '0.5px', marginTop: '4px',
+  const inlineLabelStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px',
+    color: 'rgba(22,22,18,0.45)', letterSpacing: '0.5px',
+    flex: '0 0 auto', minWidth: '100px',
+  };
+
+  const underlineInputStyle = (field: string): React.CSSProperties => ({
+    width: '100%', padding: '3px 2px 6px',
+    fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: '#161612',
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderBottom: `1px solid ${errors[field] ? 'rgba(185,18,18,0.75)' : 'rgba(22,22,18,0.30)'}`,
+    borderRadius: 0, outline: 'none', boxSizing: 'border-box' as const,
+  });
+
+  const errorStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-geist-mono), monospace', fontSize: '9px',
+    color: 'rgba(185,18,18,0.75)', letterSpacing: '0.5px', marginTop: '2px',
   };
 
   return (
     <>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div>
-          <label style={labelStyle}>Name</label>
-          <input type="text" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setErrors(er => ({ ...er, name: '' })); }} placeholder="As you'd like it to appear in your reading" style={inputStyle('name')} />
-          {errors.name && <div style={errorStyle}>{errors.name}</div>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={rowStyle}>
+          <label style={inlineLabelStyle}>name:</label>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <input type="text" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setErrors(er => ({ ...er, name: '' })); }} placeholder="as you'd like it to appear in your reading" style={underlineInputStyle('name')} />
+            {errors.name && <div style={errorStyle}>{errors.name}</div>}
+          </div>
         </div>
-        <div>
-          <label style={labelStyle}>Date of Birth</label>
-          <input type="date" value={form.birthDate} onChange={e => { setForm(f => ({ ...f, birthDate: e.target.value })); setErrors(er => ({ ...er, birthDate: '' })); }} style={inputStyle('birthDate')} />
-          {errors.birthDate && <div style={errorStyle}>{errors.birthDate}</div>}
+        <div style={rowStyle}>
+          <label style={inlineLabelStyle}>date of birth:</label>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <input type="date" value={form.birthDate} onChange={e => { setForm(f => ({ ...f, birthDate: e.target.value })); setErrors(er => ({ ...er, birthDate: '' })); }} style={underlineInputStyle('birthDate')} />
+            {errors.birthDate && <div style={errorStyle}>{errors.birthDate}</div>}
+          </div>
         </div>
-        <div>
-          <label style={labelStyle}>Time of Birth</label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <select value={form.birthHour} onChange={e => setForm(f => ({ ...f, birthHour: e.target.value }))} style={{ ...inputStyle('birthTime'), flex: 1 }}>
+        <div style={rowStyle}>
+          <label style={inlineLabelStyle}>time of birth:</label>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: '8px' }}>
+            <select value={form.birthHour} onChange={e => setForm(f => ({ ...f, birthHour: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 40px' }}>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
-            <select value={form.birthMinute} onChange={e => setForm(f => ({ ...f, birthMinute: e.target.value }))} style={{ ...inputStyle('birthTime'), flex: 1 }}>
+            <select value={form.birthMinute} onChange={e => setForm(f => ({ ...f, birthMinute: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 40px' }}>
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-            <select value={form.birthAmPm} onChange={e => setForm(f => ({ ...f, birthAmPm: e.target.value }))} style={{ ...inputStyle('birthTime'), flex: '0 0 80px' }}>
+            <select value={form.birthAmPm} onChange={e => setForm(f => ({ ...f, birthAmPm: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 50px' }}>
               <option value="AM">AM</option>
               <option value="PM">PM</option>
             </select>
           </div>
         </div>
-        <div>
-          <label style={labelStyle}>Place of Birth</label>
-          <input ref={locationRef} type="text" placeholder="City, Country" onChange={e => { setForm(f => ({ ...f, birthLocation: e.target.value, birthLat: null, birthLng: null })); setErrors(er => ({ ...er, birthLocation: '' })); }} style={inputStyle('birthLocation')} />
-          {errors.birthLocation && <div style={errorStyle}>{errors.birthLocation}</div>}
+        <div style={rowStyle}>
+          <label style={inlineLabelStyle}>place of birth:</label>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <input ref={locationRef} type="text" placeholder="city, country" onChange={e => { setForm(f => ({ ...f, birthLocation: e.target.value, birthLat: null, birthLng: null })); setErrors(er => ({ ...er, birthLocation: '' })); }} style={underlineInputStyle('birthLocation')} />
+            {errors.birthLocation && <div style={errorStyle}>{errors.birthLocation}</div>}
+          </div>
         </div>
-        <div>
-          <label style={labelStyle}>Email Address</label>
-          <input type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: '' })); }} placeholder="Your reading link will be sent here" style={inputStyle('email')} />
-          {errors.email && <div style={errorStyle}>{errors.email}</div>}
+        <div style={rowStyle}>
+          <label style={inlineLabelStyle}>email:</label>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <input type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: '' })); }} placeholder="your reading link will be sent here" style={underlineInputStyle('email')} />
+            {errors.email && <div style={errorStyle}>{errors.email}</div>}
+          </div>
         </div>
         <button
           type="submit"
-          style={{ marginTop: '8px', padding: '16px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer', width: '100%' }}>
+          style={{ marginTop: '8px', padding: '13px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: 'rgba(185,18,18,0.75)', border: 'none', cursor: 'pointer', width: '100%' }}>
           REVIEW ORDER →
         </button>
       </form>

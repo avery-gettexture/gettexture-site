@@ -76,9 +76,15 @@ export default function HomeBirthChartPanel() {
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', padding: '0 6%' }}>
 
-      {/* Title — fixed across all states */}
-      <div style={{ flex: '0 0 auto', paddingTop: '6%' }}>
-        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(24px, 2.6vw, 34px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: '4%' }}>
+      {/* Title — fixed across all states. Sized/spaced off viewport HEIGHT
+          (dvh), not width, so it — and the short-state content below —
+          actually shrinks on a shorter desktop window instead of staying a
+          fixed size while the panel itself shrinks with it (the cause of a
+          real overflow found on a 1366×768 screen, pre-purchase-home-
+          refinements task, SPEC §16: the "no scroll" rule applies to this
+          panel's default view too, not just the right panel's form). */}
+      <div style={{ flex: '0 0 auto', paddingTop: 'clamp(6px, 2dvh, 24px)' }}>
+        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(20px, 3dvh, 34px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(6px, 1.2dvh, 14px)' }}>
           Take a closer look at your chart.
         </div>
       </div>
@@ -86,15 +92,15 @@ export default function HomeBirthChartPanel() {
       {/* Content region — the only part that swaps */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {state === 'short' && (
-          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column' }}>
-            <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 1.1vw, 15px)', color: DARK_MUTED, lineHeight: 1.65, marginBottom: '6%' }}>
-              Your chart is a woven system of planets, signs, houses, and aspects pushing and pulling on each other in ways unique to you.
+          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1.55dvh, 15px)', color: DARK_MUTED, lineHeight: 1.55, marginBottom: 'clamp(8px, 1.1dvh, 15px)' }}>
+              Your chart is a woven system of planets, signs, houses, and aspects pushing and pulling on each other in ways unique to you. The more of it you explore, and the more context you hold, the more you&apos;ll start to recognize. This reading walks you through the nuance of your chart, so you can sit with the detail and find what it means to you.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.3dvh, 17px)' }}>
               {FEATURES.map(({ label, text }) => (
-                <div key={label} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: '4%', borderBottom: '0.5px solid rgba(22,22,18,0.08)' }}>
-                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: RED, letterSpacing: '1px', flexShrink: 0, paddingTop: '2px', minWidth: '100px' }}>{label}</span>
-                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '13px', color: DARK_MUTED, lineHeight: 1.6 }}>{text}</span>
+                <div key={label} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: 'clamp(8px, 1.15dvh, 15px)', borderBottom: '0.5px solid rgba(22,22,18,0.08)' }}>
+                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 1dvh, 11px)', color: RED, letterSpacing: '1px', flexShrink: 0, paddingTop: '2px', minWidth: '100px' }}>{label}</span>
+                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 1.35dvh, 13px)', color: DARK_MUTED, lineHeight: 1.5 }}>{text}</span>
                 </div>
               ))}
             </div>
@@ -144,7 +150,7 @@ export default function HomeBirthChartPanel() {
       </div>
 
       {/* Footer — fixed across all states */}
-      <div style={{ flex: '0 0 auto', paddingTop: '4%', paddingBottom: '4%' }}>
+      <div style={{ flex: '0 0 auto', paddingTop: 'clamp(6px, 1.6dvh, 16px)', paddingBottom: 'clamp(6px, 1.6dvh, 16px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <button onClick={() => setState(state === 'short' ? 'long' : 'short')} style={footerLinkStyle}>
             {state === 'short' ? 'read more' : 'overview'}

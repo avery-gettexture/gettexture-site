@@ -4612,3 +4612,93 @@ still correctly blocks submission without a selected place (unchanged
 returned a valid live-mode Stripe Checkout session URL at the unchanged
 $29 amount — confirmed the submit path end to end without completing a
 real payment. No console errors. One commit, not pushed.
+
+**August 16, 2026 (pre-purchase home — refinements pass, founder review):**
+six changes to the just-built two-panel home, all layout/styling only —
+the working order form's behavior (creates readings, takes payment) is
+unchanged.
+
+1. **Cream rectangles now fully contained.** Both panels' cream cards were
+   bleeding close to the panel edge (old inset: top 2%, sides 5%). New
+   pre-purchase-only CSS class `.prepurchase-panel-slot` (`app/globals.
+   css`) insets top/bottom 6.5%, left/right 8% — the same buffer `docs/
+   TEXTURE_LAYOUT_PROPORTIONS.md` documents for the reading-page cream
+   card (`.reading-zone-card`'s doc-original numbers, before that class
+   was separately widened to 4% left/right for the reading pages — this
+   page does not follow that later widening). Deliberately a new class,
+   not a change to the shared `.home-panel-slot` (2%/5%), which the
+   **post-purchase** home (`HomeLayout.tsx`) still uses unchanged.
+2. **Sticker labels removed.** "Birth Chart" / "My Chart" stickers dropped
+   from `app/page.tsx`. `.home-panel-sticker` itself is untouched in CSS —
+   post-purchase's `HomeLayout.tsx` still uses it.
+3. **New top nav; footer folded in.** `PrePurchaseNavBar.tsx` rebuilt:
+   "TEXTURE" (Anton, active-link treatment) is now the only centered item;
+   "PRIVACY · TERMS · SUPPORT" (same three links as the old footer) moved
+   into the nav's right corner. The old left-side wordmark+help-email and
+   right-side "example →" link were dropped — not part of the new nav
+   spec and not requested to be kept elsewhere; flagged for the founder,
+   not yet re-added. The page `<footer>` is gone entirely. "© 2026
+   TEXTURE" moved out of the nav and onto the page background itself
+   (founder's explicit call) — new `.prepurchase-bg-copyright` class,
+   bottom-left corner of `.app-stage`, light-on-dark over the Saturn
+   backdrop image. This also removes the prior known issue where this
+   page ran slightly taller than one viewport (footer reachable by a
+   little page scroll) — the whole page is exactly 100dvh again, matching
+   the post-purchase home.
+4. **Full opener paragraph restored** in `HomeBirthChartPanel.tsx`
+   (short-state intro), verbatim, replacing the shorter one-sentence
+   version.
+5. **Fifth feature row proposed, then cut.** "Education" (Reference
+   material throughout to define all major astrological terms) was added
+   to the short-state feature list, then removed on the founder's
+   instruction once it — combined with the restored full paragraph and
+   the tighter 6.5%/8% inset above — pushed the panel's default view past
+   a zero-scroll fit (see #6). The same information already lives in the
+   long ("read more") state's "What's included" list ("Reference sections
+   throughout" / "Complete reference dictionary"), so nothing is lost,
+   just not duplicated in the short view.
+6. **Zero-scroll rule — both panels, not just the form.** Originally
+   scoped to the right panel's order form only; the founder extended it
+   to the left panel's default (short) view too during this pass — long/
+   approach states are still allowed to scroll (unchanged contained-
+   scroll pattern). Right panel (`HomeOrderForm.tsx`): fields restyled
+   from label-above/white-box to inline `label: underline-input` rows;
+   found and fixed a real bug in the process — `flex:1` was set on the
+   `<input>` itself, but its actual parent (the per-field error-message
+   wrapper `<div>`) isn't a flex container, so it had no effect and
+   inputs sat at the browser's default ~170px width instead of filling
+   the row; fixed with `width:'100%'` instead. Left panel
+   (`HomeBirthChartPanel.tsx`, short state): title/paragraph/row font
+   sizes and spacing converted from width-based (`%`/`vw`) to
+   height-based (`dvh`) `clamp()` values, so they actually shrink on a
+   shorter browser window instead of staying fixed size while the dvh-
+   sized panel around them shrinks — a real overflow first appeared at
+   1366×768 that a 1440×900-only check had missed. Verified with a
+   Playwright script (not a manual eyeball check) measuring true content
+   slack — not scroll-container `scrollHeight`, which cannot report less
+   than `clientHeight` by spec and so reads "0 overflow" even when a lot
+   of empty space remains — across six viewports (1280×720 through
+   1920×1080): both panels clear with a comfortable margin at every size
+   (left panel's tightest case, 1024×768, still has ~16px of real slack;
+   right panel's tightest case, 1366×768, ~86px). Field/text sizes were
+   grown back up from an initial over-correction once real slack (not the
+   flawed scrollHeight reading) confirmed the room existed, and the short
+   state's paragraph+rows block is now vertically centered in its
+   available space rather than top-pinned with a dead gap below.
+
+Judgment calls made and flagged above (not silently resolved): dropping
+the nav's help-email/example-reading link (#3), and cutting the Education
+row from the short view rather than fitting it in by shrinking further
+(#5, founder's explicit instruction once the overflow was found).
+
+Files touched: `app/page.tsx`, `app/components/PrePurchaseNavBar.tsx`,
+`app/components/HomeBirthChartPanel.tsx`, `app/components/
+HomeMyChartFormPanel.tsx`, `app/components/HomeOrderForm.tsx`, `app/
+globals.css` (new `.prepurchase-panel-slot`, `.prepurchase-nav-legal`,
+`.prepurchase-bg-copyright` rules), `docs/SPEC.md`. Not touched:
+`HomeLayout.tsx`, `NavBar.tsx`, `HomeMyChartPanel.tsx` — no regression
+risk to the post-purchase home. Verified by Playwright screenshot across
+six desktop viewport sizes (1280×720 to 1920×1080) confirming zero
+scroll/overflow in both panels at every size, and by driving the form
+(fill fields, submit) confirming client-side validation and the review-
+modal flow are unchanged. No console errors. One commit, not pushed.
