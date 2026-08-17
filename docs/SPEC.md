@@ -4441,3 +4441,14 @@ Files touched: `app/components/TransitChartPane.tsx`,
 `app/reading/[slug]/reference/page.tsx`,
 `app/components/ReferencePage.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**August 16, 2026 (Transits default pane, founder request):** the desktop
+Transits page (`app/reading/[slug]/transits/page.tsx`, `DesktopTransits`)
+now opens on the CHART pane (`paneMode` initial state changed from `'read'`
+to `'chart'`) instead of the planet-card list. My Chart's own desktop page
+(`DesktopNatal`) is untouched and still opens on READ. Verified by
+screenshot: Transits loads with CHART highlighted and the wheel showing;
+My Chart still loads with READ highlighted. `tsc --noEmit` clean.
+
+Files touched: `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. One
+commit, not pushed.

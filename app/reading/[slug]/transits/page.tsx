@@ -297,7 +297,9 @@ function DesktopTransits({
   pieces: Record<string, TransitPieceRow>;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [paneMode, setPaneMode] = useState<'read' | 'chart' | 'calendar'>('read');
+  // Transits opens on the CHART view by default (founder request, SPEC
+  // §16) — unlike My Chart's DesktopNatal, which still defaults to 'read'.
+  const [paneMode, setPaneMode] = useState<'read' | 'chart' | 'calendar'>('chart');
   const [chartMode, setChartMode] = useState<ChartMode>('today');
   const [positions, setPositions] = useState<SkyPosition[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
