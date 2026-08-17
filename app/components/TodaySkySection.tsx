@@ -149,25 +149,24 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
           if (row.isNodes) {
             // Both ends of the axis (founder correction, Aug 17 2026) —
             // north glyph - south glyph, north sign - south sign, one
-            // shared degree. Same information as the desktop rail's own
-            // Nodes row (Rail.tsx's `secondary` branch), two lines instead
-            // of one to fit both ends at mobile widths.
+            // shared degree — all on one line, in line with degree rather
+            // than the sign wrapping to a row of its own (founder
+            // correction), matching every other row's single-line shape.
             return (
-              <div key={row.body} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px', padding: '8px 20px', borderBottom, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3vw, 14px)', color: 'rgba(22,22,18,0.45)', width: '20px', flexShrink: 0 }}>
-                    {row.glyph}<span style={{ opacity: 0.5 }}>-</span>{row.southGlyph}
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{row.label}</span>
-                  <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'rgba(22,22,18,0.55)' }}>{row.degree}°</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', paddingLeft: '20px' }}>
-                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px' }}>{row.sign}</span>
-                  <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)' }}>{row.signGlyph}</span>
-                  <span style={{ color: 'rgba(22,22,18,0.35)' }}>-</span>
-                  <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px' }}>{row.southSign}</span>
-                  <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)' }}>{row.southSignGlyph}</span>
-                </div>
+              <div
+                key={row.body}
+                style={{ display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom, flex: 1 }}
+              >
+                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3vw, 14px)', color: 'rgba(22,22,18,0.45)', width: '20px', flexShrink: 0 }}>
+                  {row.glyph}<span style={{ opacity: 0.5 }}>-</span>{row.southGlyph}
+                </span>
+                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{row.label}</span>
+                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{row.sign}</span>
+                <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '4px' }}>{row.signGlyph}</span>
+                <span style={{ color: 'rgba(22,22,18,0.35)', marginRight: '4px' }}>-</span>
+                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{row.southSign}</span>
+                <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '6px' }}>{row.southSignGlyph}</span>
+                <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'rgba(22,22,18,0.55)' }}>{row.degree}°</span>
               </div>
             );
           }

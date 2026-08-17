@@ -5404,3 +5404,23 @@ errors. `tsc --noEmit` clean.
 Files touched: `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. Not
 touched: any other file from the rebuild above, any desktop code path. One
 commit, not pushed.
+
+**August 17, 2026 (mobile Today's Sky follow-up #2 — Nodes row collapsed to
+one line; founder correction):** The two-line Nodes row from the prior
+follow-up put sign on its own second line, degree on the first — founder
+correction: sign belongs in line with degree, not demoted to a second line.
+`TodaySkySection.tsx`'s `SkyListView` Nodes branch is now a single line,
+matching every other row's shape: north glyph - south glyph, "Nodes," north
+sign + sign glyph - south sign + sign glyph, shared degree, in that order.
+No information dropped from the prior (both-ends) version — same content,
+one line instead of two.
+
+Verified with a Playwright script against a running dev server, dogfood
+slug (`hejkhjq1zns5`), at 390×844, dev indicator removed for a clean check:
+List view screenshot shows the Nodes row on one line reading "☊-☋ Nodes
+Pisces ♓ - Virgo ♍ 0°"; `getBoundingClientRect()` confirmed the row sits
+fully inside the viewport (bottom 843 of 844). Zero console errors. `tsc
+--noEmit` clean.
+
+Files touched: `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One
+commit, not pushed.
