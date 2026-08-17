@@ -3567,7 +3567,11 @@ fresh anon-key read, not by the SQL editor's own success message. One
 commit, not pushed.
 
 **Both RPCs now have a real frontend caller — see the August 15, 2026
-"post-purchase home" entry below.**
+"post-purchase home" entry below.** `get_current_sky_aspects()`'s
+CURRENT_DATE filter and its dropping of eclipse rows (both described above)
+were both changed in the August 16, 2026 "home 'Aspects and Events'" entry
+further down — that entry is the current source of truth for this
+function's signature and behavior, not the description above.
 
 **August 15, 2026 (post-purchase home — real content for both panels,
 desktop only):** `/reading/[slug]` was a Phase-1/2 shell (`<HomeLayout>`
@@ -4452,3 +4456,76 @@ My Chart still loads with READ highlighted. `tsc --noEmit` clean.
 
 Files touched: `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 16, 2026 (home "Aspects and Events" — date-basis fix, eclipses
+added, one row investigated):** three fixes to the right panel's Aspects &
+Events list (`get_current_sky_aspects()`, `HomeTodaySkyPanel.tsx`), per a
+founder brief:
+
+1. **Date-basis bug, fixed.** `get_current_sky_aspects()` (built August 15,
+   2026, see above) filtered on Postgres `CURRENT_DATE` — the database
+   SERVER's UTC date — while every other date on this panel (the date
+   label, the planet list) keys off the VISITOR's own browser-local date.
+   Right around UTC midnight the two could disagree, showing the wrong
+   day's aspects. Fixed by giving the function a `p_local_date date`
+   parameter and filtering on that instead; the frontend now passes its own
+   `getTodayLocalISODate()` value (the same value already driving the date
+   label and list sorting) into the RPC call. Migration:
+   `scripts/fix_sky_aspects_date_basis_and_add_eclipses.sql`, run by the
+   founder against Supabase's SQL editor, verified live with the public
+   anon key. FLAGGED, NOT FIXED (out of scope for this task):
+   `get_current_sky_positions()` has the identical server-clock-vs-local-
+   date issue for the Planets list; founder can request a follow-up.
+
+2. **Eclipses added.** `aspect_calendar`'s eclipse rows (`event IN
+   ('Solar Eclipse', 'Lunar Eclipse')`) have NULL `window_start`/
+   `window_end` (point events, not orb windows — see §11A.3), so the old
+   window filter silently dropped every eclipse row; none had ever reached
+   this RPC. Now also returned: an eclipse is visible starting 2 weeks
+   before its `exact_date` and drops the day AFTER `exact_date` (no
+   "recently happened" grace period), matching the rule already ratified
+   for the Transits calendar page (`TransitCalendarPane.tsx`'s
+   `isOver`/`hasStarted`). Same `p_local_date` anchors both the aspect and
+   eclipse branches of the query. Panel renders eclipse rows on their own
+   path — label `"{Solar|Lunar} Eclipse in {sign}"`, single exact date, no
+   window range — never through the ordinary aspect-verb/body_1/body_2
+   formatter. **Ruling (founder-confirmed, this task):** the `{sign}` is
+   the ECLIPSED body's own sign, read from `body_2_sign` (body_2 is always
+   Moon on an eclipse row) — NOT `body_1_sign` (always Sun) as a first
+   literal reading of the brief suggested. `body_2_sign` is already
+   correctly DERIVED for both eclipse types per its ratified column rule
+   (§11A.3): same sign as the Sun for a Solar Eclipse (conjunction), the
+   opposite sign for a Lunar Eclipse (opposition) — so a Lunar Eclipse
+   reads by the Moon's own sign ("Lunar Eclipse in Pisces"), matching
+   standard astrological convention, not the Sun's. The RPC's returned
+   columns changed accordingly: `body_1_sign` dropped, `body_2_sign` added.
+   Chart mode (`TodaySkyWheel.tsx` via `NatalChartWheelWeb.tsx`) needed no
+   change — its aspect-line filter (`ASPECT_COLORS[a.aspect]`) already
+   silently ignores any event string it doesn't recognize, so eclipse rows
+   flowing into the same `aspects` state draw no stray line; confirmed by
+   screenshot, no console errors.
+
+3. **Suspicious row, investigated — genuinely correct, not a bug.** A row
+   read "Mercury trine Saturn — Aug 17–Aug 19 · exact Aug 17" (orb-open and
+   exact dated the same day). Pulled the live row
+   (`mercury-trine-saturn-2026-08-17-p1of1`: `window_start` 2026-08-17,
+   `exact_date` 2026-08-17, `window_end` 2026-08-19) and the underlying
+   `sky_positions` for both bodies Aug 15–20. Mercury (direct, ~1.9–2°/day
+   in Leo) closed on Saturn (retrograde in Aries) fast enough that the pair
+   was still 3.26° apart (just outside the 3° active orb) on Aug 16, 1.29°
+   apart (inside orb, not yet exact) on Aug 17, and already past exact at
+   -0.71° on Aug 18 — so both the orb-open crossing and the exact-crossing
+   fall within the same Aug 17–Aug 18 snapshot pair and are dated to the
+   same earlier day (Aug 17) by `generate-aspect-calendar.mjs`'s standard
+   "earlier of the two bracketing days" dating convention (§11A.3). Window
+   closes Aug 19, the last day the pair is still within 3° before separating
+   past orb on Aug 20. Real, faithfully-displayed data — no code change.
+
+Files touched: `scripts/fix_sky_aspects_date_basis_and_add_eclipses.sql`
+(new), `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One live
+database write (the founder ran the migration in the Supabase SQL editor),
+verified by a fresh anon-key RPC call and by screenshot (List mode shows
+the eclipse row and correctly excludes the not-yet-started Mercury-Saturn
+window on Aug 16; Chart mode shows no stray line). `tsc --noEmit` clean.
+Script runtime: read-only investigation queries only, each well under a
+second. One commit, not pushed.

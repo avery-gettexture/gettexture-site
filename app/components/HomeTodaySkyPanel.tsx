@@ -36,8 +36,9 @@ interface SkyPosition {
 interface SkyAspect {
   body_1: string;
   body_2: string;
-  event: string; // conjunction | sextile | square | trine | opposition (eclipse rows never reach this RPC — see create_today_sky_rpcs.sql)
-  window_start: string;
+  event: string; // conjunction | sextile | square | trine | opposition | Solar Eclipse | Lunar Eclipse — see fix_sky_aspects_date_basis_and_add_eclipses.sql
+  body_2_sign: string; // used for eclipse labels ("Solar Eclipse in Leo" / "Lunar Eclipse in Pisces") — body_2 is always Moon on an eclipse row, and this column is already correctly derived for both eclipse types (see fix_sky_aspects_date_basis_and_add_eclipses.sql); ignored for ordinary aspect rows
+  window_start: string | null; // NULL for eclipse rows — point events, no orb window
   window_end: string | null;
   exact_date: string | null;
 }
@@ -79,14 +80,19 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   const [aspects, setAspects] = useState<SkyAspect[] | null>(null);
   const [paneMode, setPaneMode] = useState<PaneMode>('list');
 
+  // Browser-local date — same value used for the panel's own date label
+  // below and for sorting the lists. Passed into get_current_sky_aspects()
+  // as p_local_date so the Aspects & Events list is filtered against the
+  // SAME "today" the rest of the panel shows, instead of the database
+  // server's own UTC clock (fix_sky_aspects_date_basis_and_add_eclipses.sql).
+  const today = getTodayLocalISODate();
+
   useEffect(() => {
     supabase.rpc('get_current_sky_positions').then(({ data }) => setPositions((data as SkyPosition[]) ?? []));
-    supabase.rpc('get_current_sky_aspects').then(({ data }) => setAspects((data as SkyAspect[]) ?? []));
-  }, [slug]);
+    supabase.rpc('get_current_sky_aspects', { p_local_date: today }).then(({ data }) => setAspects((data as SkyAspect[]) ?? []));
+  }, [slug, today]);
 
   const sortedPositions = (positions ?? []).slice().sort((a, b) => BODY_ORDER.indexOf(a.body) - BODY_ORDER.indexOf(b.body));
-
-  const today = getTodayLocalISODate();
 
   // aspect_calendar's own data law (create_transit_and_aspect_calendars.sql):
   // "rows are events, content units are windows" — multiple exact rows
@@ -94,15 +100,26 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
   // The RPC returns raw rows, so group by the shared window here before
   // rendering, or a pair that exacts twice in one long window (e.g. two
   // slow outer planets) would wrongly print as two near-duplicate lines.
-  interface AspectGroup { body_1: string; body_2: string; event: string; window_start: string; window_end: string | null; exact_dates: string[] }
+  // Eclipse rows (event 'Solar Eclipse' | 'Lunar Eclipse') have no window —
+  // they're point events, not orb windows — so they're grouped by their own
+  // exact_date instead of window_start/window_end (both NULL on every
+  // eclipse row, which would otherwise collide two different eclipses of
+  // the same type into one group).
+  function isEclipseEvent(event: string): boolean {
+    return event === 'Solar Eclipse' || event === 'Lunar Eclipse';
+  }
+
+  interface AspectGroup { body_1: string; body_2: string; event: string; body_2_sign: string; window_start: string | null; window_end: string | null; exact_dates: string[] }
   const groups = new Map<string, AspectGroup>();
   for (const a of aspects ?? []) {
-    const key = `${a.body_1}|${a.body_2}|${a.event}|${a.window_start}|${a.window_end}`;
+    const key = isEclipseEvent(a.event)
+      ? `eclipse|${a.event}|${a.exact_date}`
+      : `${a.body_1}|${a.body_2}|${a.event}|${a.window_start}|${a.window_end}`;
     const g = groups.get(key);
     if (g) {
       if (a.exact_date) g.exact_dates.push(a.exact_date);
     } else {
-      groups.set(key, { body_1: a.body_1, body_2: a.body_2, event: a.event, window_start: a.window_start, window_end: a.window_end, exact_dates: a.exact_date ? [a.exact_date] : [] });
+      groups.set(key, { body_1: a.body_1, body_2: a.body_2, event: a.event, body_2_sign: a.body_2_sign, window_start: a.window_start, window_end: a.window_end, exact_dates: a.exact_date ? [a.exact_date] : [] });
     }
   }
   const sortedAspects = Array.from(groups.values()).sort((a, b) => {
@@ -111,7 +128,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
     if (aExact && bExact) return daysBetween(aExact, today) - daysBetween(bExact, today);
     if (aExact) return -1;
     if (bExact) return 1;
-    return daysBetween(a.window_start, today) - daysBetween(b.window_start, today);
+    return daysBetween(a.window_start as string, today) - daysBetween(b.window_start as string, today);
   });
 
   return (
@@ -270,20 +287,25 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                 flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingRight: '10px',
                 borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
               }}>
-                {sortedAspects.map((a, i) => (
-                  <div key={`${a.body_1}-${a.body_2}-${a.event}-${a.window_start}-${i}`} style={{
-                    display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px',
-                    padding: '6px 0',
-                    borderBottom: '0.5px solid rgba(22,22,18,0.08)',
-                  }}>
-                    <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1vw, 14px)', color: DARK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {a.body_1} {aspectVerb(a.event)} {a.body_2}
-                    </span>
-                    <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 0.9vw, 12px)', color: DARK_FAINT, whiteSpace: 'nowrap' }}>
-                      {formatRowDate(a.window_start)}{a.window_end ? `–${formatRowDate(a.window_end)}` : ''} · {a.exact_dates.length > 0 ? `exact ${a.exact_dates.map(formatRowDate).join(', ')}` : 'no exact'}
-                    </span>
-                  </div>
-                ))}
+                {sortedAspects.map((a, i) => {
+                  const isEclipse = isEclipseEvent(a.event);
+                  return (
+                    <div key={`${a.body_1}-${a.body_2}-${a.event}-${a.window_start}-${i}`} style={{
+                      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px',
+                      padding: '6px 0',
+                      borderBottom: '0.5px solid rgba(22,22,18,0.08)',
+                    }}>
+                      <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1vw, 14px)', color: DARK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {isEclipse ? `${a.event} in ${a.body_2_sign}` : `${a.body_1} ${aspectVerb(a.event)} ${a.body_2}`}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 0.9vw, 12px)', color: DARK_FAINT, whiteSpace: 'nowrap' }}>
+                        {isEclipse
+                          ? formatRowDate(a.exact_dates[0])
+                          : <>{formatRowDate(a.window_start as string)}{a.window_end ? `–${formatRowDate(a.window_end)}` : ''} · {a.exact_dates.length > 0 ? `exact ${a.exact_dates.map(formatRowDate).join(', ')}` : 'no exact'}</>}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
