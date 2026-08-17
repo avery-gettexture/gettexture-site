@@ -313,7 +313,7 @@ Methodology page, product-spec posture. **Disclose:**
 9. **Education layer** (after transits — DECIDED order): chart orientation page ("planets are what, signs are how, houses are where"), how-to-read-a-wheel, profections, finding-your-birth-time. Methodology page can interleave (zero dependencies).
 10. **Natal parity:** unknown-birth-time purchase path live and correct.
 11. **Sample reading** page (subject deferred).
-12. **Natal engine + schema updates** from the natal sweep: decan, sect, degree flags, MC whole-sign house, axis-merged nodal aspects, widened sign-consonant orbs; 14 → 13 interpretation columns; node background assets. **Engine build (decan/sect/degree-flags/MC-house/aspect-engine/combined-nodes assembly) STAGE 1 BUILT August 17, 2026 — see §16.** Prompt wiring + live generation is Stage 2, pending founder approval of the Stage 1 dry-run.
+12. **Natal engine + schema updates** from the natal sweep: decan, sect, degree flags, MC whole-sign house, axis-merged nodal aspects, widened sign-consonant orbs; 14 → 13 interpretation columns; node background assets. **BUILT August 17, 2026 — see §16 ("complete natal generation," Stages 1–2).** Node background assets (single Nodes image replacing the two per-end backgrounds) remain OPEN per §12.6 — unrelated to this build, an asset decision.
 
 ---
 
@@ -410,7 +410,7 @@ locked; this is the only anon read path into it.
 
 ### 11.2 Computations the engine owes
 - **Transit side:** sign-consonant pre-filter (in Whole Sign, sign-to-sign relationships are fixed, so a planet's candidate receiving points are known before any degree math); contact windows (3° applying → exact → separating) via threshold crossings + interpolation; pass n-of-m (free — `ORDER BY date` on the crossings); natal copresence (points where sign = transited sign); sky copresence with spans; sky-sky aspects (chart-independent, computed once, shared by all subscribers); natal intersections; stable **entry IDs**; eclipse dataset (base data loaded — §11A.5; per-eclipse configurations and natal points caught remain downstream per-user work); phase detection (ingress/station boundaries) and the regeneration schedule.
-- **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7. **STAGE 1 BUILT August 17, 2026** — see §16 ("complete natal generation, Stage 1"). Sect implemented as the whole-sign rule (Sun's own house 1–6 → night, 7–12 → day) rather than altitude/horizon math — a founder-specified simplification, cross-checked against the astrology proxy's own `is_diurnal` (horizon math) on the dogfood chart, which agreed. Prompts not yet wired to this input — that's Stage 2, pending founder approval of the Stage 1 dry-run.
+- **Natal side (new):** decan index + Chaldean ruler (`floor(sign_degree / 10)` + lookup); degree flags (29°, 0°); sect (Sun altitude at birth → day/night); MC whole-sign house; axis-merged nodal aspects (including inside other placements' ASPECTS lists); widened sign-consonant orbs per §4.7. **BUILT August 17, 2026** — see §16 ("complete natal generation," Stages 1 and 2). Sect implemented as the whole-sign rule (Sun's own house 1–6 → night, 7–12 → day) rather than altitude/horizon math — a founder-specified simplification, cross-checked against the astrology proxy's own `is_diurnal` (horizon math) on the dogfood chart, which agreed. Prompts wired (`route.ts` now generates via `lib/natal-generation/`) and validated by a live paid dogfood regeneration — see §16.
 - **Shared:** the sky event stream (normalized ingresses, stations, eclipses) feeding triggers, calendar, notifications, and Today's Texture.
 
 **ACTIVATION QUALIFICATION RULE (DECIDED July 19, 2026 — replaces the
@@ -5650,3 +5650,37 @@ Nodes card header never shows it either. `tsc --noEmit` clean.
 
 Files touched: `app/reading/[slug]/natal/page.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 17, 2026 (complete natal generation, Stage 2 — prompts wired,
+route refactored; closes §11.2's "Natal side (new)" and §9 item 12):**
+founder approved the Stage 1 dry-run (aspect engine, decan/sect/degree-
+flag/MC-house, combined-node merge all verified correct against the live
+dogfood chart) and confirmed `docs/SYNTHESIS_CALL_1_v12.md` /
+`SYNTHESIS_CALL_2_v1.md` as final. Copied both, byte-identical (diffed to
+confirm), into `lib/prompts/synthesis_c1_prompt.txt` /
+`synthesis_c2_prompt.txt` — the loaded prompt location `app/api/generate/
+route.ts` reads at request time. Deleted the retired `synthesis_c3_prompt.
+txt` (`SYNTHESIS_CALL_3` was renamed `SYNTHESIS_CALL_2_v1` per §10.1 — "Call
+3" no longer exists as a concept).
+
+`app/api/generate/route.ts` rewritten to delegate to the Stage 1 modules
+(`lib/natal-generation/generate-piece.mjs`'s `PLACEMENTS` and
+`generateNatalPlacement`) instead of its old ad-hoc per-placement loop —
+same per-slug, single-reading request shape it already had; this wasn't a
+batch-to-single change, just moving assembly/generation into the shared,
+testable module the transit side already established the pattern for.
+Writes one `nodes` row via the single combined-axis request; repo-wide
+grep confirms no remaining code path writes `north_node`/`south_node`
+(the only two references left anywhere are the now-dead type fields in
+`page.tsx`'s `Reading` interface, which already reads from `nodes`, not
+these — left in place, unused, same precedent as the columns themselves
+per §8). `max_tokens` is 16384/16384 for both calls (set in Stage 1,
+matching the transit side, given the new four-section brief and longer
+prose requirement).
+
+Files touched: `lib/prompts/synthesis_c1_prompt.txt`,
+`lib/prompts/synthesis_c2_prompt.txt` (both new, copied from `docs/`),
+`lib/prompts/synthesis_c3_prompt.txt` (deleted), `app/api/generate/
+route.ts`, `docs/SPEC.md`. One commit, not pushed. The paid dogfood
+regeneration that validates this end-to-end is a separate data write, not
+a code commit — its confirmed result is recorded in the next entry.
