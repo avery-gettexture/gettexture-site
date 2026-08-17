@@ -5636,3 +5636,17 @@ Files touched: `lib/natal-generation/engine.mjs` (new),
 `lib/natal-generation/generate-piece.mjs` (new),
 `scripts/generate-natal.mjs` (new), `lib/config.ts`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 17, 2026 (Nodes card-header retrograde guard — small independent
+fix, folded into the natal generation task above):** `PlacementCardContent`
+in `app/reading/[slug]/natal/page.tsx` built its meta line from
+`getPlanetMeta`, which for the merged Nodes placement (`id: 'nodes'`)
+reads `mean_north_lunar_node` — always `retrograde: true` for a mean node
+— so the card header would show "Retrograde" on the Nodes card, violating
+§4.1's "the word 'retrograde' never appears in Nodes content." Added the
+same `placement.id !== 'nodes'` guard already used elsewhere (mobile's
+`ChartSection.tsx` glyph row, the desktop rail's nodes branch) so the
+Nodes card header never shows it either. `tsc --noEmit` clean.
+
+Files touched: `app/reading/[slug]/natal/page.tsx`, `docs/SPEC.md`. One
+commit, not pushed.

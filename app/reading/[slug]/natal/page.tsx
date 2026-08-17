@@ -237,7 +237,7 @@ function PlacementCardContent({
 
   const meta = reading ? getPlanetMeta(reading.chart_data, planet.id) : { sign: '', house: '', degree: '', retrograde: false };
   const synthesisText = reading ? (reading[planet.contentKey] as string | null) : null;
-  const metaParts = [meta.sign, meta.house, meta.degree, meta.retrograde ? 'Retrograde' : null].filter(Boolean);
+  const metaParts = [meta.sign, meta.house, meta.degree, (planet.id !== 'nodes' && meta.retrograde) ? 'Retrograde' : null].filter(Boolean);
   const metaString = metaParts.join(' · ');
 
   return (
