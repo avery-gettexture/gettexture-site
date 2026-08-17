@@ -5709,6 +5709,14 @@ log:
   the 16384 cap (range: ~3.1k–4.4k tokens), no `GENERATION ERRORS` or
   missing-content warning from the script, matching the confirmed
   non-empty state above.
+- **Runtime:** the real-mode run (26 Opus calls — 13 placements × Call 1 +
+  Call 2) exceeded 120 seconds and had to run in the background; exact
+  wall-clock wasn't captured, but budget several minutes for a full
+  13-placement natal regeneration when this becomes a production/admin
+  path (batch-monthly transit generation already accounts for this kind
+  of run time per §5.3 — natal regeneration is currently a rare,
+  admin-triggered event, not a batch job, so this isn't yet a scheduling
+  concern).
 - Card-header guard (prior entry, same day) verified against this same
   live content: the Nodes card shows no "Retrograde" in either the prose
   or the header meta line.
