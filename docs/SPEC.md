@@ -5684,3 +5684,40 @@ Files touched: `lib/prompts/synthesis_c1_prompt.txt`,
 route.ts`, `docs/SPEC.md`. One commit, not pushed. The paid dogfood
 regeneration that validates this end-to-end is a separate data write, not
 a code commit — its confirmed result is recorded in the next entry.
+
+**August 17, 2026 (complete natal generation — confirmed live via a paid
+dogfood regeneration; closes the natal sweep, §11.2 and §9 item 12):** ran
+`scripts/generate-natal.mjs` (real mode, not `--dry-run`) once against the
+dogfood reading (slug `hejkhjq1zns5`) through the wired v12/v1 prompts.
+Per AGENTS.md's write-verification rule, the confirmation below is from a
+**fresh, independent Supabase read after the run** — not the script's own
+log:
+- All 13 columns non-empty (`sun` through `pluto`, `asc_reading`, `mc`,
+  `nodes`), 3.2k–3.7k characters each, real four-section-brief-derived
+  prose (Sun/Mercury/Midheaven stellium content, Venus/Mars/Pluto
+  stellium in the 12th, the Nodes piece reading the axis as one
+  developmental line — all matching the Stage 1 dry-run's assembled
+  input).
+- `nodes` contains no instance of "retrograde," checked programmatically
+  (`/retrograde/i.test(...)` → false) — the word does appear in `saturn`
+  (Saturn is genuinely retrograde in this chart), confirming the ban is
+  specific to Nodes content, not a blanket word filter.
+- `north_node` and `south_node` still hold their old pre-existing content,
+  untouched by this run (not written, not dropped) — read directly
+  alongside the 13 live columns in the same query.
+- No truncation: every placement's output token count landed well under
+  the 16384 cap (range: ~3.1k–4.4k tokens), no `GENERATION ERRORS` or
+  missing-content warning from the script, matching the confirmed
+  non-empty state above.
+- Card-header guard (prior entry, same day) verified against this same
+  live content: the Nodes card shows no "Retrograde" in either the prose
+  or the header meta line.
+
+This closes the "natal side (new)" engine items in §11.2 and §9 item 12
+as fully built, wired, and validated against real generated content — not
+just assembled input. Cost was not computed (all placeholder rates in
+`lib/config.ts` are still 0 — Avery has not yet set real Opus prices from
+the Anthropic console).
+
+Files touched: none (data write only — `readings` row for
+`hejkhjq1zns5`), `docs/SPEC.md`. One commit (SPEC only), not pushed.
