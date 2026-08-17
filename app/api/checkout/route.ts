@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { NATAL_READING_PRICE_USD } from '@/lib/config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
             name: 'Texture — Personalized Birth Chart Reading',
             description: '14 placements interpreted in full context. Delivered as a permanent URL.',
           },
-          unit_amount: 2900, // $30.00
+          unit_amount: NATAL_READING_PRICE_USD * 100,
         },
         quantity: 1,
       }],
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
         email,
       },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/#order`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/`,
     });
 
     return NextResponse.json({ url: session.url });

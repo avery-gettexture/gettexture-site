@@ -4529,3 +4529,86 @@ the eclipse row and correctly excludes the not-yet-started Mercury-Saturn
 window on Aug 16; Chart mode shows no stray line). `tsc --noEmit` clean.
 Script runtime: read-only investigation queries only, each well under a
 second. One commit, not pushed.
+
+**August 16, 2026 (pre-purchase home — two-panel rebuild):** `/` replaced
+end to end. The old single-column marketing page (hero, screenshot
+showcase, description, order form, approach text, footer, mobile sticky
+CTA) is gone, replaced with the same two-panel frame the post-purchase
+home uses (cream-backed panels floating on a full-bleed background, each
+with a top sticker label), backgrounds swapped left/right vs. post-
+purchase (`/transits-background.png` on the left "Birth Chart" panel,
+`/sky-background.png` on the right "My Chart" panel — a literal asset
+swap, no new images), full-bleed backdrop unchanged (`/saturn-
+background.png`). Both panels sit on their own cream card (unlike the
+post-purchase My Chart panel's light-on-dark treatment — no post-purchase
+equivalent to match here, founder-confirmed).
+
+New header for this page only (`PrePurchaseNavBar.tsx`): the authenticated
+`NavBar.tsx` used by every `/reading/[slug]/*` page needs a reading slug
+that doesn't exist pre-purchase, so this is a separate component — small
+red wordmark + help email on the left, a large "TEXTURE" mark styled like
+the post-purchase nav's active-link treatment centered (signals this page
+IS Home), an "example →" link on the right opening the dogfood reading
+(`DOGFOOD_READING_SLUG`) in a new tab. `NavBar.tsx` itself is untouched.
+
+**Left panel ("Birth Chart"):** title and footer fixed; the content region
+between them swaps across three states — short (default: opening
+sentence + 4-row feature table, "13 Placements" corrected from a stale
+"14"), long ("read more" ↔ "overview": the existing "About the reading"
+copy, "What's included" — "reference dictionary at the end" trimmed to
+"reference dictionary" — and "Placements interpreted" — "North Node" +
+"South Node" consolidated to one "Nodes" entry, matching §1/§4.1's 13-
+placement model), and approach ("approach": the old page's "Approach"
+methodology section, relocated here rather than dropped — founder's
+call). Long/approach states use the same contained-scroll pattern as the
+post-purchase panels (`overflow-y: auto` between two red rules). Footer
+always shows the three links plus a static "Birth Chart / $NATAL_READING_
+PRICE_USD" line — the "$12" figure in the build brief was SPEC's
+*subscription* placeholder (§2), not this reading's real price, so the
+founder chose to show the actual live price instead (see below).
+
+**Right panel ("My Chart"):** houses the site's one working order form —
+extracted unchanged into `HomeOrderForm.tsx` (state, validation, Google
+Places autocomplete, `handleSubmit`/`handleConfirm`, the review modal all
+byte-for-byte the same logic as the old page, just re-housed) — under the
+existing title and intro paragraph, in `HomeMyChartFormPanel.tsx`. Input
+backgrounds changed from cream to white (`#FFFFFF`) since the form now
+sits on a cream panel instead of a cream page — inputs would otherwise be
+invisible against their own container.
+
+**Price now a config constant.** `NATAL_READING_PRICE_USD = 29` added to
+`lib/config.ts` (AGENTS.md: never hardcode a price). `app/api/checkout/
+route.ts`'s `unit_amount` now reads `NATAL_READING_PRICE_USD * 100`
+instead of a bare `2900` — same $29 charge as before, just sourced from
+one place so the display and the real Stripe amount can't drift apart.
+`cancel_url` changed from `/#order` (that anchor no longer exists on the
+rebuilt page) to plain `/`.
+
+**Judgment calls, founder-confirmed:** displayed price is the real $29,
+not the brief's "$12" placeholder; backgrounds are the post-purchase
+home's two images with sides swapped, no new assets; header is a new
+pre-purchase-only component, not the authenticated NavBar; hero/
+screenshots dropped, Approach relocated into the left panel's third swap
+state (not dropped), footer (Privacy/Terms/Support) kept below the
+two-panel section — which makes this page slightly taller than one
+viewport (a little page scroll reaches the footer), unlike the exactly-
+100dvh post-purchase home. Old mobile sticky CTA dropped; no mobile-
+specific redesign is in scope for this task (the post-purchase two-panel
+home has no documented mobile variant either) — flagged as a follow-up
+gap, not solved here.
+
+Files touched (new): `app/components/PrePurchaseNavBar.tsx`,
+`app/components/HomeOrderForm.tsx`, `app/components/HomeBirthChartPanel.
+tsx`, `app/components/HomeMyChartFormPanel.tsx`. Edited: `app/page.tsx`
+(full rewrite), `lib/config.ts`, `app/api/checkout/route.ts`, `app/
+globals.css` (new `.prepurchase-nav-*` rules only), `docs/SPEC.md`. Not
+touched: `HomeLayout.tsx`, `NavBar.tsx`, `HomeMyChartPanel.tsx`,
+`HomeTodaySkyPanel.tsx` — zero regression risk to the already-shipped
+post-purchase home. Verified by screenshot (default state, "read more"
+long-form + contained scroll, "approach" state, "overview" returning to
+short, footer on scroll) and by driving the form: client-side validation
+still correctly blocks submission without a selected place (unchanged
+`validate()` logic), and a direct `POST /api/checkout` with complete data
+returned a valid live-mode Stripe Checkout session URL at the unchanged
+$29 amount — confirmed the submit path end to end without completing a
+real payment. No console errors. One commit, not pushed.
