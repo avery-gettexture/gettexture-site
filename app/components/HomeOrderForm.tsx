@@ -150,8 +150,8 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
         </div>
         <div style={rowStyle}>
           <label style={inlineLabelStyle}>date of birth:</label>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <input type="date" value={form.birthDate} onChange={e => { setForm(f => ({ ...f, birthDate: e.target.value })); setErrors(er => ({ ...er, birthDate: '' })); }} style={underlineInputStyle('birthDate')} />
+          <div style={{ flex: '0 0 auto' }}>
+            <input type="date" value={form.birthDate} onChange={e => { setForm(f => ({ ...f, birthDate: e.target.value })); setErrors(er => ({ ...er, birthDate: '' })); }} style={{ ...underlineInputStyle('birthDate'), width: '160px' }} />
             {errors.birthDate && <div style={errorStyle}>{errors.birthDate}</div>}
           </div>
         </div>

@@ -34,6 +34,7 @@ const FEATURES = [
   { label: '~6,500 Words', text: 'Explore the depth your chart has to offer with ~500 words of unique copy for each placement, written for only you.' },
   { label: 'Full Context', text: 'Interpretations written to reflect that your chart is more than the sum of its parts. Sign, house, degree, aspects, and motion are considered for every placement.' },
   { label: 'Permanent URL', text: 'Your reading lives at a unique link. Save it, revisit it, share it anytime.' },
+  { label: 'Education', text: 'Reference material throughout to define all major astrological terms.' },
 ];
 
 const DESCRIPTION_PARAGRAPHS = [
@@ -95,7 +96,7 @@ export default function HomeBirthChartPanel() {
           refinements task, SPEC §16: the "no scroll" rule applies to this
           panel's default view too, not just the right panel's form). */}
       <div style={{ flex: '0 0 auto', paddingTop: 'clamp(8px, 2.6dvh, 28px)' }}>
-        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 3.6dvh, 32px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(8px, 1.6dvh, 18px)', whiteSpace: 'nowrap' }}>
+        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 3.6dvh, 32px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(6px, 1dvh, 10px)', whiteSpace: 'nowrap' }}>
           Take a closer look at your chart.
         </div>
       </div>

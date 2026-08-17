@@ -27,6 +27,9 @@ export default function HomeMyChartFormPanel() {
       </p>
 
       <div style={{ borderTop: '1px solid var(--red-rule)', paddingTop: 'clamp(6px, 1.4dvh, 14px)', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 1.1dvh, 12px)', color: 'rgba(22,22,18,0.35)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 'clamp(10px, 1.8dvh, 18px)' }}>
+          my information
+        </p>
         <HomeOrderForm priceUsd={NATAL_READING_PRICE_USD} />
       </div>
     </div>

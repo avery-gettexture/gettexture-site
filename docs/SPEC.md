@@ -4759,3 +4759,61 @@ Files touched: `app/components/HomeBirthChartPanel.tsx`,
 `HomeMyChartPanel.tsx` — no regression risk to the post-purchase home or
 the panel geometry/nav established in the prior two passes. No console
 errors. One commit, not pushed.
+
+**August 16, 2026 (pre-purchase home — spacing/fifth-row/field-width pass,
+founder review):** four founder-directed refinements on top of the
+fill-the-frame pass above, spacing/layout only:
+
+1. **Left title-to-content spacing matched to the right panel's.** The left
+   panel's title (`HomeBirthChartPanel.tsx`) had a larger gap under it
+   (`marginBottom: clamp(8px, 1.6dvh, 18px)`) than the right panel's title
+   (`clamp(6px, 1dvh, 10px)`, `HomeMyChartFormPanel.tsx`). Set the left
+   title's `marginBottom` to the same `clamp(6px, 1dvh, 10px)` so the two
+   panels' title-to-content rhythm reads as one system, not two
+   independently-tuned values that happened to look similar.
+2. **Fifth feature row restored.** "Education" — "Reference material
+   throughout to define all major astrological terms." — added back to
+   `FEATURES` after "Permanent URL", in the same label/description
+   format as the other four rows. This is the same row cut during the
+   refinements pass (Aug 16, #5 above) for lack of room; the tightened
+   title spacing from #1 freed enough height to fit it without
+   reintroducing overflow — confirmed by measurement, not assumed (see
+   verification below).
+3. **"my information" section label fills the right panel's red-bar-to-
+   fields gap.** A small quiet label (`HomeMyChartFormPanel.tsx`, geist
+   mono, `clamp(10px, 1.1dvh, 12px)`, faint uppercase — the same treatment
+   `HomeBirthChartPanel.tsx`'s "What's included"/"Placements interpreted"
+   labels already use in the long-state view) now sits between the
+   red rule and the first field, inside the same centered flex block as
+   the form. The block still centers as a whole in the remaining space
+   (unchanged from the fill-the-frame pass), so the label doesn't
+   eliminate the surrounding whitespace — it gives the space above the
+   fields a reason to exist instead of being pure gap.
+4. **Birth-date field contained to its natural width.** `HomeOrderForm.tsx`:
+   the `date of birth` input previously inherited the same `width: '100%'`
+   as the free-text fields (name/place/email), stretching its underline to
+   the full row width despite `mm/dd/yyyy` being a fixed, known character
+   count — inconsistent with the time-of-birth selects, which are already
+   sized to their content. Its wrapping div changed from `flex: 1` to
+   `flex: '0 0 auto'` and the input given an explicit `width: '160px'`
+   (spread over the shared `underlineInputStyle`), matching the
+   time-of-birth fields' contained-width treatment; the row's remaining
+   space is left empty rather than stretched, same as those fields.
+
+Verified by the same Playwright measurement method as the fill-the-frame
+pass (true content height vs. available region, not `scrollHeight`) at
+1280×800, 1366×768, 1440×900, and 1920×1080 after all four changes: left
+panel's tightest case is exact-to-sub-pixel (0–0.3px, i.e. effectively
+flush, at every size tested — the freed title space was almost exactly
+enough for the fifth row, not a wide margin); right panel's tightest
+margin is ~34px (1366×768), still comfortably zero-scroll. Screenshot-
+confirmed at all three primary sizes (1280×800, 1366×768, 1440×900): left
+and right title-to-content spacing now read as matched, the Education row
+is present, "my information" fills the previously-empty gap, and the
+date-of-birth underline is visibly contained rather than full-width.
+
+Files touched: `app/components/HomeBirthChartPanel.tsx`,
+`app/components/HomeMyChartFormPanel.tsx`,
+`app/components/HomeOrderForm.tsx`, `docs/SPEC.md`. Not touched:
+`app/page.tsx`, `app/globals.css`, `HomeLayout.tsx`, `NavBar.tsx`,
+`HomeMyChartPanel.tsx`. No console errors. One commit, not pushed.
