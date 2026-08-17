@@ -4150,3 +4150,42 @@ clips the header or footer on either panel. `tsc --noEmit` clean.
 Files touched: `app/components/HomeMyChartPanel.tsx`,
 `app/components/HomeTodaySkyPanel.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**August 16, 2026 (rail tweaks — Nodes top-line shorten, Transits rail gains
+sign/degree):** two founder-requested fixes to the reading pages' desktop
+side rail (`app/components/Rail.tsx`, shared by the natal/My Chart rail and
+the transits/Sky rail).
+
+**1. Nodes row top line shortened, both rails.** The Nodes row's top line
+previously spelled out both body names in full ("North Node - South Node
+17°"), which crowded when the panel narrowed. `Rail.tsx`'s "secondary"
+(two-body axis) layout now renders `(north-node glyph) - (south-node
+glyph) Nodes 17°` instead — the word "Nodes" is hardcoded in the component
+since that layout is Nodes-only by design; the bottom (sign/house) line is
+unchanged. One change in the shared component fixes both the natal and
+transits rails at once; neither page's row-building code needed to change.
+
+**2. Transits rail now shows live sign/degree/retrograde per row,**
+closing the gap flagged when the desktop Transits rail was first built
+(August 11, 2026, above): `get_current_sky_positions()` (the open RPC built
+August 15, 2026 for the home page's Today's Sky panel, see above) is now
+also fetched by the Transits page's `DesktopTransits` component, the same
+fetch pattern as `HomeTodaySkyPanel.tsx`. Each rail row's second line now
+reads sign glyph + sign name (no house — transiting bodies have none,
+matching the My Chart rail's own layout minus house), and each row's first
+line gets a retrograde "R" when the RPC reports one. The Nodes row is
+exempt from the retrograde flag by construction: `Rail.tsx`'s secondary
+layout never renders a retrograde badge at all, so nothing body-specific
+was needed to keep nodes flag-free (nodes are never truly retrograde).
+Mobile's Transits view is unchanged — the founder's brief was rail-only.
+
+**Verified** by screenshot at 1440×900 (dev server, dogfood reading): My
+Chart rail's Nodes row reads "☊ - ☋ Nodes 17°" / "♍ Virgo | 9th - ♓ Pisces |
+3rd" (top line shortened, bottom line untouched); Transits rail shows every
+row's sign+degree (e.g. "♄ Saturn 14° R" / "♈ Aries"), and its Nodes row
+reads "☊ - ☋ Nodes 0°" / "♓ Pisces - ♍ Virgo" with no "R". `tsc --noEmit`
+clean; browser console had no errors on either page.
+
+Files touched: `app/components/Rail.tsx`,
+`app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. One commit, not
+pushed.

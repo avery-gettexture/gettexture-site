@@ -90,10 +90,9 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
                 <>
                   <div className="rail-row-line1">
                     <span>{row.glyph}</span>
-                    <span>{row.name}</span>
                     <span style={{ opacity: 0.45 }}>-</span>
                     <span>{row.secondary.glyph}</span>
-                    <span>{row.secondary.name}</span>
+                    <span>Nodes</span>
                     <span>{row.degree}</span>
                   </div>
                   <div className="rail-row-line2">

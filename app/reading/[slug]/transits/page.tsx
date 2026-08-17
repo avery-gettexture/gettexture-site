@@ -7,6 +7,7 @@ import NavBar from '@/app/components/NavBar';
 import Rail, { type RailRow } from '@/app/components/Rail';
 import TransitChartPane, { type ChartMode } from '@/app/components/TransitChartPane';
 import TransitCalendarPane, { type CalendarEntryType } from '@/app/components/TransitCalendarPane';
+import { RAIL_SIGN_GLYPHS } from '@/app/reading/[slug]/natal/page';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,23 @@ const SKY_GLYPHS: Record<string, string> = {
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
   nodes: '☊', 'nodes-south': '☋',
 };
+
+// get_current_sky_positions() (scripts/create_today_sky_rpcs.sql) returns
+// full body names ("Sun", "North Node", ...) — SKY_BODIES above uses short
+// rail ids, so this maps id -> RPC name (same map shape as
+// HomeTodaySkyPanel.tsx's BODY_GLYPH keys).
+const SKY_BODY_NAME: Record<string, string> = {
+  sun: 'Sun', moon: 'Moon', mercury: 'Mercury', venus: 'Venus', mars: 'Mars',
+  jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus', neptune: 'Neptune', pluto: 'Pluto',
+  nodes: 'North Node',
+};
+
+interface SkyPosition {
+  body: string;
+  sign: string;
+  sign_degree: number;
+  retrograde: boolean;
+}
 
 const PLACEHOLDER_SYNTHESIS = 'This transit reading is being prepared. Check back shortly.';
 const PLACEHOLDER_TIMELINE = 'Timeline entries will appear here once this piece is generated.';
@@ -250,9 +268,17 @@ function DesktopTransits({
   const [activeIndex, setActiveIndex] = useState(0);
   const [paneMode, setPaneMode] = useState<'read' | 'chart' | 'calendar'>('read');
   const [chartMode, setChartMode] = useState<ChartMode>('today');
+  const [positions, setPositions] = useState<SkyPosition[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const activeIndexRef = useRef(0);
+
+  // Rail sign/degree data (SPEC §16 rail-tweaks follow-up) — same RPC and
+  // fetch pattern as HomeTodaySkyPanel.tsx. No slug argument: this is
+  // today's sky, not tied to any one reading.
+  useEffect(() => {
+    supabase.rpc('get_current_sky_positions').then(({ data }) => setPositions((data as SkyPosition[]) ?? []));
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -322,35 +348,40 @@ function DesktopTransits({
     return () => window.removeEventListener('wheel', handleWheel);
   }, [scrollToIndex, paneMode]);
 
-  // Rail rows — no real "current sky" position data reaches the browser
-  // (the sky_positions engine table is server-only, and this build makes
-  // no API calls), so degree/sign/house are left blank rather than
-  // fabricated. This is a flagged gap, not a finished feature.
+  // Rail rows — sign/degree/retrograde now come from get_current_sky_positions
+  // (SPEC §16 rail-tweaks follow-up; closes the earlier flagged gap where
+  // no live position data reached the browser). No house: transiting
+  // bodies have no house.
+  const positionsByBody = new Map(positions.map(p => [p.body, p]));
   const rows: RailRow[] = SKY_BODIES.map((body, index) => {
     if (body.id === 'nodes') {
+      const north = positionsByBody.get('North Node');
+      const south = positionsByBody.get('South Node');
       return {
         id: body.id,
         glyph: SKY_GLYPHS.nodes,
         name: 'North Node',
-        degree: '',
-        signGlyph: '',
-        sign: '',
+        degree: north ? `${Math.floor(north.sign_degree)}°` : '',
+        signGlyph: north ? RAIL_SIGN_GLYPHS[north.sign] ?? '' : '',
+        sign: north?.sign ?? '',
         secondary: {
           glyph: SKY_GLYPHS['nodes-south'],
           name: 'South Node',
-          signGlyph: '',
-          sign: '',
+          signGlyph: south ? RAIL_SIGN_GLYPHS[south.sign] ?? '' : '',
+          sign: south?.sign ?? '',
         },
         active: index === activeIndex,
       };
     }
+    const pos = positionsByBody.get(SKY_BODY_NAME[body.id]);
     return {
       id: body.id,
       glyph: SKY_GLYPHS[body.id] ?? '○',
       name: body.name,
-      degree: '',
-      signGlyph: '',
-      sign: '',
+      degree: pos ? `${Math.floor(pos.sign_degree)}°` : '',
+      retrograde: pos?.retrograde ?? false,
+      signGlyph: pos ? RAIL_SIGN_GLYPHS[pos.sign] ?? '' : '',
+      sign: pos?.sign ?? '',
       active: index === activeIndex,
     };
   });
