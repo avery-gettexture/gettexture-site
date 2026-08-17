@@ -62,6 +62,35 @@ export default function ReferenceHomePage({ params }: { params: Promise<{ slug: 
       <div className="reference-card-content">
         {loading ? (
           <p className="placeholder-text">Loading...</p>
+        ) : activeCategory.slug === 'help' ? (
+          <div>
+            <div
+              className="section-row"
+              onClick={() => setOpenEntryName(openEntryName === 'Help' ? null : 'Help')}
+            >
+              <span className="section-row-label">Help</span>
+              <span className="section-row-chevron">{openEntryName === 'Help' ? '−' : '+'}</span>
+            </div>
+            {openEntryName === 'Help' && (
+              <div style={{ padding: '4px 4px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <p className="body-text">
+                  For data deletion requests or any other inquiries, contact{' '}
+                  <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>
+                    help@gettexture.app
+                  </a>.
+                </p>
+                <p className="body-text">
+                  <a href="https://www.gettexture.app/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>
+                    Privacy Policy
+                  </a>
+                  {' · '}
+                  <a href="https://www.gettexture.app/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>
+                    Terms &amp; Conditions
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
         ) : (
           entries.map(entry => {
             const isOpen = openEntryName === entry.name;

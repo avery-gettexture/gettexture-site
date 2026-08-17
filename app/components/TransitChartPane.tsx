@@ -22,6 +22,11 @@ import { formatToday } from '@/lib/date-utils';
 
 export type ChartMode = 'today' | 'transiting';
 
+// HIDE (SPEC §16, hide-transits pass): the Today/Transiting toggle is
+// suppressed until the real transit/bi-wheel exists — flip back to true to
+// restore it. Nothing else in this file changes.
+const SHOW_TODAY_TRANSITING_TOGGLE = false;
+
 interface TransitChartPaneProps {
   chartData: any;
   birthTimeKnown: boolean;
@@ -127,41 +132,46 @@ export default function TransitChartPane({
           CALENDAR toggle (.rail-control / .rail-control.active in
           globals.css), reproduced inline since this pane is otherwise
           entirely inline-styled, matching NatalChartPane.tsx's own
-          convention. */}
-      <div style={{
-        position: 'absolute',
-        bottom: '8%',
-        right: '8%',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        fontFamily: 'var(--font-geist-mono), monospace',
-        letterSpacing: '0.5px',
-      }}>
-        <span
-          onClick={() => onChartModeChange('today')}
-          style={{
-            cursor: 'pointer',
-            color: chartMode === 'today' ? 'rgba(253,245,237,1)' : 'rgba(253,245,237,0.45)',
-            fontWeight: chartMode === 'today' ? 700 : 400,
-            fontSize: chartMode === 'today' ? 'clamp(12px, 1vw, 14px)' : 'clamp(11px, 0.9vw, 13px)',
-          }}
-        >
-          Today
-        </span>
-        <span style={{ color: 'rgba(253,245,237,0.30)' }}>|</span>
-        <span
-          onClick={() => onChartModeChange('transiting')}
-          style={{
-            cursor: 'pointer',
-            color: chartMode === 'transiting' ? 'rgba(253,245,237,1)' : 'rgba(253,245,237,0.45)',
-            fontWeight: chartMode === 'transiting' ? 700 : 400,
-            fontSize: chartMode === 'transiting' ? 'clamp(12px, 1vw, 14px)' : 'clamp(11px, 0.9vw, 13px)',
-          }}
-        >
-          Transiting
-        </span>
-      </div>
+          convention.
+
+          HIDDEN (SPEC §16, hide-transits pass, SHOW_TODAY_TRANSITING_TOGGLE
+          above) — restorable by flipping the flag back to true. */}
+      {SHOW_TODAY_TRANSITING_TOGGLE && (
+        <div style={{
+          position: 'absolute',
+          bottom: '8%',
+          right: '8%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontFamily: 'var(--font-geist-mono), monospace',
+          letterSpacing: '0.5px',
+        }}>
+          <span
+            onClick={() => onChartModeChange('today')}
+            style={{
+              cursor: 'pointer',
+              color: chartMode === 'today' ? 'rgba(253,245,237,1)' : 'rgba(253,245,237,0.45)',
+              fontWeight: chartMode === 'today' ? 700 : 400,
+              fontSize: chartMode === 'today' ? 'clamp(12px, 1vw, 14px)' : 'clamp(11px, 0.9vw, 13px)',
+            }}
+          >
+            Today
+          </span>
+          <span style={{ color: 'rgba(253,245,237,0.30)' }}>|</span>
+          <span
+            onClick={() => onChartModeChange('transiting')}
+            style={{
+              cursor: 'pointer',
+              color: chartMode === 'transiting' ? 'rgba(253,245,237,1)' : 'rgba(253,245,237,0.45)',
+              fontWeight: chartMode === 'transiting' ? 700 : 400,
+              fontSize: chartMode === 'transiting' ? 'clamp(12px, 1vw, 14px)' : 'clamp(11px, 0.9vw, 13px)',
+            }}
+          >
+            Transiting
+          </span>
+        </div>
+      )}
 
     </div>
   );

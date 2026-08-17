@@ -114,6 +114,13 @@ interface SkyPosition {
   retrograde: boolean;
 }
 
+// HIDE (SPEC §16, hide-transits pass): planet card content and the rail's
+// Calendar control are suppressed until transits content is ready to ship.
+// Flip either flag back to true to restore. The shell (rail with live
+// sign/degree/dates, nav, chart view) is unaffected by both.
+const SHOW_TRANSIT_CARD_CONTENT = false;
+const SHOW_CALENDAR_RAIL_CONTROL = false;
+
 const PLACEHOLDER_SYNTHESIS = 'This transit reading is being prepared. Check back shortly.';
 const PLACEHOLDER_TIMELINE = 'Timeline entries will appear here once this piece is generated.';
 // Reference is placeholder for now, not a mirror of natal's live Reference
@@ -185,6 +192,30 @@ type SectionKey = 'overview' | 'timeline' | 'reference';
 
 function TransitBodyCardContent({ body, piece }: { body: TransitBodyConfig; piece?: TransitPieceRow }) {
   const [openSection, setOpenSection] = useState<SectionKey>('overview');
+
+  // HIDDEN (SPEC §16, hide-transits pass, SHOW_TRANSIT_CARD_CONTENT above):
+  // every planet card's reading pane shows only "Coming soon." — no name,
+  // no accordions, no body text. The real content below is kept intact and
+  // restorable by flipping the flag back to true.
+  if (!SHOW_TRANSIT_CARD_CONTENT) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-anton), sans-serif',
+          fontSize: 'clamp(36px, 6vw, 64px)',
+          color: 'var(--dark)',
+          letterSpacing: '1px',
+        }}>
+          Coming soon.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -466,7 +497,9 @@ function DesktopTransits({
             controls={[
               { label: 'READ', active: paneMode === 'read', onClick: () => setPaneMode('read') },
               { label: 'CHART', active: paneMode === 'chart', onClick: () => setPaneMode('chart') },
-              { label: 'CALENDAR', active: paneMode === 'calendar', onClick: () => setPaneMode('calendar') },
+              ...(SHOW_CALENDAR_RAIL_CONTROL
+                ? [{ label: 'CALENDAR', active: paneMode === 'calendar', onClick: () => setPaneMode('calendar') }]
+                : []),
             ]}
             rows={rows}
             fillHeight

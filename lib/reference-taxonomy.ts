@@ -78,6 +78,16 @@ export const REFERENCE_TAXONOMY: ReferenceCategory[] = [
     label: 'Configurations and Events',
     entryNames: ['Stellium', 'Eclipses'],
   },
+  // Not a reference_content DB category — its content is live mailto/URL
+  // links, which the plain-text DB-driven renderer below can't produce.
+  // Both Reference implementations (desktop page.tsx and mobile
+  // ReferencePage.tsx) special-case this slug and render fixed copy
+  // instead of looking it up in allEntries.
+  {
+    slug: 'help',
+    label: 'Help',
+    entryNames: ['Help'],
+  },
 ];
 
 /** Splits a description on blank lines so multi-paragraph entries (How to

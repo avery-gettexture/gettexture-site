@@ -184,7 +184,10 @@ export default function ReferencePage() {
           </div>
         ) : (
           <>
-            {REFERENCE_TAXONOMY.map(category => (
+            {/* 'help' is excluded here — it has no reference_content DB row
+                (its content is live links, not DB text) and is instead
+                rendered by the hardcoded Help row below. */}
+            {REFERENCE_TAXONOMY.filter(category => category.slug !== 'help').map(category => (
               <CategorySection
                 key={category.slug}
                 title={category.label}
@@ -196,20 +199,28 @@ export default function ReferencePage() {
               />
             ))}
 
-            {/* Support row */}
+            {/* Help row — SPEC §16 hide-transits pass: relabeled from the
+                prior "Support" row and given the same copy as desktop's
+                new Help category (app/reading/[slug]/reference/page.tsx),
+                so both surfaces match. */}
             <div style={{ borderBottom: '0.5px solid rgba(22,22,18,0.10)' }}>
               <div
-                onClick={() => toggleCategory('support')}
+                onClick={() => toggleCategory('help')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 4px', cursor: 'pointer', userSelect: 'none' }}
               >
-                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(14px, 3.8vw, 16px)', color: '#161612', letterSpacing: '-0.2px' }}>Support</span>
-                <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(12px, 3vw, 14px)', color: 'rgba(22,22,18,0.35)' }}>{openCategory === 'support' ? '−' : '+'}</span>
+                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(14px, 3.8vw, 16px)', color: '#161612', letterSpacing: '-0.2px' }}>Help</span>
+                <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(12px, 3vw, 14px)', color: 'rgba(22,22,18,0.35)' }}>{openCategory === 'help' ? '−' : '+'}</span>
               </div>
-              {openCategory === 'support' && (
-                <div style={{ padding: '0 4px 24px' }}>
+              {openCategory === 'help' && (
+                <div style={{ padding: '0 4px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.6vw, 15px)', color: 'rgba(22,22,18,0.70)', lineHeight: '1.7', letterSpacing: '-0.2px' }}>
-                    Privacy policy, data deletion requests, and general information about Texture are available at{' '}
-                    <a href="https://gettexture.app" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>gettexture.app</a>.
+                    For data deletion requests or any other inquiries, contact{' '}
+                    <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>help@gettexture.app</a>.
+                  </p>
+                  <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.6vw, 15px)', color: 'rgba(22,22,18,0.70)', lineHeight: '1.7', letterSpacing: '-0.2px' }}>
+                    <a href="https://www.gettexture.app/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>Privacy Policy</a>
+                    {' · '}
+                    <a href="https://www.gettexture.app/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)', textDecoration: 'underline' }}>Terms &amp; Conditions</a>
                   </p>
                 </div>
               )}

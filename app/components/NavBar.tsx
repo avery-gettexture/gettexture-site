@@ -7,13 +7,21 @@ interface NavBarProps {
   active: NavKey;
 }
 
-const NAV_ITEMS: { key: NavKey; label: string; path: string }[] = [
+// HIDE (SPEC §16, hide-transits pass): Settings has no live content yet
+// (transits/subscriptions aren't built) — hidden from the nav, not removed.
+// The route itself still works by direct URL. Flip back to true to restore
+// the link.
+const SHOW_SETTINGS_NAV = false;
+
+const ALL_NAV_ITEMS: { key: NavKey; label: string; path: string }[] = [
   { key: 'home', label: 'Home', path: '' },
   { key: 'natal', label: 'My Chart', path: '/natal' },
   { key: 'transits', label: 'Transits', path: '/transits' },
   { key: 'reference', label: 'Reference', path: '/reference' },
   { key: 'settings', label: 'Settings', path: '/settings' },
 ];
+
+const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => SHOW_SETTINGS_NAV || item.key !== 'settings');
 
 export default function NavBar({ slug, active }: NavBarProps) {
   return (

@@ -4356,3 +4356,88 @@ same viewport).
 
 Files touched: `app/reading/[slug]/reference/page.tsx`,
 `app/globals.css`, `docs/SPEC.md`. One commit, not pushed.
+
+**August 16, 2026 (hide-transits / clean-natal pass, founder brief):** with
+NATAL fully working and TRANSITS content not ready, this pass hides
+not-yet-ready transits UI (shell, data, and chart all stay; only the
+not-ready content is suppressed) and makes two small unrelated fixes. Six
+items:
+
+1. **Chart 101 → Reference:** already wired (`app/components/
+   NatalChartPane.tsx` and `TransitChartPane.tsx` both already link to
+   `/reading/[slug]/reference`, which already opens on "How to Read a
+   Chart"). No code change; confirmed by screenshot only.
+2. **Transits chart view — Today/Transiting toggle HIDDEN:**
+   `TransitChartPane.tsx` gets a `SHOW_TODAY_TRANSITING_TOGGLE = false`
+   flag; the toggle JSX is now wrapped in that condition. Flip to `true`
+   to restore. Wheel and Chart 101 link unaffected.
+3. **Transits planet cards — real content HIDDEN, "Coming soon." shown
+   instead:** `app/reading/[slug]/transits/page.tsx` gets a
+   `SHOW_TRANSIT_CARD_CONTENT = false` flag. `TransitBodyCardContent`
+   (desktop) now returns a single centered Anton "Coming soon." block when
+   the flag is off, with the original header/Overview/Timeline/Reference
+   accordion body kept intact and restorable by flipping the flag to
+   `true`. Mobile's separate `TransitBodyCard` component was left
+   untouched (not in scope — the brief's screenshots were desktop-only).
+4. **Transits rail — Calendar control HIDDEN, remaining controls
+   right-justified:** same file, `SHOW_CALENDAR_RAIL_CONTROL = false`
+   flag; the `CALENDAR` entry is now built conditionally into the
+   `<Rail controls={...}>` array. No CSS change was needed —
+   `.rail-controls` was already `justify-content: flex-end`
+   (`app/globals.css`), the same rule My Chart's 2-control rail already
+   relies on, so removing the third control right-justifies the remaining
+   two automatically. `TransitCalendarPane` and all calendar logic are
+   untouched, just unreachable without the button.
+5. **Top nav — Settings HIDDEN:** `app/components/NavBar.tsx` gets a
+   `SHOW_SETTINGS_NAV = false` flag; `NAV_ITEMS` is now `ALL_NAV_ITEMS`
+   filtered by that flag. The `/reading/[slug]/settings` route is
+   untouched and still reachable by direct URL — only the nav link is
+   gone. Restore by flipping the flag. (`NavBar` only renders on desktop;
+   mobile's natal/transits scroll views have no top nav, so this was
+   inherently a desktop-only change.)
+6. **Reference — new "Help" row (not a hide; new content):** added to
+   both Reference implementations, with founder confirmation to update
+   both rather than desktop-only:
+   - `lib/reference-taxonomy.ts`: new `REFERENCE_TAXONOMY` category
+     `{ slug: 'help', label: 'Help', entryNames: ['Help'] }`, appended
+     last. Unlike every other category, it has no `reference_content` DB
+     row — its content is live links (mailto + two URLs), which the
+     existing DB-driven plain-text renderer can't produce.
+   - Desktop (`app/reading/[slug]/reference/page.tsx`): the rail shows
+     "Help" like any other category (from the taxonomy); the reading pane
+     special-cases `activeCategory.slug === 'help'` and renders one
+     accordion row with fixed copy instead of looking up `allEntries`.
+   - Mobile (`app/components/ReferencePage.tsx`): the pre-existing
+     hardcoded "Support" row (a link to gettexture.app, outside the
+     DB-driven category loop) was relabeled "Help" and given the same
+     copy as desktop. The main taxonomy-driven `CategorySection` loop now
+     filters out the `help` slug, so it isn't also rendered there as an
+     empty accordion.
+   - Copy (identical both places, given verbatim in the founder's brief,
+     so no separate copy-approval loop): "For data deletion requests or
+     any other inquiries, contact help@gettexture.app." (mailto link),
+     plus links to Privacy Policy (https://www.gettexture.app/privacy)
+     and Terms & Conditions (https://www.gettexture.app/terms).
+
+**Verified** with a throwaway Playwright script (not committed) against
+the dogfood reading (`hejkhjq1zns5`) on the already-running
+`next dev -p 3001` server: desktop screenshots (1440×900) of My Chart's
+CHART pane (Chart 101 present), Transits CHART pane (no Today/Transiting
+toggle, wheel and Chart 101 still render), a Transits READ-mode planet
+card (only "Coming soon." — 11 occurrences in the DOM, one per rail row,
+confirming every card is affected), the Transits rail (no CALENDAR
+control, READ/CHART right-justified), the top nav (no Settings link, 0
+matches), and the Reference page's Help row (expands to show 1 mailto
+link + 1 Privacy Policy link + 1 Terms & Conditions link, all with the
+correct hrefs). Also screenshotted mobile (390×844) natal page scrolled to
+its Reference section: Help row present with the same three links, old
+"Support" label gone (0 matches). No browser console errors on any page.
+`tsc --noEmit` clean.
+
+Files touched: `app/components/TransitChartPane.tsx`,
+`app/components/NavBar.tsx`,
+`app/reading/[slug]/transits/page.tsx`,
+`lib/reference-taxonomy.ts`,
+`app/reading/[slug]/reference/page.tsx`,
+`app/components/ReferencePage.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
