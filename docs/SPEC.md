@@ -4340,3 +4340,19 @@ Files touched: `lib/reference-taxonomy.ts` (new),
 `app/components/ReferencePage.tsx`,
 `app/reading/[slug]/reference/page.tsx`, `app/globals.css`,
 `docs/SPEC.md`. One commit, not pushed.
+
+**August 16, 2026 (desktop Reference title size, founder feedback):** the
+desktop Reference page's title (the category label) was reusing the base
+`.planet-name` size — sized for mobile's full-screen card — because it
+isn't wrapped in `.natal-section`, the selector that shrinks My Chart's
+placement titles down for the desktop reading pane. That made
+Reference's title read noticeably larger than My Chart's. New
+`.reference-title` rule (`app/globals.css`) matches that same smaller
+size exactly (`clamp(22px, 3vw, 30px)` — about a 30% reduction from the
+base size), applied alongside `.planet-name` on the Reference page's
+`<h1>`. Verified by screenshot at 1440×900 and reading the computed
+font-size directly (30px, matching My Chart's placement titles at the
+same viewport).
+
+Files touched: `app/reading/[slug]/reference/page.tsx`,
+`app/globals.css`, `docs/SPEC.md`. One commit, not pushed.
