@@ -44,7 +44,7 @@ export default function MobileNavShell({ slug, active }: MobileNavShellProps) {
           className="mobile-menu-trigger"
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen(o => !o)}
         >
           Menu
         </button>

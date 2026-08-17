@@ -109,12 +109,17 @@ function BirthDataToggle({
   birthTime,
   birthLocation,
   theme,
+  extraTopPadding = 0,
 }: {
   name: string;
   birthDate: string;
   birthTime: string;
   birthLocation: string;
   theme: 'dark' | 'light';
+  // Extra breathing room above the collapsed name only (Chart tab's
+  // wheel sits right above this control and the default padding hugs it
+  // too tightly — List has no wheel above it, so it doesn't opt in).
+  extraTopPadding?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -155,7 +160,7 @@ function BirthDataToggle({
         alignItems: expanded ? 'stretch' : 'center',
         justifyContent: 'center',
         gap: '6px',
-        padding: expanded ? '10px 24px' : '10px 24px',
+        padding: expanded ? '10px 24px' : `${10 + extraTopPadding}px 24px 10px`,
         cursor: 'pointer',
         userSelect: 'none',
       }}
@@ -348,7 +353,7 @@ function ChartView({
 
       {/* Birth data — collapsed default (name only), tap to expand. */}
       <div style={{ flexShrink: 0 }}>
-        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" />
+        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={8} />
       </div>
     </div>
   );
@@ -386,7 +391,8 @@ export default function ChartSection({
           second one is rendered here. */}
       <div style={{
         position: 'absolute', top: NAV_ROW_TOP, left: 0, right: 0,
-        display: 'flex', justifyContent: 'center', gap: '32px', zIndex: 20,
+        display: 'flex', justifyContent: 'space-between',
+        paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
       }}>
         {(['chart', 'list'] as ChartView[]).map(view => (
           <button

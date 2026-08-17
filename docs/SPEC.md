@@ -5162,3 +5162,58 @@ Files touched: `app/reading/[slug]/natal/page.tsx`,
 `app/components/CoverSection.tsx`, `app/components/BirthDataSection.tsx`,
 `app/components/NatalChartPane.tsx`, any desktop code path, or
 `/reading/[slug]/transits`. One commit, not pushed.
+
+**August 17, 2026 (mobile nav + chart page tweaks — four founder-flagged
+fixes against the mocks, `docs/mocks/mobile-nav.png` and
+`docs/mocks/mobile-chart.png`):**
+
+1. **Cream bar removed from the mobile nav bar.** `.mobile-nav-bar`
+   (`app/globals.css`) had `background: var(--cream)` painting a solid
+   strip behind "Menu"/"TEXTURE"; removed, so both now float directly on
+   the page background underneath, matching the mocks.
+2. **Menu now toggles the drawer and stays visible while it's open.**
+   Root cause: `.mobile-drawer` (z-index 102, opaque, spans the left 72%
+   of the screen including the top 56px) was physically covering the
+   Menu button (`.mobile-nav-bar`, z-index 100) once opened — it wasn't
+   dimmed, it was underneath an opaque panel. Fixed by raising
+   `.mobile-nav-bar` to z-index 103 (above the drawer and its scrim);
+   combined with fix 1 (no background), this lifts just the two floating
+   text elements above the drawer rather than a visible box. Separately,
+   `MobileNavShell.tsx`'s Menu button now toggles (`setOpen(o => !o)`)
+   instead of only ever opening — tapping it again while open now closes
+   the drawer. Tap-outside-to-close (the scrim's own `onClick`) was
+   already correct and is unchanged.
+3. **Chart | List split to the edges.** The toggle row in
+   `ChartSection.tsx` was `justifyContent: 'center'` with a 32px gap,
+   centering both words together in the middle. Changed to
+   `justifyContent: 'space-between'` with 20px left/right padding
+   (matching the nav bar's own 20px side padding), so "Chart" sits under
+   "Menu" and "List" sits under "TEXTURE," per the mock.
+4. **Collapsed name nudged down on the Chart tab.** The name shown below
+   the chart wheel (`BirthDataToggle` in `ChartSection.tsx`) hugged the
+   wheel's bottom edge too tightly in its collapsed state. Added an
+   optional `extraTopPadding` prop to `BirthDataToggle` (default 0, only
+   affects the collapsed padding-top), passed as `8` from the Chart tab's
+   own call site only — List's call site is untouched, so its spacing is
+   unaffected. Confirmed via computed style: collapsed padding went from
+   `10px 24px` to `18px 24px 10px` on the Chart tab.
+
+All four changes are inside the existing `@media (max-width: 1023px)`
+block or mobile-only components — `NavBar.tsx`, `DesktopNatal`, and every
+`@media (min-width: 1024px)` path are untouched by construction.
+
+Verified with a Playwright script driving a running dev server (restarted
+with a cleared `.next`/Turbopack cache first, per the recurring
+stale-cache gotcha logged earlier in this section), dogfood slug
+(`DOGFOOD_READING_SLUG` = `hejkhjq1zns5`): at 390×844, screenshotted the
+closed nav (no cream bar, Chart/List split left/right), tapped Menu and
+screenshotted the open drawer (Menu legible on top of it), tapped Menu
+again and confirmed the drawer's DOM node was removed (closed), reopened
+and clicked the scrim and confirmed it closed that way too. Computed-style
+check confirmed the collapsed name's padding-top change. At 1440×900,
+screenshotted desktop `/natal` and confirmed it renders unchanged. Zero
+console errors at any width.
+
+Files touched: `app/globals.css`, `app/components/MobileNavShell.tsx`,
+`app/components/ChartSection.tsx`, `docs/SPEC.md`. Not touched: any
+desktop code path. One commit, not pushed.

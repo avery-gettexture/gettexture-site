@@ -468,12 +468,17 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    /* Above .mobile-drawer-scrim (101) and .mobile-drawer (102) — the
+       drawer is opaque and spans the left 72% of the screen including
+       this bar's own height, so without this the Menu button would be
+       physically covered by the drawer panel once it opens. No
+       background here (see below), so this only lifts the two floating
+       text elements above the drawer, not a visible box. */
+    z-index: 103;
     height: 56px;
     padding-top: env(safe-area-inset-top);
     padding-left: 20px;
     padding-right: 20px;
-    background: var(--cream);
     display: flex;
     align-items: center;
     justify-content: space-between;
