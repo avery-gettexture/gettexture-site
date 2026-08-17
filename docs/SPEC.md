@@ -4189,3 +4189,71 @@ clean; browser console had no errors on either page.
 Files touched: `app/components/Rail.tsx`,
 `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**August 16, 2026 (reference dictionary rewrite, Part 1 — data only):** the
+`reference_content` table (SIGNS/HOUSES/PLANETS AND POINTS/MOTION/DEGREE/
+ASPECTS, 49 rows) is being refreshed from two founder-written docs,
+`docs/Texture_Reference_Section_Updated.md` (a rewrite of the existing
+entries) and `docs/Texture_Extended_Reference_Terms.md` (new entries). This
+entry records the resulting structure — the definitive reference for
+`reference_content`'s shape going forward, since no other SPEC section
+previously inventoried this table.
+
+**Final structure — 9 categories** (`category` column value → the entries
+in it, in display order):
+- `how-to-read-a-chart` → How to Read a Chart (one entry, same name as the
+  category — a parent-category-with-one-entry shape, unlike every other
+  category here).
+- `system` (new) → Tropical Zodiac, Whole Sign Houses, Sect.
+- `sign` (unchanged) → the 12 signs, Aries–Pisces.
+- `house` (unchanged) → Empty House, 1st–12th House (13 entries).
+- `planet` (unchanged) → Sun–Pluto, Ascendant, Midheaven, North Node, South
+  Node (14 entries — angles and nodes live in this category, not their own).
+- `points-and-calculations` (new) → Nodes (Mean Node), Planetary Ruler,
+  Decan.
+- `motion` (unchanged) → Direct, Retrograde, **Station** (new, appended).
+- `aspect` (unchanged) → Conjunction, Sextile, Square, Trine, Opposition,
+  **Orb** (new, appended).
+- `configurations-and-events` (new) → Stellium, Eclipses (Eclipses is ONE
+  entry — the solar/lunar distinction is two paragraphs inside it, not two
+  rows).
+
+**`degree` category retired** — the 3 Early/Middle/Late rows are deleted.
+This isn't a loss: SPEC §4.3 already replaced early/middle/late degree
+readings with decans in the generation prompts months ago; the dictionary
+is simply catching up to that ruling. `lib/reference-utils.ts`'s per-
+placement degree lookup (`find('degree', bucket)`) will now always return
+null and that line silently drops from the natal page's "Reference"
+accordion — expected, not a bug.
+
+**Naming rule (the reason this needed care):** `lib/reference-utils.ts`
+does exact-string lookups against this table (e.g. `find('planet',
+'Ascendant')`, `find('aspect', 'Conjunction')`) to power the live
+per-placement "Reference" accordion on the natal page — every planet,
+sign, house, motion, and aspect entry is looked up by its exact current
+`name`, under its exact current `category` slug. The two source docs'
+bold headings sometimes differ from the live names (e.g. "Ascendant
+(Rising Sign)" vs. the stored "Ascendant"; "Conjunction (0°)" vs. the
+stored "Conjunction"). **Ruling: existing entries keep their existing
+`name` and `category` slug — only `description` is overwritten.**
+New entries (no existing consumer) use the doc's heading text as-is,
+except **Sect** — shortened from the doc's "Sect (Day and Night Charts)"
+per founder call. New category slugs (`how-to-read-a-chart`, `system`,
+`points-and-calculations`, `configurations-and-events`) are internal
+values only; the human-readable category names above (e.g. "Points and
+Calculations") are display labels applied at render time, the same way
+the existing five categories already had display labels separate from
+their slugs.
+
+On comparison, `Texture_Reference_Section_Updated.md`'s text is
+byte-for-byte identical to what was already live for all 46 existing
+entries — the overwrite is a no-op today (still applied, for
+completeness/idempotency).
+
+`scripts/update_reference_content.sql` holds the full migration (46
+overwrite `UPDATE`s, 11 `INSERT`s, 1 `DELETE`) — the founder runs it (no DB
+write access here). Part 2 (porting this to the mobile and desktop
+Reference pages) is a separate commit.
+
+Files touched: `scripts/update_reference_content.sql`, `docs/SPEC.md`. One
+commit, not pushed.
