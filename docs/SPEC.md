@@ -5774,3 +5774,44 @@ Avery is supplying the birth data for the first test figure next.
 
 Files touched: `scripts/create-example-reading.mjs` (new), `docs/SPEC.md`.
 One commit, not pushed.
+
+**August 19, 2026 (bug fix: nav reverted to the dogfood slug after
+visiting Transits):** Reported by Avery — on a real (non-dogfood) reading,
+going My Chart → Transits → back to My Chart landed on the dogfood
+reading instead. Going Home → My Chart stayed correct; only the round
+trip through Transits broke it.
+
+**Cause:** `app/reading/[slug]/transits/page.tsx` never read its own
+`[slug]` URL parameter. `TransitsPage()` took no props and hardcoded
+`const slug = DOGFOOD_READING_SLUG` (line 471), unlike My Chart
+(`natal/page.tsx`) and Reference (`reference/page.tsx`), which both
+resolve the real slug from `params` via React's `use()`. This was a
+known, previously-deferred gap — flagged in the July 29, 2026 Stage Two
+entry above ("the transits page still reads a hardcoded dogfood slug
+... known state, not a bug, pending the real per-slug wiring") — but it
+turns out to be a real user-facing bug, not a cosmetic one: it meant the
+Transits page always fetched and displayed the DOGFOOD reading's data,
+regardless of which reading's URL the user was on. Because that
+hardcoded slug was then passed straight to `NavBar` and
+`MobileNavShell` (`slug={slug}`), every nav link built from the Transits
+page — including "My Chart" — pointed at the dogfood reading. `NavBar.tsx`
+and `MobileNavShell.tsx` themselves were never at fault: both correctly
+build `/reading/${slug}${path}` links from whatever slug prop they're
+given.
+
+**Fix:** `TransitsPage` now takes `params: Promise<{ slug: string }>` and
+resolves `const { slug } = use(params)`, matching the My Chart/Reference
+pattern exactly. Removed the `DOGFOOD_READING_SLUG` import and the
+hardcoded fallback — no dogfood default remains anywhere in the nav path.
+
+**Verified** with a Playwright script against the running dev server, on
+`marilyn-monroe` (a real, non-dogfood reading already in the database, no
+new data written): clicked through My Chart → Transits → My Chart →
+Transits → Reference → My Chart at both desktop (1440×900, top nav bar)
+and mobile (390×844, hamburger drawer — drawer labels "My Chart" and
+"Today's Sky"). The URL's slug stayed `marilyn-monroe` at every step, on
+both viewports; final screenshots on both confirm the page shows
+"Marilyn Monroe," not the dogfood chart.
+
+Files touched: `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`.
+One commit, not pushed.

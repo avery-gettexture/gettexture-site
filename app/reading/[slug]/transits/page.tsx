@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, use } from 'react';
 import { supabase } from '@/lib/supabase';
-import { DOGFOOD_READING_SLUG } from '@/lib/config';
 import { getTodayLocalISODate } from '@/lib/date-utils';
 import NavBar from '@/app/components/NavBar';
 import MobileNavShell from '@/app/components/MobileNavShell';
@@ -467,8 +466,12 @@ function DesktopTransits({
 
 // ── Main Transits Page ───────────────────────────────────────────────────────
 
-export default function TransitsPage() {
-  const slug = DOGFOOD_READING_SLUG;
+export default function TransitsPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = use(params);
   const [reading, setReading] = useState<Reading | null>(null);
   const [pieces, setPieces] = useState<Record<string, TransitPieceRow>>({});
   // Mobile Today's Sky rebuild (SPEC §16) — same get_current_sky_positions() /
