@@ -5729,3 +5729,48 @@ the Anthropic console).
 
 Files touched: none (data write only — `readings` row for
 `hejkhjq1zns5`), `docs/SPEC.md`. One commit (SPEC only), not pushed.
+
+**August 19, 2026 (admin script: create + generate example readings without
+Stripe):** until now the only way a `readings` row could be created was the
+Stripe webhook (`app/api/stripe-webhook/route.ts`), which requires a real
+paid checkout — no path existed to produce example readings for public
+figures (SPEC §2's "sample reading" concept). Added
+`scripts/create-example-reading.mjs`, a one-figure-per-invocation admin
+script that does what the webhook does, minus payment:
+- Computes `chart_data` the same way the webhook does — same
+  `/api/chart` proxy call, same subject shape (parsing duplicated from the
+  webhook's date/time logic, not imported, since the route isn't a shared
+  module).
+- Inserts the `readings` row (service-role key, current schema — `slug`,
+  `name`, `birth_*`, `chart_data`; no `email`) exactly like the webhook,
+  except `stripe_session_id` is left unset (there is no session) and the
+  slug is supplied by the caller rather than randomly generated (the
+  script refuses to run if the slug already exists — no overwrite path).
+- Inserts the matching `reading_contacts` row. `email` is `NOT NULL` on
+  that table with no real customer to attach for a public figure, so the
+  script writes a placeholder (`example+<slug>@gettexture.app`) — flagged
+  to Avery as a data-content judgment call, not silently decided.
+- Generates all 13 placements by importing `PLACEMENTS` and
+  `generateNatalPlacement` from `lib/natal-generation/generate-piece.mjs`
+  unmodified — the same functions `scripts/generate-natal.mjs` uses —
+  parameterized by the given slug instead of hardcoded to
+  `DOGFOOD_READING_SLUG`. No generation or chart logic was reinvented.
+- Re-reads the full row from Supabase after generation (per AGENTS.md's
+  write-verification rule) and reports which of the 13 columns came back
+  populated, plus explicit confirmation that the legacy `north_node`/
+  `south_node` columns were not touched.
+- Supports `--dry-run` (same convention as `generate-natal.mjs`): computes
+  the chart and prints all 13 generation inputs with zero Supabase writes
+  and zero Anthropic calls, for sanity-checking a figure's data before
+  spending real generation cost.
+
+Verified with a smoke test (placeholder test data, not a real figure):
+`--dry-run` correctly computed `chart_data` via the live `/api/chart`
+route, assembled and printed all 13 placements' Call 1 user messages
+(planets, angles, and the combined Nodes axis), exited 0, and a fresh
+Supabase read confirmed zero rows were written under the dry-run's test
+slug. Real-mode generation against an actual public figure is pending —
+Avery is supplying the birth data for the first test figure next.
+
+Files touched: `scripts/create-example-reading.mjs` (new), `docs/SPEC.md`.
+One commit, not pushed.
