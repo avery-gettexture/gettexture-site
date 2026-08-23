@@ -36,12 +36,12 @@ const SIGN_ABBR_MAP: Record<string, string> = {
   Sag: 'Sagittarius', Cap: 'Capricorn', Aqu: 'Aquarius', Pis: 'Pisces',
 };
 
-// Nodes merged per SPEC §4.1 (14 -> 13 placements): one "Nodes" row,
-// keyed on the North Node's own chart_data entry so the existing
-// sign/house/degree lookup below needs no special case. This compact
-// one-line row can only show one end of the axis; it shows the North
-// Node's own placement as a stand-in — flagged for founder review, same
-// simplification used on the natal page's per-section meta line.
+// Nodes merged per SPEC §4.1 (14 -> 13 placements) into one combined
+// reading, but shown here as its own North Node row PLUS a South Node row
+// built alongside it below (SPEC §16, Aug 22 2026) — the single row this
+// list used to show only ever displayed the North Node's own placement,
+// dropping the South Node from the mobile list entirely. Both rows tap
+// through to the same combined Nodes section.
 const PLANET_ORDER = [
   { key: 'sun',                   label: 'Sun',        glyphKey: 'sun' },
   { key: 'moon',                  label: 'Moon',       glyphKey: 'moon' },
@@ -55,7 +55,7 @@ const PLANET_ORDER = [
   { key: 'pluto',                 label: 'Pluto',      glyphKey: 'pluto' },
   { key: 'ascendant',             label: 'Ascendant',  glyphKey: 'ascendant' },
   { key: 'medium_coeli',          label: 'Midheaven',  glyphKey: 'medium_coeli' },
-  { key: 'mean_north_lunar_node', label: 'Nodes',      glyphKey: 'mean_north_lunar_node' },
+  { key: 'mean_north_lunar_node', label: 'North Node', glyphKey: 'mean_north_lunar_node' },
 ];
 
 const HOUSE_ORDINALS: Record<string, string> = {
@@ -223,13 +223,13 @@ function ListView({
   if (!subject) return null;
 
   const planets = PLANET_ORDER
-    .map(p => {
+    .flatMap(p => {
       const data = subject[p.key];
-      if (!data) return null;
+      if (!data) return [];
       const sign = SIGN_ABBR_MAP[data.sign] ?? data.sign ?? '';
       const degree = data.position != null ? Math.floor(data.position) : 0;
       const house = ['ascendant', 'medium_coeli'].includes(p.key) ? null : HOUSE_ORDINALS[data.house] ?? null;
-      return {
+      const row = {
         key: p.key, label: p.label,
         glyph: PLANET_GLYPHS[p.glyphKey] ?? '○',
         sign, signGlyph: SIGN_GLYPHS[sign] ?? '',
@@ -240,8 +240,24 @@ function ListView({
         // the same way; SPEC §16).
         retrograde: p.key === 'mean_north_lunar_node' ? false : (data.retrograde ?? false),
       };
-    })
-    .filter((p): p is NonNullable<typeof p> => p !== null);
+      // South Node row (SPEC §16, Aug 22 2026): built right after North
+      // Node's, reading the axis's other end from chart_data directly —
+      // this list previously had no row for it at all. Tapping it opens
+      // the same combined Nodes section North Node's row opens (see
+      // mean_south_lunar_node in natal/page.tsx's PLANET_TO_INDEX).
+      if (p.key !== 'mean_north_lunar_node') return [row];
+      const southData = subject.mean_south_lunar_node;
+      if (!southData) return [row];
+      const southSign = SIGN_ABBR_MAP[southData.sign] ?? southData.sign ?? '';
+      return [row, {
+        key: 'mean_south_lunar_node', label: 'South Node',
+        glyph: PLANET_GLYPHS.mean_south_lunar_node ?? '○',
+        sign: southSign, signGlyph: SIGN_GLYPHS[southSign] ?? '',
+        degree: southData.position != null ? Math.floor(southData.position) : 0,
+        house: HOUSE_ORDINALS[southData.house] ?? null,
+        retrograde: false,
+      }];
+    });
 
   return (
     <div style={{

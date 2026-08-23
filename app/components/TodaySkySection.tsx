@@ -40,15 +40,13 @@ const BODY_GLYPH: Record<string, string> = {
   'North Node': '☊', 'South Node': '☋',
 };
 
-// Nodes shown as one row with BOTH ends (founder correction, Aug 17 2026):
-// follows the desktop rail's own Nodes row pattern (Rail.tsx's `secondary`
-// branch — app/reading/[slug]/natal/page.tsx's DesktopNatal `rows` builder)
-// rather than mobile My Chart List's single-end row — north glyph - south
-// glyph, north sign - south sign, one shared degree (axis math guarantees
-// the same degree-within-sign on both ends), no retrograde badge (Nodes are
-// never meaningfully retrograde). 'South Node' is looked up alongside
-// 'North Node' below rather than iterated as its own row.
-const BODY_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North Node'];
+// Nodes shown as two full rows, North Node then South Node (SPEC §16,
+// Aug 22 2026) — this reverses the Aug 17 2026 founder correction that
+// had collapsed them to one combined line; today's instruction is two
+// rows on every surface that lists Nodes, flagged in the SPEC changelog.
+// Both are otherwise ordinary rows (own glyph, sign, degree), no
+// retrograde badge (Nodes are never meaningfully retrograde).
+const BODY_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North Node', 'South Node'];
 
 // Same offsets as ChartSection.tsx — pushes this page's own Chart|List row and
 // content below the fixed MobileNavShell bar (56px + safe-area-inset-top).
@@ -62,18 +60,12 @@ const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/pu
 
 interface SkyListRow {
   body: string;
-  isNodes: boolean;
   glyph: string;
   label: string;
   sign: string;
   signGlyph: string;
   degree: number;
   retrograde: boolean;
-  // Nodes-only (isNodes: true) — south end, rendered alongside the fields
-  // above (which carry the north end).
-  southGlyph?: string;
-  southSign?: string;
-  southSignGlyph?: string;
 }
 
 function SkyListView({ positions }: { positions: SkyPosition[] }) {
@@ -82,31 +74,17 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
     .map((body): SkyListRow | null => {
       const pos = positionsByBody.get(body);
       if (!pos) return null;
-      if (body === 'North Node') {
-        const south = positionsByBody.get('South Node');
-        return {
-          body,
-          isNodes: true,
-          glyph: BODY_GLYPH['North Node'],
-          label: 'Nodes',
-          sign: pos.sign,
-          signGlyph: RAIL_SIGN_GLYPHS[pos.sign] ?? '',
-          degree: Math.floor(pos.sign_degree),
-          retrograde: false,
-          southGlyph: BODY_GLYPH['South Node'],
-          southSign: south?.sign ?? '',
-          southSignGlyph: south ? RAIL_SIGN_GLYPHS[south.sign] ?? '' : '',
-        };
-      }
       return {
         body,
-        isNodes: false,
         label: body,
         glyph: BODY_GLYPH[body] ?? '○',
         sign: pos.sign,
         signGlyph: RAIL_SIGN_GLYPHS[pos.sign] ?? '',
         degree: Math.floor(pos.sign_degree),
-        retrograde: pos.retrograde,
+        // Nodes always move backward by nature — "retrograde" is
+        // meaningless for them, so no R flag here (matches every other
+        // Nodes row in the app; SPEC §16).
+        retrograde: (body === 'North Node' || body === 'South Node') ? false : pos.retrograde,
       };
     })
     .filter((r): r is SkyListRow => r !== null);
@@ -146,30 +124,6 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
       }}>
         {rows.map((row, index) => {
           const borderBottom = index < rows.length - 1 ? '0.5px solid rgba(22,22,18,0.10)' : 'none';
-          if (row.isNodes) {
-            // Both ends of the axis (founder correction, Aug 17 2026) —
-            // north glyph - south glyph, north sign - south sign, one
-            // shared degree — all on one line, in line with degree rather
-            // than the sign wrapping to a row of its own (founder
-            // correction), matching every other row's single-line shape.
-            return (
-              <div
-                key={row.body}
-                style={{ display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom, flex: 1 }}
-              >
-                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3vw, 14px)', color: 'rgba(22,22,18,0.45)', width: '20px', flexShrink: 0 }}>
-                  {row.glyph}<span style={{ opacity: 0.5 }}>-</span>{row.southGlyph}
-                </span>
-                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{row.label}</span>
-                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{row.sign}</span>
-                <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '4px' }}>{row.signGlyph}</span>
-                <span style={{ color: 'rgba(22,22,18,0.35)', marginRight: '4px' }}>-</span>
-                <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{row.southSign}</span>
-                <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '6px' }}>{row.southSignGlyph}</span>
-                <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'rgba(22,22,18,0.55)' }}>{row.degree}°</span>
-              </div>
-            );
-          }
           return (
             <div
               key={row.body}

@@ -328,25 +328,34 @@ function DesktopTransits({
   // no live position data reached the browser). No house: transiting
   // bodies have no house.
   const positionsByBody = new Map(positions.map(p => [p.body, p]));
-  const rows: RailRow[] = SKY_BODIES.map((body, index) => {
+  const rows: RailRow[] = SKY_BODIES.flatMap((body, index) => {
+    // Nodes row (SPEC §16, Aug 22 2026): North Node and South Node each get
+    // their own row (see the matching change in natal/page.tsx's rail) —
+    // both share `active` since they come from this same SKY_BODIES entry,
+    // and both resolve back to this entry's index when clicked.
     if (body.id === 'nodes') {
       const north = positionsByBody.get('North Node');
       const south = positionsByBody.get('South Node');
-      return {
-        id: body.id,
-        glyph: SKY_GLYPHS.nodes,
-        name: 'North Node',
-        degree: north ? `${Math.floor(north.sign_degree)}°` : '',
-        signGlyph: north ? RAIL_SIGN_GLYPHS[north.sign] ?? '' : '',
-        sign: north?.sign ?? '',
-        secondary: {
+      return [
+        {
+          id: body.id,
+          glyph: SKY_GLYPHS.nodes,
+          name: 'North Node',
+          degree: north ? `${Math.floor(north.sign_degree)}°` : '',
+          signGlyph: north ? RAIL_SIGN_GLYPHS[north.sign] ?? '' : '',
+          sign: north?.sign ?? '',
+          active: index === activeIndex,
+        },
+        {
+          id: 'nodes-south',
           glyph: SKY_GLYPHS['nodes-south'],
           name: 'South Node',
+          degree: south ? `${Math.floor(south.sign_degree)}°` : '',
           signGlyph: south ? RAIL_SIGN_GLYPHS[south.sign] ?? '' : '',
           sign: south?.sign ?? '',
+          active: index === activeIndex,
         },
-        active: index === activeIndex,
-      };
+      ];
     }
     const pos = positionsByBody.get(SKY_BODY_NAME[body.id]);
     return {
@@ -448,7 +457,12 @@ function DesktopTransits({
             rows={rows}
             fillHeight
             onRowClick={(id) => {
-              const idx = SKY_BODIES.findIndex(b => b.id === id);
+              // South Node's row carries its own 'nodes-south' id (for a
+              // unique React key) but is the same body entry as North
+              // Node — normalize back to 'nodes' so both rows open the
+              // same combined Nodes section.
+              const targetId = id === 'nodes-south' ? 'nodes' : id;
+              const idx = SKY_BODIES.findIndex(b => b.id === targetId);
               if (idx === -1) return;
               if (paneMode !== 'read') {
                 pendingScrollIndexRef.current = idx;

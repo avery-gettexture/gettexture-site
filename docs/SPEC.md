@@ -5815,3 +5815,73 @@ both viewports; final screenshots on both confirm the page shows
 
 Files touched: `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`.
 One commit, not pushed.
+
+**August 22, 2026 (Nodes displayed as two rows, every list that shows
+it):** Reported by Avery with screenshots — the single combined Nodes row
+(North + South squeezed onto one line, used by both desktop rails)
+overflowed/wrapped with longer sign names (e.g. "Sagittarius,"
+"Capricorn"). Separately, the mobile My Chart list's Nodes row showed
+only the North Node — the South Node never appeared there at all.
+
+**Fix — Nodes now renders as two full, ordinary rows everywhere it's
+listed:** a "North Node" row and a "South Node" row, each with its own
+glyph, sign, degree, and house (the shared degree still matches on both,
+since it's the same axis). Both rows are built from the one underlying
+Nodes placement, so they highlight together when Nodes is the open
+section, and clicking/tapping either one opens the same combined Nodes
+reading — nothing about the Nodes reading content itself changed, only
+how the lists display it.
+
+- `app/components/Rail.tsx` (desktop rail, shared by My Chart and
+  Today's Sky): deleted the `secondary` row mode that rendered both axis
+  ends on one cramped line — the source of the overflow. Every row,
+  Nodes included, now uses the same plain single-body layout every other
+  placement already used.
+- `app/reading/[slug]/natal/page.tsx` (desktop My Chart rail) and
+  `app/reading/[slug]/transits/page.tsx` (desktop Today's Sky rail):
+  each now builds two rail rows for the Nodes placement instead of one
+  combined row. Added `mean_south_lunar_node` to `PLANET_TO_INDEX`
+  (natal page) so South Node's own row target resolves to the same
+  section North Node's does.
+- `app/components/ChartSection.tsx` (mobile My Chart list): added a
+  South Node row right after North Node's, reading
+  `mean_south_lunar_node` from chart data — previously missing
+  entirely. Tapping either row opens the same Nodes card.
+- `app/components/TodaySkySection.tsx` (mobile Today's Sky list): split
+  the one combined row into two plain rows, North Node then South Node.
+
+**Note — this reverses an earlier founder correction.** On August 17,
+2026, Avery had specifically asked for the mobile Today's Sky Nodes row
+to be collapsed from two lines down to one ("founder correction," logged
+above in this file). Today's instruction was explicit — two rows,
+everywhere Nodes is listed — so this change re-splits it, superseding
+that August 17 call. Flagging in case the reversal wasn't intentional.
+
+**Also dropped:** the house-abbreviation hack (e.g. "9th" instead of "9th
+House") that the old combined row used to fit both ends on one line. Two
+full-width rows don't need it, so both new rows show house the same way
+every other row on their surface already does. Low-risk consistency
+call, flagged for Avery's review same as any other copy/format change.
+
+**Out of scope, flagged for later if wanted:** the two post-purchase
+homepage panels (`HomeMyChartPanel.tsx`, `HomeTodaySkyPanel.tsx`) were
+not named in this brief and don't have this bug —
+`HomeTodaySkyPanel.tsx` already lists North Node and South Node as two
+independent rows with no overflow, and neither panel has a
+"selected row" concept to keep in sync — so both were left untouched.
+
+**Verified** with a Playwright script against the running dev server, on
+`marilyn-monroe` (a real, non-dogfood reading, no data written): screenshotted
+the desktop My Chart rail and Today's Sky rail (1440×900) and the mobile My
+Chart list and Today's Sky list (390×844/1000) — Nodes shows two clean rows
+on all four surfaces, nothing overflowing. Clicked North Node's row, then
+(separately) South Node's row on the desktop My Chart rail — both land on
+the same "Nodes" reading card, and both rows show the active highlight bar
+together. Tapped South Node's row on the mobile My Chart list — scrolled to
+the same "Nodes" card. `tsc --noEmit` clean (only pre-existing, unrelated
+errors from the untracked `docs/mocks/*.tsx` React Native mock files, not
+part of this app).
+
+Files touched: `app/components/Rail.tsx`, `app/reading/[slug]/natal/page.tsx`,
+`app/reading/[slug]/transits/page.tsx`, `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not pushed.

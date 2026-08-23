@@ -93,6 +93,9 @@ const PLANET_TO_INDEX: Record<string, number> = {
   sun: 1, moon: 2, mercury: 3, venus: 4, mars: 5,
   jupiter: 6, saturn: 7, uranus: 8, neptune: 9, pluto: 10,
   ascendant: 11, medium_coeli: 12, mean_north_lunar_node: 13,
+  // South Node's own mobile list row (ChartSection.tsx) taps through to
+  // this same combined Nodes section (SPEC §16, Aug 22 2026).
+  mean_south_lunar_node: 13,
 };
 
 // ── Helper: get placement meta from chart_data ─────────────────────────────
@@ -464,33 +467,39 @@ function DesktopNatal({
     return () => window.removeEventListener('wheel', handleWheel);
   }, [scrollToIndex, paneMode]);
 
-  const rows: RailRow[] = PLACEMENTS.map((placement, index) => {
+  const rows: RailRow[] = PLACEMENTS.flatMap((placement, index) => {
     const meta = getPlanetMeta(reading.chart_data, placement.id);
-    // Nodes row (SPEC §4.1, §16): NO retrograde flag, and both axis ends
-    // shown side by side via `secondary` rather than the North Node's own
-    // placement standing in for the whole axis. House is shortened to just
-    // the ordinal ("9th", not "9th House") — the full word was pushing the
-    // two-ended line onto a third line (founder feedback).
+    // Nodes row (SPEC §16, Aug 22 2026): North Node and South Node each get
+    // their own full-width row (no retrograde flag — Nodes always move
+    // backward by nature) instead of being crammed onto one line via
+    // `secondary` — that single-line layout overflowed with longer sign
+    // names. Both rows come from this same PLACEMENTS entry, so they share
+    // `active` automatically and light up together; clicking either one
+    // still resolves to this same placement's index below.
     if (placement.id === 'nodes') {
       const southMeta = getPlanetMeta(reading.chart_data, 'nodes-south');
-      const shortHouse = (h: string) => h.replace(/ House$/, '') || undefined;
-      return {
-        id: placement.id,
-        glyph: RAIL_PLANET_GLYPHS.nodes,
-        name: 'North Node',
-        degree: meta.degree,
-        signGlyph: RAIL_SIGN_GLYPHS[meta.sign] ?? '',
-        sign: meta.sign,
-        house: shortHouse(meta.house),
-        secondary: {
+      return [
+        {
+          id: placement.id,
+          glyph: RAIL_PLANET_GLYPHS.nodes,
+          name: 'North Node',
+          degree: meta.degree,
+          signGlyph: RAIL_SIGN_GLYPHS[meta.sign] ?? '',
+          sign: meta.sign,
+          house: meta.house || undefined,
+          active: index === activeIndex,
+        },
+        {
+          id: 'nodes-south',
           glyph: RAIL_PLANET_GLYPHS['nodes-south'],
           name: 'South Node',
+          degree: southMeta.degree,
           signGlyph: RAIL_SIGN_GLYPHS[southMeta.sign] ?? '',
           sign: southMeta.sign,
-          house: shortHouse(southMeta.house),
+          house: southMeta.house || undefined,
+          active: index === activeIndex,
         },
-        active: index === activeIndex,
-      };
+      ];
     }
     // Midheaven's rail row shows its house (founder feedback) even though
     // getPlanetMeta blanks house for both angles (ascendant/medium_coeli) —
@@ -615,7 +624,12 @@ function DesktopNatal({
               // founder confirmation), then scrolls as usual. The scroll
               // itself is deferred (pendingScrollIndexRef) until READ's
               // `display: none` is actually lifted — see the effect above.
-              const idx = PLACEMENTS.findIndex(p => p.id === id);
+              // South Node's row carries its own 'nodes-south' id (for a
+              // unique React key), but it's the same placement as North
+              // Node — normalize back to 'nodes' so both rows open the one
+              // combined Nodes section.
+              const targetId = id === 'nodes-south' ? 'nodes' : id;
+              const idx = PLACEMENTS.findIndex(p => p.id === targetId);
               if (idx === -1) return;
               if (paneMode !== 'read') {
                 pendingScrollIndexRef.current = idx;

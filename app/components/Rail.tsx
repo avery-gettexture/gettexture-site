@@ -14,18 +14,6 @@ export interface RailRow {
   sign: string;
   house?: string;
   active?: boolean;
-  /** Nodes-only axis row (SPEC §4.1's merged Nodes piece): when set, Rail
-   * renders both ends of the axis side by side instead of the single-body
-   * layout above — one shared degree (the axis math guarantees identical
-   * degree-within-sign on both ends), no retrograde badge. Every other row
-   * leaves this unset and is unaffected. */
-  secondary?: {
-    glyph: string;
-    name: string;
-    signGlyph: string;
-    sign: string;
-    house?: string;
-  };
 }
 
 interface RailProps {
@@ -86,40 +74,17 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
               style={onRowClick ? { cursor: 'pointer' } : undefined}
             >
               {row.active && <span className="rail-row-bar" />}
-              {row.secondary ? (
-                <>
-                  <div className="rail-row-line1">
-                    <span>{row.glyph}</span>
-                    <span style={{ opacity: 0.45 }}>-</span>
-                    <span>{row.secondary.glyph}</span>
-                    <span>Nodes</span>
-                    <span>{row.degree}</span>
-                  </div>
-                  <div className="rail-row-line2">
-                    <span>{row.signGlyph}</span>
-                    <span>{row.sign}</span>
-                    {row.house && <span>| {row.house}</span>}
-                    <span style={{ opacity: 0.45 }}>-</span>
-                    <span>{row.secondary.signGlyph}</span>
-                    <span>{row.secondary.sign}</span>
-                    {row.secondary.house && <span>| {row.secondary.house}</span>}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="rail-row-line1">
-                    <span>{row.glyph}</span>
-                    <span>{row.name}</span>
-                    <span>{row.degree}</span>
-                    {row.retrograde && <span className="rail-row-retro">R</span>}
-                  </div>
-                  <div className="rail-row-line2">
-                    <span>{row.signGlyph}</span>
-                    <span>{row.sign}</span>
-                    {row.house && <span>{row.house}</span>}
-                  </div>
-                </>
-              )}
+              <div className="rail-row-line1">
+                <span>{row.glyph}</span>
+                <span>{row.name}</span>
+                <span>{row.degree}</span>
+                {row.retrograde && <span className="rail-row-retro">R</span>}
+              </div>
+              <div className="rail-row-line2">
+                <span>{row.signGlyph}</span>
+                <span>{row.sign}</span>
+                {row.house && <span>{row.house}</span>}
+              </div>
             </div>
           ))}
         </div>
