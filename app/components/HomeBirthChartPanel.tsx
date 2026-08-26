@@ -12,13 +12,20 @@
 // Type sizing (fill-the-frame pass, SPEC §16): the prior refinements pass
 // shrank text purely to guarantee zero scroll, leaving tiny type stranded in
 // a mostly-empty card. Sizes here are set to comfortably fill the card
-// instead — title capped (and kept single-line via whiteSpace:nowrap) so it
-// doesn't wrap and eat the content region's height budget; paragraph/feature
-// sizes tuned so the short-state content's natural height sits just under
-// the available flex region at 1280×800 (the narrowest common desktop
-// width tested — narrower panels wrap text into more lines at a given font
-// size, which was the actual overflow driver, not viewport height). Verified
-// with no overflow at 1280×800, 1366×768, 1440×900, 1920×1080.
+// instead; paragraph/feature sizes tuned so the short-state content's
+// natural height sits just under the available flex region at 1280×800
+// (the narrowest common desktop width tested — narrower panels wrap text
+// into more lines at a given font size, which was the actual overflow
+// driver, not viewport height). Verified with no overflow at 1280×800,
+// 1366×768, 1440×900, 1920×1080.
+//
+// Layout bug fix (SPEC §16): the title previously had whiteSpace:nowrap,
+// which clipped it instead of wrapping on narrow widths — removed so it
+// wraps naturally. The short-state content box previously used
+// justifyContent:center, which centers overflowing content symmetrically
+// above and below, making the top of the paragraph unreachable by scroll
+// once the box got tall enough to need one — changed to flex-start so the
+// content always starts at its top edge.
 
 import { useState } from 'react';
 import { DOGFOOD_READING_SLUG, NATAL_READING_PRICE_USD } from '@/lib/config';
@@ -70,7 +77,7 @@ export default function HomeBirthChartPanel() {
           refinements task, SPEC §16: the "no scroll" rule applies to this
           panel's default view too, not just the right panel's form). */}
       <div style={{ flex: '0 0 auto', paddingTop: 'clamp(8px, 2.6dvh, 28px)' }}>
-        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 3.6dvh, 32px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(6px, 1dvh, 10px)', whiteSpace: 'nowrap' }}>
+        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 3.6dvh, 32px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(6px, 1dvh, 10px)' }}>
           Take a closer look at your chart.
         </div>
       </div>
@@ -78,7 +85,7 @@ export default function HomeBirthChartPanel() {
       {/* Content region — the only part that swaps */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {state === 'short' && (
-          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
             <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(12px, 1.7dvh, 15px)', color: DARK_MUTED, lineHeight: 1.5, marginBottom: 'clamp(7px, 1dvh, 11px)' }}>
               {OPENER_PARAGRAPH}
             </p>

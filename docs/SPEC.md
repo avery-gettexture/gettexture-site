@@ -5885,3 +5885,55 @@ part of this app).
 Files touched: `app/components/Rail.tsx`, `app/reading/[slug]/natal/page.tsx`,
 `app/reading/[slug]/transits/page.tsx`, `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not pushed.
+
+**August 25, 2026 (pre-purchase home, left "Birth Chart" panel — two layout
+bug fixes):** `HomeBirthChartPanel.tsx` had two CSS bugs, both only visible
+once the panel got narrow enough to need scrolling — not visible at
+comfortable widths, which is why they'd gone unnoticed.
+
+1. **Header truncation.** The title ("Take a closer look at your chart.")
+   had `whiteSpace: 'nowrap'` — a deliberate choice from an earlier sizing
+   pass (August 16, "fill-the-frame" entry above) meant to keep it one
+   line and preserve height budget for the content below. On a narrow
+   panel this instead clipped the right edge of the text off-screen rather
+   than wrapping it. Removed `nowrap`; the header now wraps to two lines
+   as the panel narrows, using its existing `clamp()` sizing and
+   line-height — no other change needed.
+2. **Paragraph top hidden behind a scrollbar.** The opening paragraph's
+   container used `justifyContent: 'center'` (flexbox vertical centering)
+   combined with `overflowY: 'auto'`. At comfortable widths the content
+   fits and centering is invisible/harmless. Once the panel narrows enough
+   that the content no longer fits, a centered flex box grows past the
+   container's edges in both directions — including upward, above the
+   visible top — and the scrollable area starts already positioned in the
+   middle of that overflow, with no way to scroll further up to reach the
+   true top. Result: the paragraph's first line(s) were invisible by
+   default, exactly when a scrollbar appeared — confirmed against Avery's
+   description before fixing. Changed `justifyContent` from `'center'` to
+   `'flex-start'` so the content always starts flush at the top; any
+   scrolling now only reveals content below, never hides content above.
+   **Side effect flagged for Avery, not decided silently:** on wide panels
+   where the content fits without scrolling, it previously appeared
+   vertically centered in the content area; it now sits flush at the top
+   with empty space below instead. This is a direct consequence of the fix
+   (centering is what caused the bug) — revisit only if the no-scroll
+   centered look is wanted back, which would need size-aware logic instead
+   of plain CSS centering.
+
+Only `HomeBirthChartPanel.tsx` (the left panel) changed — the right panel
+and the post-purchase home are untouched, matching the brief.
+
+**Verified** with Playwright against the running dev server, on `/`
+(pre-purchase home) at 1920×900, 1280×900, and 1024×900 — the panel's
+tested range (it renders only at >=1024px; below that `MobileHomePage`
+takes over, per §16's routing-restructure entry above, out of scope
+here). Header wraps to two lines at 1280 and 1024 instead of clipping;
+the paragraph's first line ("Your chart is a woven system...") is fully
+visible at the top at all three widths, including 1024 where the content
+overflows and scrolls. Also clicked "read more" and "approach" and
+confirmed both states (which already used a different, unaffected
+top-anchored container) render unchanged. No new console errors (one
+pre-existing, unrelated Google Maps API warning from the right panel).
+
+Files touched: `app/components/HomeBirthChartPanel.tsx`, `docs/SPEC.md`.
+One commit, not pushed.
