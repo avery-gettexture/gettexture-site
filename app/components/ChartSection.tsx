@@ -267,7 +267,6 @@ function ListView({
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      borderBottom: '1.5px solid rgba(185,18,18,0.50)',
     }}>
       {/* Header — compact, close to nav */}
       <div style={{
@@ -320,8 +319,12 @@ function ListView({
 
       {/* Birth data — same collapse/expand control as Chart view, so birth
           data is reachable from List too (previously only viewable on the
-          removed standalone Birth Data screen). */}
-      <div style={{ flexShrink: 0, borderTop: '0.5px solid rgba(22,22,18,0.10)' }}>
+          removed standalone Birth Data screen). Red rule above (not below)
+          the name — founder correction, Aug 30 2026, SPEC §16: matches the
+          rest of the app's convention of a red line sitting above the
+          content it introduces, replacing the old below-the-name rule that
+          used to sit at this panel's outer bottom edge instead. */}
+      <div style={{ flexShrink: 0, borderTop: '1.5px solid rgba(185,18,18,0.50)' }}>
         <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="light" />
       </div>
     </div>
@@ -385,8 +388,10 @@ function ChartView({
         <div style={{ height: '28px', flexShrink: 0 }} />
       </div>
 
-      {/* Birth data — collapsed default (name only), tap to expand. */}
-      <div style={{ flexShrink: 0 }}>
+      {/* Birth data — collapsed default (name only), tap to expand. Red rule
+          above the name, matching the List tab's own treatment (SPEC §16,
+          Aug 30 2026 founder correction). */}
+      <div style={{ flexShrink: 0, borderTop: '1.5px solid rgba(185,18,18,0.50)' }}>
         <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={14} />
       </div>
     </div>

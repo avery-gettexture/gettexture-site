@@ -97,7 +97,6 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      borderBottom: '1.5px solid rgba(185,18,18,0.50)',
     }}>
       <div style={{
         flexShrink: 0,
@@ -145,6 +144,30 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
           );
         })}
       </div>
+
+      {/* Date — same bottom-band structure as ChartSection.tsx's birth-data
+          band (red rule above, content below), but display-only: no
+          tap/expand, since there is no birth data for the sky (SPEC §16,
+          Aug 30 2026 founder correction). */}
+      <div style={{ flexShrink: 0, borderTop: '1.5px solid rgba(185,18,18,0.50)' }}>
+        <div style={{
+          width: '100%',
+          minHeight: '52px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '10px 24px',
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-geist-mono), monospace',
+            fontSize: 'clamp(14px, 3.8vw, 16px)',
+            color: '#161612',
+            letterSpacing: '1px',
+          }}>
+            {formatToday()}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -187,7 +210,9 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
 
       {/* Date — same position/styling as ChartSection.tsx's collapsed name
           band (centered, geist mono), not tappable/expandable since there is
-          no birth data to reveal underneath it. */}
+          no birth data to reveal underneath it. Red rule above the date,
+          matching ChartSection.tsx's own name band (SPEC §16, Aug 30 2026
+          founder correction). */}
       <div style={{
         flexShrink: 0,
         minHeight: '52px',
@@ -195,6 +220,7 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
         alignItems: 'center',
         justifyContent: 'center',
         padding: '18px 24px 10px',
+        borderTop: '1.5px solid rgba(185,18,18,0.50)',
       }}>
         <span style={{
           fontFamily: 'var(--font-geist-mono), monospace',

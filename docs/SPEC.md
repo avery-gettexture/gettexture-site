@@ -6129,3 +6129,41 @@ centering math; List pages remain balanced.
 Files touched: `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**Bottom-area red rule flipped above the name/date; Today's Sky List gets a
+date band (Aug 30 2026, founder correction).** Mobile My Chart's Chart and
+List tabs used to show "avery" (or, on List, the collapsed name control)
+with the strong red rule sitting BELOW it — on List that rule lived on the
+whole panel's outer `borderBottom`, at the screen's true bottom edge, below
+the name; on Chart there was no red rule there at all. Founder correction:
+flip it so the red rule sits ABOVE the name, matching the rest of the app's
+convention of a red line introducing the content below it, not closing it
+off. Fixed in `ChartSection.tsx` by dropping the List panel's outer red
+`borderBottom` and moving a `1.5px solid rgba(185,18,18,0.50)` `borderTop`
+onto the birth-data control's own wrapper on both tabs (List's wrapper had
+only a faint gray divider before; Chart's had nothing). `BirthDataToggle`
+itself — tap name to expand birth date/time/location, tap again to collapse
+— is untouched.
+
+Today's Sky's Chart tab already showed today's date under the wheel (added
+in an earlier pass) but likewise had no red rule above it — added the same
+`borderTop` there. Today's Sky's List tab had nothing at all in that bottom
+spot; added a new display-only band there (no tap/expand — there's no birth
+data for the sky), structurally identical to `ChartSection.tsx`'s
+birth-data wrapper: red rule above, `formatToday()` (`lib/date-utils.ts`,
+already used by the Chart tab) centered below in the same Geist Mono
+styling as the List tab's own name text. Its outer panel's stray red
+`borderBottom` was removed the same way as `ChartSection.tsx`'s List tab.
+
+**Verified** with the same Playwright-against-dev-server approach as prior
+passes (dogfood slug `hejkhjq1zns5`) at 390×844: screenshotted My Chart
+Chart tab (red rule now above "avery"), tapped the name to confirm birth
+data still expands below it as before, screenshotted My Chart List tab
+(red rule above the name, no stray line at the panel's bottom edge),
+screenshotted Today's Sky Chart tab (red rule now above "August 30, 2026"),
+and Today's Sky List tab (date now appears below a red rule at the bottom,
+same formatting, no tap affordance).
+
+Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
