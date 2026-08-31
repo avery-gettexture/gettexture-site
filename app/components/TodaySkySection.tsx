@@ -177,14 +177,23 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
 function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspects: SkyAspect[] }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      {/* Wheel — takes the remaining space above the date band below, same
-          "wheel above, fixed band below" split as ChartSection.tsx's own
-          ChartView (there it's birth data; here there is none, so the band
-          holds just today's date — SPEC §16, founder correction). */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Wheel — bottom-anchored within the remaining space above the date
+          band, matching ChartSection.tsx's own ChartView fix (SPEC §16, fix
+          pass): centering left a large, variable void between the wheel and
+          the date. The wheel-plus-glow unit is wrapped in its own relative
+          box sized exactly to the wheel's diameter (unchanged formula, not
+          enlarged) so the radial glow stays centered on the wheel itself. */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{
+          position: 'relative',
+          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+          aspectRatio: '1',
+        }}>
           <div style={{
             position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             width: 'min(130vw, 85dvh)',
             aspectRatio: '1',
             borderRadius: '50%',
@@ -193,34 +202,40 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
             backgroundPosition: 'center',
           }} />
           <div style={{
-            width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
-            aspectRatio: '1',
+            position: 'relative',
+            width: '100%',
+            height: '100%',
             borderRadius: '50%',
             overflow: 'hidden',
-            position: 'relative',
           }}>
             <TodaySkyWheel positions={positions} aspects={aspects} />
           </div>
         </div>
-        {/* Guaranteed minimum clearance before the date band — see
-            ChartSection.tsx's matching note (SPEC §16, Aug 30 2026
-            corrective pass). */}
-        <div style={{ height: '28px', flexShrink: 0 }} />
       </div>
+
+      {/* Fixed, short gap so the date sits comfortably close under the
+          wheel rather than floating in empty space (SPEC §16, fix pass). */}
+      <div style={{ height: '16px', flexShrink: 0 }} />
 
       {/* Date — same position/styling as ChartSection.tsx's collapsed name
           band (centered, geist mono), not tappable/expandable since there is
-          no birth data to reveal underneath it. Red rule above the date,
-          matching ChartSection.tsx's own name band (SPEC §16, Aug 30 2026
-          founder correction). */}
+          no birth data to reveal underneath it. No red rule here: the
+          red-line-above-name treatment is List-only, not the chart-wheel
+          views (SPEC §16, fix pass — corrects the prior pass, which had
+          applied it here too). `position: relative` is load-bearing here,
+          matching ChartSection.tsx's identical note: the wheel's radial
+          glow above is `position: absolute` and, with the gap now closed,
+          reaches down into this band — CSS paints positioned elements above
+          static ones regardless of DOM order, so without this the glow
+          would wash out the date text. */}
       <div style={{
         flexShrink: 0,
+        position: 'relative',
         minHeight: '52px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '18px 24px 10px',
-        borderTop: '1.5px solid rgba(185,18,18,0.50)',
       }}>
         <span style={{
           fontFamily: 'var(--font-geist-mono), monospace',

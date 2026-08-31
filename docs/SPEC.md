@@ -6184,3 +6184,85 @@ in place (they're reference material, not app code) and instead add
 is type-checked as part of the site build. Verified locally with
 `npx tsc --noEmit` (clean) before redeploying. Files touched:
 `tsconfig.json`. Pushed and deployed to production the same day.
+
+**Mobile Chart pages — red line removed, bottom gap closed, name-tap no
+longer shifts the wheel (Aug 30 2026, founder correction):** The prior
+same-day pass (above) had over-applied its red-rule treatment to the
+CHART wheel pages — it was only meant for the LIST pages. Founder also
+flagged that pass's fixed 28px clearance, combined with how much real
+phone height was actually available, left a large, variable empty void
+between the wheel and the name/date below it, and that on the My Chart
+Chart tab, tapping the name to reveal birth data still visibly scooted
+the wheel upward. Mobile only, both `app/components/ChartSection.tsx`
+(My Chart) and `app/components/TodaySkySection.tsx` (Today's Sky), Chart
+tab only — List tabs are untouched and keep their red-rule-above-name
+treatment from the prior pass.
+
+1. **Red rule removed from both Chart tabs.** Dropped the `borderTop`
+   that the prior pass had added above the name (My Chart) and the date
+   (Today's Sky) on the wheel view specifically.
+2. **Wheel now bottom-anchored, not centered, in its region.** The wheel
+   used to sit centered within its flex region, splitting leftover space
+   evenly above and below it — on a real phone that leftover could be
+   large, reading as a void under the wheel. Changed the region's
+   alignment so the wheel sits flush against the bottom of its region
+   (`alignItems: 'flex-end'`, the region is a row flex container so this
+   is the vertical axis), with the leftover space absorbed above the
+   wheel instead — i.e. the whole wheel section moved down, as asked.
+   A single fixed 16px gap (replacing the prior pass's 28px spacer)
+   separates the wheel from the name/date band below it. The wheel's own
+   size formula is unchanged (not enlarged) — confirmed by direct
+   before/after measurement, see Verified below.
+3. **Radial glow re-anchored to the wheel itself, not the region.**
+   The wheel's background glow (`chart-radial.png`, deliberately larger
+   than the wheel — `min(130vw, 85dvh)`) used to be centered by the same
+   flex alignment as the wheel, which broke once that alignment changed
+   from centered to bottom-anchored (the glow and the wheel would no
+   longer share a center point). Fixed by wrapping the wheel in its own
+   `position: relative` box sized exactly to the wheel's diameter, with
+   the glow positioned `top: 50%; left: 50%; transform: translate(-50%,
+   -50%)` inside that box — the glow now stays concentric with the wheel
+   regardless of where the pair sits in the region.
+4. **Name-tap no longer moves the wheel (My Chart Chart tab only).**
+   Diagnosed cause: the wheel's region and the birth-data band below it
+   are flex siblings sharing one fixed-height container — expanding the
+   birth-data band (which grows to show date/time/location) shrank the
+   wheel's region correspondingly, and since the wheel was centered
+   within that region, its center point shifted upward as the region
+   shrank. Fixed with a new `overlayExpand` mode on `BirthDataToggle`
+   (Chart tab only — List doesn't have this problem and keeps the
+   original in-flow behavior): the band's own box now stays a fixed size
+   whether collapsed or expanded, and the expanded date/time/location
+   renders as an absolutely-positioned overlay below the name instead of
+   growing the band — so the wheel's region never resizes and the wheel
+   never moves. Today's Sky has no tap/expand (display-only date), so it
+   doesn't need this — its date band was already fixed-size.
+5. **Regression caught during verification, fixed in the same pass:**
+   closing the gap (item 2) meant the glow — deliberately larger than the
+   wheel, `position: absolute` — now reached down into the name/date band
+   below. CSS paints all positioned elements above plain static ones
+   regardless of DOM order, so the glow was rendering on top of the band
+   and washing out the text (most visible on Today's Sky, where the date
+   was effectively invisible; My Chart's "avery" stayed readable by
+   contrast but had the same underlying cause). Fixed by giving both
+   bands `position: relative` — this puts them in the same paint layer as
+   the glow, where later DOM order (the band, which comes after the
+   wheel) wins, so the text now renders on top as intended.
+
+**Verified** with a Playwright script against the running dev server
+(dogfood slug `hejkhjq1zns5`) at 390×844: screenshotted My Chart's Chart
+tab (no red line above "avery"; wheel sits with a short, consistent gap
+above the name, not a void) and Today's Sky's Chart tab (no red line
+above the date; same short gap; date fully legible over the glow after
+the item-5 fix, confirmed by a before/after crop). Tapped "avery" on My
+Chart's Chart tab and measured the wheel's own bounding box before and
+after with real pixel coordinates, not just visual inspection — identical
+(`top: 373, bottom: 739` both times) — confirming the wheel does not
+move. Also confirmed via computed-style query that the List tabs'
+red-rule-above-name treatment is unchanged on both pages (My Chart: rule
+present above "avery"; Today's Sky: rule present above "August 30,
+2026"). `npx tsc --noEmit` clean.
+
+Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
+pushed.

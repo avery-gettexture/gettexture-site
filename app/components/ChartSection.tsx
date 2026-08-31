@@ -110,6 +110,7 @@ function BirthDataToggle({
   birthLocation,
   theme,
   extraTopPadding = 0,
+  overlayExpand = false,
 }: {
   name: string;
   birthDate: string;
@@ -120,6 +121,13 @@ function BirthDataToggle({
   // wheel sits right above this control and the default padding hugs it
   // too tightly — List has no wheel above it, so it doesn't opt in).
   extraTopPadding?: number;
+  // Chart tab only (SPEC §16, fix pass): keeps this control's own box a
+  // fixed size and renders the expanded date/time/location as an
+  // absolutely-positioned overlay below it instead of growing in place.
+  // Without this, expanding pushed the wheel above it upward (the wheel's
+  // region is a flex sibling that shrinks whenever this band grows). List
+  // has nothing above it to shift, so it keeps the plain in-flow behavior.
+  overlayExpand?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,6 +156,9 @@ function BirthDataToggle({
   const nameColor = theme === 'dark' ? 'rgba(253,245,237,0.85)' : '#161612';
   const dataColor = theme === 'dark' ? 'rgba(253,245,237,0.45)' : 'rgba(22,22,18,0.45)';
 
+  const dataLineStyle = { fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' } as const;
+  const stacked = !overlayExpand && expanded;
+
   return (
     <div
       ref={containerRef}
@@ -155,12 +166,13 @@ function BirthDataToggle({
       style={{
         width: '100%',
         minHeight: '52px',
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: expanded ? 'stretch' : 'center',
+        alignItems: stacked ? 'stretch' : 'center',
         justifyContent: 'center',
         gap: '6px',
-        padding: expanded ? '10px 24px' : `${10 + extraTopPadding}px 24px 10px`,
+        padding: stacked ? '10px 24px' : `${10 + extraTopPadding}px 24px 10px`,
         cursor: 'pointer',
         userSelect: 'none',
       }}
@@ -170,34 +182,43 @@ function BirthDataToggle({
         fontSize: 'clamp(14px, 3.8vw, 16px)',
         color: nameColor,
         letterSpacing: '1px',
-        textAlign: expanded ? 'left' : 'center',
+        textAlign: stacked ? 'left' : 'center',
       }}>
         {name}
       </div>
 
-      {expanded && (stackLocation ? (
+      {stacked && (stackLocation ? (
         <>
-          <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
-            {birthDateStr}{timePart}
-          </div>
-          {!!birthLocation && (
-            <div style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
-              {birthLocation}
-            </div>
-          )}
+          <div style={dataLineStyle}>{birthDateStr}{timePart}</div>
+          {!!birthLocation && <div style={dataLineStyle}>{birthLocation}</div>}
         </>
       ) : (
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-          <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
-            {birthDateStr}{timePart}
-          </span>
-          {!!birthLocation && (
-            <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' }}>
-              {birthLocation}
-            </span>
-          )}
+          <span style={dataLineStyle}>{birthDateStr}{timePart}</span>
+          {!!birthLocation && <span style={dataLineStyle}>{birthLocation}</span>}
         </div>
       ))}
+
+      {/* Chart tab (overlayExpand): expanded detail renders as an overlay
+          below the fixed-size name row, instead of growing it, so the
+          wheel above never shifts (see prop comment above). */}
+      {overlayExpand && expanded && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          padding: '6px 24px 10px',
+          display: 'flex',
+          flexDirection: stackLocation ? 'column' : 'row',
+          alignItems: stackLocation ? 'center' : 'flex-start',
+          justifyContent: stackLocation ? 'flex-start' : 'center',
+          gap: stackLocation ? '2px' : '16px',
+        }}>
+          <span style={dataLineStyle}>{birthDateStr}{timePart}</span>
+          {!!birthLocation && <span style={dataLineStyle}>{birthLocation}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -350,23 +371,26 @@ function ChartView({
 }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      {/* Wheel — takes the remaining space above the birth-data band below,
-          same wheel sizing/component as before (unchanged, not enlarged),
-          just no longer filling 100% of the view's height (a dedicated
-          band is reserved below it instead of the wheel centering across
-          the whole area). Corrective pass (SPEC §16, Aug 30 2026): plain
-          center-in-flex-1 used to split leftover space evenly above/below
-          the wheel, which on a real phone (less usable height than a
-          headless test browser, since the address bar eats into it) could
-          squeeze the gap between the wheel and the name below it down to
-          almost nothing — read as "the wheel is crowding the name." The
-          fixed 28px spacer below guarantees that gap is always bigger than
-          the gap above, on any device, instead of leaving it to whatever
-          centering happens to leave over. */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Wheel — bottom-anchored within the remaining space above the
+          name band, instead of centered (SPEC §16, fix pass: centering
+          left a large, variable void between the wheel and the name).
+          The wheel-plus-glow unit is wrapped in its own relative box sized
+          exactly to the wheel's diameter (unchanged formula, not enlarged)
+          so the radial glow stays centered on the wheel itself regardless
+          of where that unit sits in the region — previously the glow was
+          centered by the same flex alignment as the wheel, which broke
+          once that alignment became bottom-anchored instead of centered. */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{
+          position: 'relative',
+          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+          aspectRatio: '1',
+        }}>
           <div style={{
             position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             width: 'min(130vw, 85dvh)',
             aspectRatio: '1',
             borderRadius: '50%',
@@ -375,24 +399,37 @@ function ChartView({
             backgroundPosition: 'center',
           }} />
           <div style={{
-            width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
-            aspectRatio: '1',
+            position: 'relative',
+            width: '100%',
+            height: '100%',
             borderRadius: '50%',
             overflow: 'hidden',
-            position: 'relative',
           }}>
             <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
           </div>
         </div>
-        {/* Guaranteed minimum clearance before the name band — see note above. */}
-        <div style={{ height: '28px', flexShrink: 0 }} />
       </div>
 
-      {/* Birth data — collapsed default (name only), tap to expand. Red rule
-          above the name, matching the List tab's own treatment (SPEC §16,
-          Aug 30 2026 founder correction). */}
-      <div style={{ flexShrink: 0, borderTop: '1.5px solid rgba(185,18,18,0.50)' }}>
-        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={14} />
+      {/* Fixed, short gap so the name sits comfortably close under the
+          wheel rather than floating in empty space (SPEC §16, fix pass). */}
+      <div style={{ height: '16px', flexShrink: 0 }} />
+
+      {/* Birth data — collapsed default (name only), tap to expand. No red
+          rule here: the red-line-above-name treatment is List-only, not
+          the chart-wheel views (SPEC §16, fix pass — corrects the prior
+          pass, which had applied it here too). `overlayExpand` keeps this
+          band's own box a fixed size when tapped, so the wheel above never
+          shifts (see BirthDataToggle's prop comment). `position: relative`
+          here is load-bearing, not decorative: the wheel's radial glow
+          above is `position: absolute`, and CSS paints all positioned
+          elements above plain static ones regardless of DOM order — with
+          the gap now closed, the (unchanged, deliberately oversized) glow
+          reaches down into this band and would otherwise wash out the name
+          text. Making this band positioned too puts it in the same paint
+          layer as the glow, where later DOM order (this band, after the
+          wheel) wins and the text renders on top instead. */}
+      <div style={{ flexShrink: 0, position: 'relative' }}>
+        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={14} overlayExpand />
       </div>
     </div>
   );
