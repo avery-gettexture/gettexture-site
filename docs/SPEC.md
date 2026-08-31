@@ -6501,3 +6501,57 @@ bottom out at the same ~75px baseline on one row; collapsed state has a
 clear gap between the birth-data line and the arrow — no overlap in either
 state. `npx tsc --noEmit` clean. Files touched: `app/components/
 ChartSection.tsx`, `docs/SPEC.md`. Committed, not pushed.
+
+**Three targeted mobile fixes — My Chart list squish, Today's Sky list
+header merge, Today's Sky wheel date centering (Aug 31 2026):** Founder
+brief of three separate visual bugs, each fixed independently.
+
+*My Chart list — birth-data expansion no longer squishes the placement
+rows:* `ListView`'s bottom name band (`BirthDataToggle`) used to size
+itself to whatever content was currently showing — short collapsed, taller
+tapped open (name + date + location) — and because the placement rows above
+it sit in a `flex: 1` box that fills whatever room is left, every pixel the
+band grew on tap came straight out of the rows' shared space, visibly
+shifting/compressing all 13 rows. Fixed with a CSS-grid stacking trick
+inside `BirthDataToggle`: an always-rendered, `visibility: hidden` copy of
+the fully-expanded content and the real, click-toggled content both occupy
+the same grid cell (`gridArea: '1 / 1'`), so the grid track — and this
+control's box — is always sized to the taller, expanded state regardless of
+which one is actually showing. Tapping only swaps what's drawn inside the
+already-reserved box; nothing outside `BirthDataToggle` (rows, page layout)
+can be affected. No hardcoded pixel guess — the reserved size adapts
+automatically to whatever name/date/location text is actually there.
+Chart-tab's identical control got the same underlying change (shared
+component) but its wheel zone above it already absorbed growth via `flex:
+1` with no minimum height, so this was purely a List-tab bug.
+
+*Today's Sky list — header merge, matching the fix already proven on My
+Chart's own List tab (this section, above):* `TodaySkySection`'s header
+zone now shows "Current Sky" (left) and the Chart|List toggle (right) on
+one shared row, `justify-content: space-between`, red divider rule
+underneath only when List is active — `SkyListView` no longer renders its
+own standalone title row/divider. Same reasoning as the My Chart merge
+applies unchanged: the freed row of height flows automatically into the
+placement rows' `flex: 1, justify-content: 'space-evenly'` container, so
+List's 12 rows (fewer than My Chart's 13, previously leaving more built-up
+empty space) read taller and evenly spaced rather than bottom-heavy — no
+manual space-balancing code needed.
+
+*Today's Sky wheel — date centered in its bottom slot:* the date band's
+padding was lopsided (`18px` top, `10px` bottom) inside a `justify-content:
+center` box, which skewed the visually-centered text toward the bottom of
+its slot. Changed to symmetric `14px` top/bottom. Verified by bounding-box
+measurement, not just eyeballing: the date text's vertical center now lands
+exactly on the zone box's own vertical center (both at pixel 818 in a
+390×844 viewport) — previously off-center toward the bottom.
+
+**Verified** with a Playwright script against the running dev server
+(dogfood slug `hejkhjq1zns5`, 390×844 mobile viewport), before and after
+each change: My Chart list screenshotted collapsed → expanded → collapsed
+again, confirming every placement row sits at the pixel-identical position
+in all three states; Today's Sky list screenshotted showing the merged
+header and taller, evenly-spaced rows; Today's Sky wheel's date position
+measured via `boundingBox()` before (skewed low) and after (centered).
+`npx tsc --noEmit` clean. Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. Committed, not
+pushed.

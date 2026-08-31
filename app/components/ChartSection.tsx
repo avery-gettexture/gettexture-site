@@ -166,37 +166,29 @@ function BirthDataToggle({
   // in-flow when tapped (no more Chart-tab-only overlay workaround) — the
   // wheel zone above it is a flex:1 sibling with no minimum height, so it
   // absorbs the growth by shrinking rather than being pushed or overlapped.
+  // On List (SPEC §16, Sep 2026 fix), there is no wheel zone to absorb that
+  // growth — the sibling above is the placement-row list, which used to get
+  // visibly squished on tap. Fixed with a CSS-grid stacking trick: a hidden
+  // copy of the fully-expanded content and the real, click-toggled content
+  // both occupy the same grid cell, so the grid track (and this control's
+  // box) is always sized to the taller, expanded state, whether or not it's
+  // currently showing. Tapping only swaps what's drawn inside that
+  // already-reserved box, so nothing outside this component ever moves.
   const stacked = expanded;
 
-  return (
-    <div
-      ref={containerRef}
-      onClick={() => setExpanded(e => !e)}
-      style={{
-        width: '100%',
-        minHeight: '52px',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: stacked ? 'stretch' : 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        padding: stacked ? '10px 24px' : `${10 + extraTopPadding}px 24px 10px`,
-        cursor: 'pointer',
-        userSelect: 'none',
-      }}
-    >
+  const renderRows = (isStacked: boolean) => (
+    <>
       <div style={{
         fontFamily: 'var(--font-geist-mono), monospace',
         fontSize: 'clamp(14px, 3.8vw, 16px)',
         color: nameColor,
         letterSpacing: '1px',
-        textAlign: stacked ? 'left' : 'center',
+        textAlign: isStacked ? 'left' : 'center',
       }}>
         {name}
       </div>
 
-      {stacked && (stackLocation ? (
+      {isStacked && (stackLocation ? (
         <>
           <div style={dataLineStyle}>{birthDateStr}{timePart}</div>
           {!!birthLocation && <div style={dataLineStyle}>{birthLocation}</div>}
@@ -207,6 +199,45 @@ function BirthDataToggle({
           {!!birthLocation && <span style={dataLineStyle}>{birthLocation}</span>}
         </div>
       ))}
+    </>
+  );
+
+  const cellStyle = (isStacked: boolean) => ({
+    gridArea: '1 / 1',
+    width: '100%',
+    minHeight: '52px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: isStacked ? 'stretch' as const : 'center' as const,
+    justifyContent: 'center' as const,
+    gap: '6px',
+    padding: isStacked ? '10px 24px' : `${10 + extraTopPadding}px 24px 10px`,
+  });
+
+  return (
+    <div
+      ref={containerRef}
+      onClick={() => setExpanded(e => !e)}
+      style={{
+        width: '100%',
+        display: 'grid',
+        position: 'relative',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
+    >
+      {/* Sizing copy — always rendered as the fully-expanded state, hidden
+          from view and interaction. Its only job is to reserve this
+          control's box at its largest possible size. */}
+      <div aria-hidden style={{ ...cellStyle(true), visibility: 'hidden', pointerEvents: 'none' }}>
+        {renderRows(true)}
+      </div>
+
+      {/* Real, visible content — swaps between collapsed and expanded on
+          tap, drawn on top of the reserved space above. */}
+      <div style={cellStyle(stacked)}>
+        {renderRows(stacked)}
+      </div>
     </div>
   );
 }

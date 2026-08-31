@@ -100,21 +100,12 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      <div style={{
-        flexShrink: 0,
-        padding: '8px 20px 6px',
-        borderBottom: '1.5px solid rgba(185,18,18,0.50)',
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-anton), sans-serif',
-          fontSize: 'clamp(22px, 6vw, 30px)',
-          color: '#161612',
-          letterSpacing: '1px',
-        }}>
-          Current Sky
-        </div>
-      </div>
-
+      {/* "Current Sky" title now lives merged into the shared header zone
+          above (see TodaySkySection's own render), sharing one row with the
+          Chart|List toggle instead of a separate row here — same
+          header-merge treatment ChartSection.tsx's List got, SPEC §16, Sep
+          2026 — so this view no longer renders its own title or divider;
+          the divider is now that shared row's bottom border. */}
       <div style={{
         flex: 1,
         minHeight: 0,
@@ -238,14 +229,18 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
           ChartSection.tsx's collapsed name band (centered, geist mono), not
           tappable/expandable since there is no birth data to reveal
           underneath it. No red rule here: the red-line-above-name treatment
-          is List-only, not the chart-wheel views (SPEC §16, fix pass). */}
+          is List-only, not the chart-wheel views (SPEC §16, fix pass).
+          Padding is symmetric top/bottom (SPEC §16, Sep 2026 fix) — the
+          previous 18px-top/10px-bottom split skewed the centered date
+          toward the bottom of this slot; even padding lets `justifyContent:
+          center` actually center it. */}
       <div style={{
         flexShrink: 0,
         minHeight: '52px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '18px 24px 10px',
+        padding: '14px 24px',
       }}>
         <span style={{
           fontFamily: 'var(--font-geist-mono), monospace',
@@ -278,21 +273,39 @@ export default function TodaySkySection({ positions, aspects }: TodaySkySectionP
       backgroundPosition: 'center',
     }}>
 
-      {/* Header zone — zone 1 of 3 (SPEC §16, three-zone rebuild). Chart |
-          List toggle, same reserved-space approach as ChartSection.tsx's
-          own header zone so it sits consistently below the fixed mobile nav
-          bar. Left-anchored, pipe-divided group (spacing-cleanup task) —
-          matches the desktop toggle convention and ChartSection.tsx's own
-          mobile toggle, instead of the old full-width
-          Chart-far-left/List-far-right spread. */}
+      {/* Header zone — zone 1 of 3 (SPEC §16, three-zone rebuild).
+          Header-merge fix (SPEC §16, Sep 2026), mirroring ChartSection.tsx's
+          own List header merge: List's "Current Sky" title now shares this
+          row with the Chart|List toggle (title left, toggle right) instead
+          of SkyListView rendering it on its own row below — freeing a full
+          row of height that flows into List's placement rows automatically
+          (that area is `flex: 1, justifyContent: 'space-evenly'`). Chart has
+          no title to merge, so its row stays just the toggle, right-aligned
+          for visual consistency with List's right-aligned toggle — same
+          left-anchored, pipe-divided toggle group as before either way. The
+          red divider that used to sit under List's standalone title block
+          now sits under this shared row instead, only when List is active. */}
       <div style={{
         flexShrink: 0,
         height: HEADER_ZONE_HEIGHT,
         display: 'flex',
         alignItems: 'flex-end',
+        justifyContent: isLight ? 'space-between' : 'flex-end',
         paddingLeft: '20px', paddingRight: '20px', paddingBottom: '4px',
+        borderBottom: isLight ? '1.5px solid rgba(185,18,18,0.50)' : 'none',
         zIndex: 20,
       }}>
+        {isLight && (
+          <div style={{
+            fontFamily: 'var(--font-anton), sans-serif',
+            fontSize: 'clamp(22px, 6vw, 30px)',
+            color: '#161612',
+            letterSpacing: '1px',
+            lineHeight: 1,
+          }}>
+            Current Sky
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '10px' }}>
           {(['chart', 'list'] as SkyView[]).map((view, i) => (
             <button
