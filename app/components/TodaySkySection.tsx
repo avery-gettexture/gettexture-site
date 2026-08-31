@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import TodaySkyWheel from './TodaySkyWheel';
 import { formatToday } from '@/lib/date-utils';
 import { RAIL_SIGN_GLYPHS } from '@/app/reading/[slug]/natal/page';
@@ -48,10 +48,12 @@ const BODY_GLYPH: Record<string, string> = {
 // retrograde badge (Nodes are never meaningfully retrograde).
 const BODY_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North Node', 'South Node'];
 
-// Same offsets as ChartSection.tsx — pushes this page's own Chart|List row and
-// content below the fixed MobileNavShell bar (56px + safe-area-inset-top).
-const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) - 4px)';
-const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 24px)';
+// Same header-zone height as ChartSection.tsx — reserves space for this
+// page's own Chart|List row below the fixed MobileNavShell bar (56px +
+// safe-area-inset-top). See ChartSection.tsx's own comment on this constant
+// (SPEC §16, Aug 31 2026 three-zone rebuild) for why this replaced the old
+// pair of absolute-position offset constants.
+const HEADER_ZONE_HEIGHT = 'calc(56px + env(safe-area-inset-top) + 24px)';
 
 const SKY_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png';
 const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png';
@@ -176,80 +178,69 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
 
 function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspects: SkyAspect[] }) {
   return (
-    <div style={{
-      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      // Both circle sizes as CSS variables, defined once, so the gap below
-      // (which needs the exact difference between them) can never drift out
-      // of sync with the sizes actually used to draw the wheel and glow.
-      ...{ '--wheel-d': 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)', '--glow-d': 'min(130vw, 85dvh)' } as CSSProperties,
-    }}>
-      {/* Wheel + gap + date band are one visual group, centered as a unit
-          in the content area — matches ChartSection.tsx's own ChartView fix
-          (SPEC §16, second fix pass). Anchoring the wheel to one edge of a
-          flexible region always dumped 100% of the leftover vertical space
-          on one side; centering the whole group instead splits it, and the
-          fixed 16px gap below never grows into a void. The wheel-plus-glow
-          unit is wrapped in its own relative box sized exactly to the
-          wheel's diameter (unchanged formula, not enlarged) so the radial
-          glow stays centered on the wheel itself. */}
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Wheel zone — zone 2 of 3 (SPEC §16, three-zone rebuild). Mirrors
+          ChartSection.tsx's own ChartView wheel zone — see that file's
+          comment for the full rationale. Takes whatever room is left
+          between the header zone above (reserved in TodaySkySection's own
+          render, below) and the date zone below; `overflow: hidden` +
+          `containerType: 'size'` clip the wheel and its glow to this box
+          and size them in container-query units (cqw/cqh) relative to this
+          box's own actual size, so the wheel scales down to fit rather than
+          overflowing into the zones above or below it. */}
       <div style={{
+        flex: 1,
+        minHeight: 0,
         position: 'relative',
-        width: 'var(--wheel-d)',
-        aspectRatio: '1',
-        alignSelf: 'center',
-        flexShrink: 0,
+        overflow: 'hidden',
+        containerType: 'size',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
         <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'var(--glow-d)',
-          aspectRatio: '1',
-          borderRadius: '50%',
-          backgroundImage: `url(${RADIAL_BG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
           position: 'relative',
-          width: '100%',
-          height: '100%',
-          borderRadius: '50%',
-          overflow: 'hidden',
+          // 24px of total breathing room within this zone — mirrors the old
+          // formula's own `100vw - 24px` margin, just measured against this
+          // zone's real box instead of the whole viewport.
+          width: 'min(calc(100cqw - 24px), calc(100cqh - 24px))',
+          aspectRatio: '1',
         }}>
-          <TodaySkyWheel positions={positions} aspects={aspects} />
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            // Glow is deliberately larger than the wheel it's centered on
+            // (~140%, matching the prior formula's own ratio) — safe to
+            // bleed past the wheel's own box now, since this zone's own
+            // clip catches it before it can reach the header or date zones.
+            width: '140%',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            backgroundImage: `url(${RADIAL_BG})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }} />
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            overflow: 'hidden',
+          }}>
+            <TodaySkyWheel positions={positions} aspects={aspects} />
+          </div>
         </div>
       </div>
 
-      {/* Gap sized to actually clear the glow, not just the wheel (SPEC §16,
-          third fix pass, founder correction — the date was still floating
-          inside the glow after the previous pass). The glow circle
-          (--glow-d) is deliberately larger than the wheel circle
-          (--wheel-d) it's centered on, so it bleeds past the wheel's own
-          box on every side by (--glow-d - --wheel-d) / 2 — a fixed 16px gap
-          measured from the wheel's box edge left most of that bleed
-          uncovered, which is exactly what let the glow reach down into the
-          date band below. This gap is that bleed amount plus a flat 24px of
-          genuinely clear space on top of it, so the date sits below the
-          glow's real visual edge on any phone size, not just below the
-          wheel's own edge. */}
-      <div style={{ height: 'calc((var(--glow-d) - var(--wheel-d)) / 2 + 24px)', flexShrink: 0 }} />
-
-      {/* Date — same position/styling as ChartSection.tsx's collapsed name
-          band (centered, geist mono), not tappable/expandable since there is
-          no birth data to reveal underneath it. No red rule here: the
-          red-line-above-name treatment is List-only, not the chart-wheel
-          views (SPEC §16, fix pass — corrects the prior pass, which had
-          applied it here too). `position: relative` is load-bearing here,
-          matching ChartSection.tsx's identical note: the wheel's radial
-          glow above is `position: absolute` and, with the gap now closed,
-          reaches down into this band — CSS paints positioned elements above
-          static ones regardless of DOM order, so without this the glow
-          would wash out the date text. */}
+      {/* Date zone — zone 3 of 3. Content-sized, same position/styling as
+          ChartSection.tsx's collapsed name band (centered, geist mono), not
+          tappable/expandable since there is no birth data to reveal
+          underneath it. No red rule here: the red-line-above-name treatment
+          is List-only, not the chart-wheel views (SPEC §16, fix pass). */}
       <div style={{
         flexShrink: 0,
-        position: 'relative',
         minHeight: '52px',
         display: 'flex',
         alignItems: 'center',
@@ -279,21 +270,28 @@ export default function TodaySkySection({ positions, aspects }: TodaySkySectionP
     <div style={{
       position: 'absolute',
       inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
       backgroundColor: isLight ? '#FDF5ED' : '#0e0c1a',
       backgroundImage: isLight ? '' : `url(${SKY_BG})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     }}>
 
-      {/* Nav — Chart | List only, same offset/positioning as ChartSection.tsx
-          so it sits consistently below the fixed mobile nav bar.
-          Left-anchored, pipe-divided group (spacing-cleanup task) — matches
-          the desktop toggle convention and ChartSection.tsx's own mobile
-          toggle, instead of the old full-width Chart-far-left/List-far-right
-          spread. */}
+      {/* Header zone — zone 1 of 3 (SPEC §16, three-zone rebuild). Chart |
+          List toggle, same reserved-space approach as ChartSection.tsx's
+          own header zone so it sits consistently below the fixed mobile nav
+          bar. Left-anchored, pipe-divided group (spacing-cleanup task) —
+          matches the desktop toggle convention and ChartSection.tsx's own
+          mobile toggle, instead of the old full-width
+          Chart-far-left/List-far-right spread. */}
       <div style={{
-        position: 'absolute', top: NAV_ROW_TOP, left: 0, right: 0,
-        display: 'flex', paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
+        flexShrink: 0,
+        height: HEADER_ZONE_HEIGHT,
+        display: 'flex',
+        alignItems: 'flex-end',
+        paddingLeft: '20px', paddingRight: '20px', paddingBottom: '4px',
+        zIndex: 20,
       }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           {(['chart', 'list'] as SkyView[]).map((view, i) => (
@@ -320,7 +318,11 @@ export default function TodaySkySection({ positions, aspects }: TodaySkySectionP
         </div>
       </div>
 
-      <div style={{ position: 'absolute', top: CONTENT_TOP, bottom: 0, left: 0, right: 0 }}>
+      {/* Content — fills the rest of the page below the header zone. Chart
+          tab subdivides this into its own wheel/date zones (see
+          SkyChartView); List tab fills it with its existing self-contained
+          layout (unchanged). */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {activeView === 'chart' && <SkyChartView positions={positions} aspects={aspects} />}
         {activeView === 'list' && <SkyListView positions={positions} />}
       </div>

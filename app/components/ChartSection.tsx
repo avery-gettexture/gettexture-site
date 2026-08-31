@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type CSSProperties } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 import { formatDate } from './BirthDataSection';
 
@@ -69,12 +69,25 @@ const SKY_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/publi
 const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png';
 
 // Mobile nav shell (MobileNavShell.tsx) is a fixed 56px + safe-area-inset-top
-// overlay bar. This page's own Chart|List toggle and content need to sit
-// below it — same "overlay, not reserved space, each page pushes its own
-// content down" fix already shipped for the standalone mobile Reference
-// screen (SPEC §16, Aug 17 2026).
-const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) - 4px)';
-const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 24px)';
+// overlay bar. This page's own header zone (below) reserves space starting
+// below it, so page content never sits underneath that fixed bar (same
+// "overlay, not reserved space, each page pushes its own content down" fix
+// already shipped for the standalone mobile Reference screen, SPEC §16,
+// Aug 17 2026).
+//
+// Three-zone rebuild (SPEC §16, Aug 31 2026): the header/wheel/name
+// structure below used to be three absolutely-positioned layers placed at
+// hand-tuned pixel offsets (this constant plus a wheel-size formula plus a
+// glow-clearance gap formula) — three separate numbers that all had to stay
+// in sync for the wheel to never touch the toggle above or the name below,
+// which is why it kept drifting out of sync across three straight fix
+// passes. HEADER_ZONE_HEIGHT is now the only offset constant left: it sizes
+// a real flex box (see the header zone in ChartSection below) that reserves
+// this much space at the top, in normal page flow. The wheel and name zones
+// below it are sized by flexbox itself (wheel zone: flex:1; name zone:
+// content-sized), not by more offset math, so nothing below this box can
+// ever overlap it — it isn't a position, it's dedicated space.
+const HEADER_ZONE_HEIGHT = 'calc(56px + env(safe-area-inset-top) + 24px)';
 
 // Converts a stored "YYYY-MM-DD" birth date into a compact numeric form
 // (e.g. "10/18/1997") — the narrower fallback used when the spelled date
@@ -110,7 +123,6 @@ function BirthDataToggle({
   birthLocation,
   theme,
   extraTopPadding = 0,
-  overlayExpand = false,
 }: {
   name: string;
   birthDate: string;
@@ -121,13 +133,6 @@ function BirthDataToggle({
   // wheel sits right above this control and the default padding hugs it
   // too tightly — List has no wheel above it, so it doesn't opt in).
   extraTopPadding?: number;
-  // Chart tab only (SPEC §16, fix pass): keeps this control's own box a
-  // fixed size and renders the expanded date/time/location as an
-  // absolutely-positioned overlay below it instead of growing in place.
-  // Without this, expanding pushed the wheel above it upward (the wheel's
-  // region is a flex sibling that shrinks whenever this band grows). List
-  // has nothing above it to shift, so it keeps the plain in-flow behavior.
-  overlayExpand?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -157,7 +162,11 @@ function BirthDataToggle({
   const dataColor = theme === 'dark' ? 'rgba(253,245,237,0.45)' : 'rgba(22,22,18,0.45)';
 
   const dataLineStyle = { fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: dataColor, letterSpacing: '0.5px' } as const;
-  const stacked = !overlayExpand && expanded;
+  // Three-zone rebuild (SPEC §16, Aug 31 2026): this control's box grows
+  // in-flow when tapped (no more Chart-tab-only overlay workaround) — the
+  // wheel zone above it is a flex:1 sibling with no minimum height, so it
+  // absorbs the growth by shrinking rather than being pushed or overlapped.
+  const stacked = expanded;
 
   return (
     <div
@@ -198,27 +207,6 @@ function BirthDataToggle({
           {!!birthLocation && <span style={dataLineStyle}>{birthLocation}</span>}
         </div>
       ))}
-
-      {/* Chart tab (overlayExpand): expanded detail renders as an overlay
-          below the fixed-size name row, instead of growing it, so the
-          wheel above never shifts (see prop comment above). */}
-      {overlayExpand && expanded && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          padding: '6px 24px 10px',
-          display: 'flex',
-          flexDirection: stackLocation ? 'column' : 'row',
-          alignItems: stackLocation ? 'center' : 'flex-start',
-          justifyContent: stackLocation ? 'flex-start' : 'center',
-          gap: stackLocation ? '2px' : '16px',
-        }}>
-          <span style={dataLineStyle}>{birthDateStr}{timePart}</span>
-          {!!birthLocation && <span style={dataLineStyle}>{birthLocation}</span>}
-        </div>
-      )}
     </div>
   );
 }
@@ -361,6 +349,7 @@ function ChartView({
   birthDate,
   birthTime,
   birthLocation,
+  onScrollNext,
 }: {
   chartData: any;
   birthTimeKnown: boolean;
@@ -368,88 +357,102 @@ function ChartView({
   birthDate: string;
   birthTime: string;
   birthLocation: string;
+  onScrollNext?: () => void;
 }) {
   return (
-    <div style={{
-      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      // Both circle sizes as CSS variables, defined once, so the gap below
-      // (which needs the exact difference between them) can never drift out
-      // of sync with the sizes actually used to draw the wheel and glow.
-      ...{ '--wheel-d': 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)', '--glow-d': 'min(130vw, 85dvh)' } as CSSProperties,
-    }}>
-      {/* Wheel + gap + name band are one visual group, centered as a unit
-          in the content area (SPEC §16, second fix pass). Anchoring the
-          wheel to one edge of a flexible region (centered-with-fixed-gap,
-          then bottom-anchored) always dumped 100% of the leftover vertical
-          space on one side — a big void above the name, then a big void
-          above the wheel with the name/arrow crowded against the screen
-          bottom. Centering the whole group instead splits any leftover
-          space between above-the-wheel and below-the-band, and the fixed
-          16px gap below never grows into a void. The wheel-plus-glow unit
-          is wrapped in its own relative box sized exactly to the wheel's
-          diameter (unchanged formula, not enlarged) so the radial glow
-          stays centered on the wheel itself regardless of where the group
-          sits. */}
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Wheel zone — zone 2 of 3 (SPEC §16, three-zone rebuild). Takes
+          whatever room is left between the header zone above (reserved in
+          ChartSection's own render, below) and the name zone below.
+          `overflow: hidden` + `containerType: 'size'` make this a real,
+          clipped box: the wheel and its glow render only inside it and are
+          sized in "container query" units (cqw/cqh) — measured against
+          THIS box's own actual width/height, not the viewport — so the
+          wheel scales down to fit whenever this zone is short rather than
+          overflowing into the zones above or below it. And because this
+          box clips its own contents, the glow (deliberately larger than the
+          wheel, see below) physically cannot bleed past this zone's edges
+          even if its size is ever wrong — replacing the old fixed
+          `min(calc(100dvh - 260px), ...)` wheel formula that had to be kept
+          in exact sync with a separate glow-clearance gap formula below it
+          to avoid that exact overlap (three straight fix passes proved that
+          sync kept breaking). */}
       <div style={{
+        flex: 1,
+        minHeight: 0,
         position: 'relative',
-        width: 'var(--wheel-d)',
-        aspectRatio: '1',
-        alignSelf: 'center',
-        flexShrink: 0,
+        overflow: 'hidden',
+        containerType: 'size',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
         <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'var(--glow-d)',
-          aspectRatio: '1',
-          borderRadius: '50%',
-          backgroundImage: `url(${RADIAL_BG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
           position: 'relative',
-          width: '100%',
-          height: '100%',
-          borderRadius: '50%',
-          overflow: 'hidden',
+          // 24px of total breathing room within this zone — mirrors the old
+          // formula's own `100vw - 24px` margin, just measured against this
+          // zone's real box instead of the whole viewport.
+          width: 'min(calc(100cqw - 24px), calc(100cqh - 24px))',
+          aspectRatio: '1',
         }}>
-          <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            // Glow is deliberately larger than the wheel it's centered on
+            // (~140%, matching the prior formula's own ratio) — safe to
+            // bleed past the wheel's own box now, since this zone's own
+            // clip catches it before it can reach the header or name zones.
+            width: '140%',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            backgroundImage: `url(${RADIAL_BG})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }} />
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            overflow: 'hidden',
+          }}>
+            <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
+          </div>
         </div>
       </div>
 
-      {/* Gap sized to actually clear the glow, not just the wheel (SPEC §16,
-          third fix pass, founder correction — the name was still floating
-          inside the glow after the previous pass). The glow circle
-          (--glow-d) is deliberately larger than the wheel circle
-          (--wheel-d) it's centered on, so it bleeds past the wheel's own
-          box on every side by (--glow-d - --wheel-d) / 2 — a fixed 16px gap
-          measured from the wheel's box edge left most of that bleed
-          uncovered, which is exactly what let the glow reach down into the
-          name band below. This gap is that bleed amount plus a flat 24px of
-          genuinely clear space on top of it, so the name/date sits below
-          the glow's real visual edge on any phone size, not just below the
-          wheel's own edge. */}
-      <div style={{ height: 'calc((var(--glow-d) - var(--wheel-d)) / 2 + 24px)', flexShrink: 0 }} />
-
-      {/* Birth data — collapsed default (name only), tap to expand. No red
-          rule here: the red-line-above-name treatment is List-only, not
-          the chart-wheel views (SPEC §16, fix pass — corrects the prior
-          pass, which had applied it here too). `overlayExpand` keeps this
-          band's own box a fixed size when tapped, so the wheel above never
-          shifts (see BirthDataToggle's prop comment). `position: relative`
-          here is load-bearing, not decorative: the wheel's radial glow
-          above is `position: absolute`, and CSS paints all positioned
-          elements above plain static ones regardless of DOM order — with
-          the gap now closed, the (unchanged, deliberately oversized) glow
-          reaches down into this band and would otherwise wash out the name
-          text. Making this band positioned too puts it in the same paint
-          layer as the glow, where later DOM order (this band, after the
-          wheel) wins and the text renders on top instead. */}
-      <div style={{ flexShrink: 0, position: 'relative' }}>
-        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={14} overlayExpand />
+      {/* Name zone — zone 3 of 3. Content-sized (not stretched), so it only
+          ever takes the space the name/date/arrow actually need — the
+          wheel zone above gets everything else and can never enter this
+          box, because this box isn't a position, it's dedicated space in
+          the page flow. No red rule here: the red-line-above-name
+          treatment is List-only, not the chart-wheel views (SPEC §16, fix
+          pass). Tapping the name to reveal birth details now grows this
+          zone in place — BirthDataToggle no longer needs the old
+          `overlayExpand` workaround, because the wheel zone above is a
+          plain flex sibling with no minimum height: it shrinks to make
+          room the same way any flex layout responds to a sibling growing. */}
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={14} />
+        {onScrollNext && (
+          <button
+            onClick={onScrollNext}
+            style={{
+              alignSelf: 'center',
+              fontFamily: 'var(--font-geist-mono), monospace',
+              fontSize: '18px',
+              color: 'rgba(253,245,237,0.50)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0 16px 10px',
+            }}
+          >
+            ↓
+          </button>
+        )}
       </div>
     </div>
   );
@@ -475,22 +478,32 @@ export default function ChartSection({
     <div style={{
       position: 'absolute',
       inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
       backgroundColor: isLight ? '#FDF5ED' : '#0e0c1a',
       backgroundImage: isLight ? '' : `url(${SKY_BG})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
     }}>
 
-      {/* Nav — Chart | List only. Pushed below the fixed mobile nav bar
-          (MobileNavShell, 56px + safe-area-inset-top) — that bar already
-          renders this page's one TEXTURE wordmark (top-right), so no
-          second one is rendered here. Left-anchored, pipe-divided group
-          (spacing-cleanup task) — matches the desktop toggle convention
-          already used by HomeMyChartPanel/HomeTodaySkyPanel, instead of
-          the old full-width Chart-far-left/List-far-right spread. */}
+      {/* Header zone — zone 1 of 3 (SPEC §16, three-zone rebuild). Chart |
+          List toggle. This reserves real space below the fixed mobile nav
+          bar (MobileNavShell, 56px + safe-area-inset-top — that bar already
+          renders this page's one TEXTURE wordmark, so no second one is
+          rendered here); it's a normal flex row taking up its own place in
+          the page, not an overlay positioned by offset math, so nothing
+          below it can ever be drawn into this space. Left-anchored,
+          pipe-divided group (spacing-cleanup task) — matches the desktop
+          toggle convention already used by HomeMyChartPanel/
+          HomeTodaySkyPanel, instead of the old full-width
+          Chart-far-left/List-far-right spread. */}
       <div style={{
-        position: 'absolute', top: NAV_ROW_TOP, left: 0, right: 0,
-        display: 'flex', paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
+        flexShrink: 0,
+        height: HEADER_ZONE_HEIGHT,
+        display: 'flex',
+        alignItems: 'flex-end',
+        paddingLeft: '20px', paddingRight: '20px', paddingBottom: '4px',
+        zIndex: 20,
       }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           {(['chart', 'list'] as ChartView[]).map((view, i) => (
@@ -517,7 +530,11 @@ export default function ChartSection({
         </div>
       </div>
 
-      <div style={{ position: 'absolute', top: CONTENT_TOP, bottom: '36px', left: 0, right: 0 }}>
+      {/* Content — fills the rest of the page below the header zone. Chart
+          tab subdivides this into its own wheel/name zones (see ChartView);
+          List tab fills it with its existing self-contained layout
+          (unchanged — List was never part of the wheel-overlap bug). */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {currentView === 'chart' && (
           <ChartView
             chartData={chartData}
@@ -526,6 +543,7 @@ export default function ChartSection({
             birthDate={birthDate}
             birthTime={birthTime}
             birthLocation={birthLocation}
+            onScrollNext={onScrollNext}
           />
         )}
         {currentView === 'list' && (
@@ -540,26 +558,32 @@ export default function ChartSection({
         )}
       </div>
 
-      {/* Arrow */}
-      <button
-        onClick={onScrollNext}
-        style={{
-          position: 'absolute',
-          bottom: isLight ? '0.2%' : '0.8%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontFamily: 'var(--font-geist-mono), monospace',
-          fontSize: '18px',
-          color: isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.50)',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '8px 16px',
-          zIndex: 30,
-        }}
-      >
-        ↓
-      </button>
+      {/* Arrow — List tab only now. The Chart tab renders its own arrow
+          inside its name zone (see ChartView) so it lives in that zone's
+          reserved space instead of floating over the wheel independently;
+          List's own layout is unchanged, so its arrow keeps its prior
+          overlaid position. */}
+      {isLight && (
+        <button
+          onClick={onScrollNext}
+          style={{
+            position: 'absolute',
+            bottom: '0.2%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontFamily: 'var(--font-geist-mono), monospace',
+            fontSize: '18px',
+            color: 'rgba(22,22,18,0.35)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '8px 16px',
+            zIndex: 30,
+          }}
+        >
+          ↓
+        </button>
+      )}
 
     </div>
   );

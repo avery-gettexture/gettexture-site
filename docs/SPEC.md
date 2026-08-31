@@ -6348,3 +6348,70 @@ true edge, not just below the wheel's. `npx tsc --noEmit` clean. Files
 touched: `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**Mobile Chart pages — rebuilt as three structurally locked zones, replacing
+offset math with real layout (Aug 31 2026, founder-directed structural
+rebuild):** The three same-day passes above each fixed a real overlap by
+re-tuning offsets — a header-position constant, a wheel-size formula, and a
+glow-clearance gap formula that all had to stay in exact sync for the wheel
+to clear the header above and the name/date below. That's why the bug
+recurred three times: every fix made overlap *less likely* on the phone
+sizes tested, not *impossible*. Founder directed a structural rebuild
+instead: replace the offset math with a real three-box vertical layout
+(flex column) so the browser's own layout engine — not arithmetic — makes
+overlap physically impossible.
+
+`ChartView` (`ChartSection.tsx`) and `SkyChartView` (`TodaySkySection.tsx`)
+are now each a flex column of two zones (a third, the header, lives in the
+parent `ChartSection`/`TodaySkySection` component, shared with the List
+tab): a **wheel zone** (`flex: 1`, `overflow: hidden`, `containerType:
+'size'`) that gets whatever space is left between the header and name
+zones, and a **name zone** (content-sized, `flexShrink: 0`) below it that
+reserves real space for the name/date and (My Chart only) the down-arrow —
+both now live inside this zone rather than floating independently. The
+header zone in the parent component is likewise a real flex row with a
+reserved height (`HEADER_ZONE_HEIGHT`, replacing the old `NAV_ROW_TOP`/
+`CONTENT_TOP` pair) rather than an absolutely-positioned overlay. Because
+these are real boxes in document flow, not layers positioned by pixel math,
+nothing below a zone can ever be drawn into it.
+
+The wheel itself is now sized in CSS container-query units (`cqw`/`cqh`)
+measured against the wheel zone's own actual box — `min(calc(100cqw -
+24px), calc(100cqh - 24px))` — instead of the old fixed formula measured
+against the viewport (`min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)`).
+This means the wheel scales down automatically whenever its zone is short,
+rather than overflowing; the 24px margin mirrors the old formula's own
+width margin, just measured against the zone instead of the screen. The
+glow is now sized as 140% of the wheel's own box (matching the old
+formula's ratio) rather than a separate viewport-relative variable, and the
+wheel zone's `overflow: hidden` clips it at the zone's edge — so even if the
+glow's size were ever wrong, it cannot bleed into the header or name zones;
+the old `--wheel-d`/`--glow-d`-synced gap formula is no longer needed and is
+removed.
+
+Tapping the name to reveal birth details (My Chart only) now grows the name
+zone in place, and the wheel zone — a plain flex sibling with no minimum
+height — shrinks to make room automatically. This let `BirthDataToggle`
+drop its `overlayExpand` prop entirely: the absolutely-positioned overlay
+workaround that used to fake in-place growth (added specifically because
+the old wheel region didn't respond to its sibling growing) is no longer
+needed, because a real flex sibling responds to that natively.
+
+No visual style changes were intended — toggle position, wheel appearance,
+name/date appearance, colors, the List tab, the red-line-above-name
+List-only convention, and the down-arrow are all unchanged in *how they
+look*; only how the layout is built changed. List's own internal layout was
+untouched (it was never part of the overlap bug).
+
+**Verified** with a Playwright script against the running dev server
+(dogfood slug `hejkhjq1zns5`): screenshotted both pages' Chart tabs at a
+normal mobile viewport (iPhone 13, 390×844) — wheel fully inside its zone
+on both, no contact with the header toggle above or the name/date below.
+Re-screenshotted both at a short viewport (iPhone SE, 375×667) — wheel
+visibly scaled down on both to stay fully contained, no overflow.
+Screenshotted My Chart's Chart tab again after tapping the name to expand
+birth details — the name zone grew to show the date/time/location line,
+the wheel shrank to make room, still no overlap. `npx tsc --noEmit` clean.
+Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
