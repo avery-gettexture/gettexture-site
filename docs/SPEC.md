@@ -6413,5 +6413,43 @@ Screenshotted My Chart's Chart tab again after tapping the name to expand
 birth details — the name zone grew to show the date/time/location line,
 the wheel shrank to make room, still no overlap. `npx tsc --noEmit` clean.
 Files touched: `app/components/ChartSection.tsx`,
-`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
-pushed.
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. Committed, then
+pushed to `origin/main` and deployed to production the same day — see the
+entry directly below for the deploy itself, including a CLI roadblock hit
+and resolved along the way.
+
+**Deploy roadblock — `vercel --prod` CLI reports "Not authorized" even
+though the deployment succeeds (Aug 31 2026):** Pushed the three-zone
+rebuild commit above to `origin/main` (clean push, no issue), then ran
+`vercel --prod --yes` to promote to production. The CLI exited with code 1
+and printed only a JSON error block (`"status": "error", "reason":
+"deploy_failed", "message": "Not authorized"`, suggesting `vercel deploy`
+as the retry) — no normal build log output at all, which reads like the
+deploy never started.
+
+**It had actually already succeeded.** `vercel ls gettexture-site` showed a
+new Production deployment 2 minutes old, `● Ready`, 28s build — timestamped
+right when the failing command ran. `vercel inspect` on that deployment
+confirmed it: status Ready, target production, and already aliased to
+`www.gettexture.app` / `gettexture.app`. So the actual deploy pipeline
+(build, ready, alias-to-production) completed normally; the CLI's own exit
+path threw "Not authorized" on some step *after* that — most likely a
+post-deploy call the CLI/plugin wrapper makes (e.g. fetching deployment
+info for its own summary output) — and reported that failure as if the
+whole deploy had failed, with no build log shown to indicate otherwise.
+
+**Resolution:** treated the CLI's exit code/error as unreliable on its own
+and independently confirmed the real state instead of retrying blind:
+`vercel ls` for a fresh Ready/Production entry matching the deploy time,
+`vercel inspect <url>` to confirm it's aliased to the live production
+domains, a direct `curl` against `https://www.gettexture.app/` and a
+reading page (both 200), and `vercel logs <url> --level error --since 5m`
+(none found). All clean — no retry needed; retrying would have risked a
+redundant deployment. **Founder note for future deploys:** if `vercel
+--prod` reports "Not authorized" (or exits non-zero generally) with no
+build log shown, check `vercel ls`/`vercel inspect` for a matching
+Ready/Production deployment before assuming the deploy failed or retrying —
+this CLI/environment combination (Vercel CLI 59.1.4, flagged as outdated at
+session start in favor of 59.10.0) has shown this false-failure behavior at
+least once. Files touched: `docs/SPEC.md` only (deploy-process note, no app
+code change).
