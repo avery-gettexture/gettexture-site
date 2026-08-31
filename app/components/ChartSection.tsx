@@ -220,6 +220,7 @@ function ListView({
   birthDate,
   birthTime,
   birthLocation,
+  onScrollNext,
 }: {
   chartData: any;
   onScrollToPlanet?: (planetId: string) => void;
@@ -227,6 +228,7 @@ function ListView({
   birthDate: string;
   birthTime: string;
   birthLocation: string;
+  onScrollNext?: () => void;
 }) {
   const subject = chartData?.subject;
   if (!subject) return null;
@@ -277,23 +279,12 @@ function ListView({
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      {/* Header — compact, close to nav */}
-      <div style={{
-        flexShrink: 0,
-        padding: '8px 20px 6px',
-        borderBottom: '1.5px solid rgba(185,18,18,0.50)',
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-anton), sans-serif',
-          fontSize: 'clamp(22px, 6vw, 30px)',
-          color: '#161612',
-          letterSpacing: '1px',
-        }}>
-          Placements
-        </div>
-      </div>
-
-      {/* Planet rows — no scroll, use space-evenly to fill */}
+      {/* Planet rows — no scroll, use space-evenly to fill. "Placements"
+          title now lives merged into the shared header zone above (see
+          ChartSection's own render), sharing one row with the Chart|List
+          toggle instead of a separate row here — header-merge task, SPEC
+          §16, Aug 31 2026 — so this view no longer renders its own title
+          or divider; the divider is now that shared row's bottom border. */}
       <div style={{
         flex: 1,
         minHeight: 0,
@@ -332,9 +323,36 @@ function ListView({
           the name — founder correction, Aug 30 2026, SPEC §16: matches the
           rest of the app's convention of a red line sitting above the
           content it introduces, replacing the old below-the-name rule that
-          used to sit at this panel's outer bottom edge instead. */}
-      <div style={{ flexShrink: 0, borderTop: '1.5px solid rgba(185,18,18,0.50)' }}>
+          used to sit at this panel's outer bottom edge instead.
+
+          Arrow now lives in-flow here, right after BirthDataToggle, instead
+          of as an independent absolutely-positioned overlay pinned near the
+          screen bottom (arrow-overlap fix, SPEC §16, Aug 31 2026) — the old
+          overlay didn't know how tall this block was, so expanding the name
+          could push birth data up underneath it. As a real flex sibling
+          below the toggle, the arrow is pushed down automatically when the
+          block grows, so overlap is structurally impossible — mirrors the
+          fix already proven for the Chart tab's own arrow (see ChartView's
+          name zone below). */}
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', borderTop: '1.5px solid rgba(185,18,18,0.50)' }}>
         <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="light" />
+        {onScrollNext && (
+          <button
+            onClick={onScrollNext}
+            style={{
+              alignSelf: 'center',
+              fontFamily: 'var(--font-geist-mono), monospace',
+              fontSize: '18px',
+              color: 'rgba(22,22,18,0.35)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0 16px 10px',
+            }}
+          >
+            ↓
+          </button>
+        )}
       </div>
     </div>
   );
@@ -486,25 +504,47 @@ export default function ChartSection({
       backgroundPosition: 'center',
     }}>
 
-      {/* Header zone — zone 1 of 3 (SPEC §16, three-zone rebuild). Chart |
-          List toggle. This reserves real space below the fixed mobile nav
-          bar (MobileNavShell, 56px + safe-area-inset-top — that bar already
-          renders this page's one TEXTURE wordmark, so no second one is
-          rendered here); it's a normal flex row taking up its own place in
-          the page, not an overlay positioned by offset math, so nothing
-          below it can ever be drawn into this space. Left-anchored,
-          pipe-divided group (spacing-cleanup task) — matches the desktop
-          toggle convention already used by HomeMyChartPanel/
-          HomeTodaySkyPanel, instead of the old full-width
-          Chart-far-left/List-far-right spread. */}
+      {/* Header zone — zone 1 of 3 (SPEC §16, three-zone rebuild). This
+          reserves real space below the fixed mobile nav bar (MobileNavShell,
+          56px + safe-area-inset-top — that bar already renders this page's
+          one TEXTURE wordmark, so no second one is rendered here); it's a
+          normal flex row taking up its own place in the page, not an
+          overlay positioned by offset math, so nothing below it can ever be
+          drawn into this space.
+
+          Header-merge fix (SPEC §16, Aug 31 2026): List's "Placements"
+          title used to render on its own row inside ListView, stacked below
+          this toggle row — two rows of height for what reads as one header.
+          Now they share this single row: title left, toggle right, freeing
+          a full row of vertical space (which flows into List's planet-row
+          spacing automatically, since that area is `flex: 1,
+          justify-content: space-evenly`). The Chart tab has no title to
+          merge with, so its row is just the toggle, now right-aligned
+          instead of left-anchored, for visual consistency with List's
+          right-aligned toggle. The red divider that used to sit under
+          List's standalone title block now sits under this shared row
+          instead, only when List is active. */}
       <div style={{
         flexShrink: 0,
         height: HEADER_ZONE_HEIGHT,
         display: 'flex',
         alignItems: 'flex-end',
+        justifyContent: isLight ? 'space-between' : 'flex-end',
         paddingLeft: '20px', paddingRight: '20px', paddingBottom: '4px',
+        borderBottom: isLight ? '1.5px solid rgba(185,18,18,0.50)' : 'none',
         zIndex: 20,
       }}>
+        {isLight && (
+          <div style={{
+            fontFamily: 'var(--font-anton), sans-serif',
+            fontSize: 'clamp(22px, 6vw, 30px)',
+            color: '#161612',
+            letterSpacing: '1px',
+            lineHeight: 1,
+          }}>
+            Placements
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '10px' }}>
           {(['chart', 'list'] as ChartView[]).map((view, i) => (
             <button
@@ -554,36 +594,10 @@ export default function ChartSection({
             birthDate={birthDate}
             birthTime={birthTime}
             birthLocation={birthLocation}
+            onScrollNext={onScrollNext}
           />
         )}
       </div>
-
-      {/* Arrow — List tab only now. The Chart tab renders its own arrow
-          inside its name zone (see ChartView) so it lives in that zone's
-          reserved space instead of floating over the wheel independently;
-          List's own layout is unchanged, so its arrow keeps its prior
-          overlaid position. */}
-      {isLight && (
-        <button
-          onClick={onScrollNext}
-          style={{
-            position: 'absolute',
-            bottom: '0.2%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: '18px',
-            color: 'rgba(22,22,18,0.35)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px 16px',
-            zIndex: 30,
-          }}
-        >
-          ↓
-        </button>
-      )}
 
     </div>
   );

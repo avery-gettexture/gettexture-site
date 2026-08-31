@@ -6453,3 +6453,51 @@ this CLI/environment combination (Vercel CLI 59.1.4, flagged as outdated at
 session start in favor of 59.10.0) has shown this false-failure behavior at
 least once. Files touched: `docs/SPEC.md` only (deploy-process note, no app
 code change).
+
+**Mobile List-page header merge + down-arrow overlap fix (Aug 31 2026):**
+Two connected fixes to `ChartSection.tsx`'s shared header zone and List
+tab's bottom section.
+
+*Header merge:* List's "Placements" title used to render on its own row,
+stacked below the Chart|List toggle row above it — two rows of height for
+one conceptual header. They now share one row (title left, toggle right,
+`justify-content: space-between`), freeing a full row of vertical space.
+The Chart tab has no title to merge with, so its toggle row is unchanged
+except now right-aligned (`justify-content: flex-end`) instead of
+left-anchored, for visual consistency with List's own right-aligned
+toggle. The red divider rule that used to sit under List's standalone
+title block now sits under this shared row instead (List-only). List's
+own standalone header block and its title/border were removed from
+`ListView` — that content now lives in `ChartSection`'s shared header zone,
+conditional on which tab is active.
+
+*Arrow overlap fix:* List's down-arrow used to be an independent
+absolutely-positioned overlay pinned near the screen bottom
+(`position: 'absolute', bottom: '0.2%'`), unaware of how tall the
+name/birth-data block above it actually was — tapping the name to expand
+it could grow the block up underneath the arrow. Removed that overlay and
+gave `ListView` an `onScrollNext` prop (mirroring `ChartView`, which
+already had one); the arrow now renders in-flow immediately after
+`BirthDataToggle`, inside the same flex-column bottom container, exactly
+mirroring the fix already proven for the Chart tab's own arrow (the
+three-zone rebuild, this section, above). As a real flex sibling, the arrow
+is pushed down automatically when the block grows, making overlap
+structurally impossible rather than something to re-tune.
+
+No manual space-balancing code was needed for the freed header space: the
+List tab's planet rows already sit in a `flex: 1, justify-content:
+'space-evenly'` container between the header and the bottom block, so the
+freed row of height is absorbed and evenly redistributed across row gaps
+automatically.
+
+**Verified** with a Playwright script against the running dev server
+(dogfood slug `hejkhjq1zns5`, iPhone 13 viewport) — screenshotted the Chart
+tab (toggle right-aligned, confirmed via bounding box: toggle group's right
+edge lands at the same 20px-inset right margin as before) and the List tab
+in both collapsed and expanded (name-tapped) states. Measured real bounding
+boxes, not just visual inspection: "Placements" and the "List" toggle both
+bottom out at the same ~75px baseline on one row; collapsed state has a
+16.5px clear gap between the name and the arrow; expanded state has a 10px
+clear gap between the birth-data line and the arrow — no overlap in either
+state. `npx tsc --noEmit` clean. Files touched: `app/components/
+ChartSection.tsx`, `docs/SPEC.md`. Committed, not pushed.
