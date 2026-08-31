@@ -6166,4 +6166,21 @@ same formatting, no tap affordance).
 
 Files touched: `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
-pushed.
+pushed. Pushed and deployed to production later the same day (see next
+entry).
+
+**`docs/` excluded from the type-checker (Aug 30 2026).** Pushing the
+above change and deploying to production surfaced a pre-existing,
+unrelated problem: `tsconfig.json`'s `include` covers every `**/*.tsx`
+in the repo with no exception for `docs/`, so three untracked reference
+files sitting in `docs/mocks/` (`app-chart-screen.tsx`,
+`app-home-screen.tsx`, a React Native/Expo mockup pair, plus a `.png`)
+were being type-checked as if they were site code. `next build` failed
+on `app-chart-screen.tsx`'s `import { router } from 'expo-router'` —
+`expo-router` isn't a dependency of this Next.js site — which blocked
+the production build entirely. Founder decision: leave the mock files
+in place (they're reference material, not app code) and instead add
+`"docs"` to `tsconfig.json`'s `exclude` array, so nothing under `docs/`
+is type-checked as part of the site build. Verified locally with
+`npx tsc --noEmit` (clean) before redeploying. Files touched:
+`tsconfig.json`. Pushed and deployed to production the same day.
