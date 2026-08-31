@@ -73,8 +73,8 @@ const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/pu
 // below it — same "overlay, not reserved space, each page pushes its own
 // content down" fix already shipped for the standalone mobile Reference
 // screen (SPEC §16, Aug 17 2026).
-const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 14px)';
-const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 50px)';
+const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 4px)';
+const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 34px)';
 
 // Converts a stored "YYYY-MM-DD" birth date into a compact numeric form
 // (e.g. "10/18/1997") — the narrower fallback used when the spelled date
@@ -409,31 +409,37 @@ export default function ChartSection({
       {/* Nav — Chart | List only. Pushed below the fixed mobile nav bar
           (MobileNavShell, 56px + safe-area-inset-top) — that bar already
           renders this page's one TEXTURE wordmark (top-right), so no
-          second one is rendered here. */}
+          second one is rendered here. Left-anchored, pipe-divided group
+          (spacing-cleanup task) — matches the desktop toggle convention
+          already used by HomeMyChartPanel/HomeTodaySkyPanel, instead of
+          the old full-width Chart-far-left/List-far-right spread. */}
       <div style={{
         position: 'absolute', top: NAV_ROW_TOP, left: 0, right: 0,
-        display: 'flex', justifyContent: 'space-between',
-        paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
+        display: 'flex', paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
       }}>
-        {(['chart', 'list'] as ChartView[]).map(view => (
-          <button
-            key={view}
-            onClick={() => setActiveView(view)}
-            style={{
-              fontFamily: 'var(--font-geist-mono), monospace',
-              fontSize: 'clamp(13px, 3.5vw, 16px)',
-              letterSpacing: '1px',
-              color: currentView === view
-                ? (isLight ? '#161612' : 'rgba(253,245,237,1)')
-                : (isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.35)'),
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '4px 0', textTransform: 'capitalize',
-              fontWeight: currentView === view ? 'bold' : 'normal',
-            }}
-          >
-            {view.charAt(0).toUpperCase() + view.slice(1)}
-          </button>
-        ))}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {(['chart', 'list'] as ChartView[]).map((view, i) => (
+            <button
+              key={view}
+              onClick={() => setActiveView(view)}
+              style={{
+                fontFamily: 'var(--font-geist-mono), monospace',
+                fontSize: 'clamp(13px, 3.5vw, 16px)',
+                letterSpacing: '1px',
+                color: currentView === view
+                  ? (isLight ? '#161612' : 'rgba(253,245,237,1)')
+                  : (isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.35)'),
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px 0', textTransform: 'capitalize',
+                fontWeight: currentView === view ? 'bold' : 'normal',
+                borderLeft: i > 0 ? `1px solid ${isLight ? 'rgba(22,22,18,0.20)' : 'rgba(253,245,237,0.30)'}` : 'none',
+                paddingLeft: i > 0 ? '10px' : '0',
+              }}
+            >
+              {view.charAt(0).toUpperCase() + view.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div style={{ position: 'absolute', top: CONTENT_TOP, bottom: '36px', left: 0, right: 0 }}>

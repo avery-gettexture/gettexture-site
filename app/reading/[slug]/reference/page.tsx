@@ -90,7 +90,12 @@ function DesktopReference({ slug }: { slug: string }) {
         />
       }
     >
-      <div className="card-header">
+      {/* alignItems override (spacing-cleanup task): the shared .card-header
+          class centers its content (used by other reading-pane headers,
+          e.g. natal placement cards), but Reference's title should be
+          left-aligned — scoped to this page only, same override pattern
+          already used by the natal page's own header (SPEC §16). */}
+      <div className="card-header" style={{ alignItems: 'flex-start' }}>
         <h1 className="planet-name reference-title">{activeCategory.label}</h1>
         <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
       </div>

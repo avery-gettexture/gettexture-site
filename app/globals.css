@@ -670,7 +670,12 @@ body {
 
 .home-panel-sticker {
   position: absolute;
-  top: 0;
+  /* Moved fully onto the page background above the panel (spacing-cleanup
+     task) — was translate(-50%, -50%) at top:0, which straddled the
+     panel's own top edge (half overlapping the photo below). Now sits
+     entirely above it, with a small gap, on both panels (this one rule is
+     shared by "My Chart" and "Today's Sky"). */
+  top: -10px;
   left: 50%;
   /* Centered over the panel's full width and sized up, per docs/mocks/
      home.png ("My Chart" / "Today's Sky") — the prior build left this
@@ -678,7 +683,7 @@ body {
      eyeballed against the mock's proportions, not doc-pinned; flag for
      founder visual sign-off. Color is the SAME brand red used elsewhere
      (nav-link.active, rail-control.active), not a new one-off value. */
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -100%);
   background: var(--cream);
   color: var(--red-strong);
   font-family: var(--font-geist-mono), monospace;

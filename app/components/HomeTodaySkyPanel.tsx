@@ -156,8 +156,22 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
           lives HERE, on the wrapper itself, insetting the wrapper's
           CONTENT from the card's edges rather than defining the card's
           edges (home-page-polish task, §16, second follow-up). */}
+      {/* Top/bottom breathing room around the cream card (spacing-cleanup
+          task): List mode only — Chart mode has no visible card, so it
+          keeps the old unspaced flex:'0 0 98%' behavior untouched. Side
+          margins (the wrapper's own `padding: '0 3%'` below, and the
+          panel's shared 5%/5% .home-panel-slot inset) are unchanged — only
+          top/bottom get more room here, taken from the wrapper's own
+          height rather than from the shared .home-panel-slot class (which
+          the My Chart panel also relies on and has no cream card to
+          rebalance). Top spacer is smaller than bottom (3% vs 5%) to
+          offset .home-panel-slot's own top:2% inset (which has no bottom
+          counterpart, since its own bottom is 0) — confirmed by measuring
+          the live page that this makes the two final margins roughly
+          equal, not just the spacers themselves. */}
+      {paneMode === 'list' && <div style={{ flex: '0 0 3%' }} />}
       <div style={{
-        flex: '0 0 98%', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
+        flex: paneMode === 'list' ? '1 1 auto' : '0 0 98%', minHeight: 0, display: 'flex', flexDirection: 'column', padding: '0 3%',
         background: paneMode === 'list' ? 'var(--cream)' : 'transparent',
       }}>
 
@@ -376,6 +390,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
       </div>
 
       </div>
+      {paneMode === 'list' && <div style={{ flex: '0 0 5%' }} />}
     </div>
   );
 }

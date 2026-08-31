@@ -5994,3 +5994,84 @@ unrelated to this change).
 
 Files touched: `app/reading/[slug]/natal/page.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**August 30, 2026 (spacing/layout cleanup — mobile Chart/List header,
+Reference header alignment, post-purchase home cream card + stickers):**
+Founder-flagged spacing/proportion issues across three surfaces, no data
+or copy changes.
+
+**Mobile Chart/List header** (`app/components/ChartSection.tsx` — mobile
+My Chart, and `app/components/TodaySkySection.tsx` — mobile Today's Sky;
+both share the same structure and got the identical fix): the Chart/List
+toggle was full-width (`justifyContent: 'space-between'`, Chart pinned far
+left, List far right) with a large gap down to the fixed Menu/TEXTURE bar
+above it. Changed to a left-anchored, pipe-divided pair (same convention
+already used by the desktop toggle in `HomeMyChartPanel.tsx`/
+`HomeTodaySkyPanel.tsx` — `gap: 10px`, second item gets a `borderLeft`
+divider), and tightened the two positioning constants: `NAV_ROW_TOP`'s
+extra offset past the 56px nav bar (14px → 4px) and `CONTENT_TOP`'s extra
+offset (50px → 34px). Both constants are shared by the Chart and List
+views, so the List page's "Placements"/"Current Sky" title moves up (rows
+below it, already `flex: 1`, automatically absorb the freed space — no
+row-rendering change needed) and the Chart page's wheel — already centered
+within its own flex area — shifts up by the same modest amount while
+staying centered. Judgment call, flagged for Avery: kept the existing
+"Chart"/"List" title-case button text as-is (only alignment/spacing
+changed), since the brief's "CHART \| LIST" wording read as informal
+shorthand rather than a literal copy change.
+
+**Reference page header** (`app/reading/[slug]/reference/page.tsx`): the
+desktop title sat in `.card-header`, whose shared CSS rule
+(`align-items: center`, `app/globals.css`) centers it — that class is
+reused by other reading-pane headers (e.g. natal placement cards), so
+rather than edit the shared rule, this page's own `card-header` div gets
+an inline `alignItems: 'flex-start'` override, scoped to just this
+instance (same override pattern the natal header change above already
+used on the same shared class). Mobile's title (`app/components/
+ReferencePage.tsx`) was already a plain left-aligned block with no
+centering applied — confirmed via screenshot, no code change there.
+
+**Post-purchase home panels** (desktop only — this home redirects mobile
+visitors to My Chart, so there is no mobile surface here):
+- *Cream card top/bottom margin* (`app/components/HomeTodaySkyPanel.tsx`,
+  right panel only — the left "My Chart" panel has no cream card, it's
+  light text directly on the dark photo, so this item doesn't apply there;
+  flagged in case the brief's "if the left panel has the same issue" meant
+  something not present in the current code): the right panel's cream card
+  is a flex-child wrapper inside the panel root; its top/bottom margins
+  were both roughly 2% of the panel height (too tight). Added two spacer
+  flex-children (3% top, 5% bottom — asymmetric on purpose, to offset the
+  shared `.home-panel-slot` class's own top:2% inset which has no bottom
+  counterpart) around the wrapper, **list mode only** — chart mode has no
+  cream card and is untouched, confirmed unaffected by measuring the wheel
+  size before/after (same `min(85cqw, 85cqh)` sizing, since that measures
+  off the root, not the wrapper). Verified live via Playwright measurement,
+  not just visual inspection: top and bottom margins are now 35.5px/35.2px
+  (was ~49.6px/35.2px before the 3/5 split, and ~14px/14px before this
+  task) — side margins (the wrapper's `padding: '0 3%'`, the shared slot's
+  5%/5% inset) unchanged. Because the wrapper's Header is a fixed % of the
+  wrapper and Footer hugs its own content, the added margin is absorbed by
+  Body (`flex: 1`) — and since Planets/Aspects are 47.3%/52.7% of that same
+  Body, they shrink together automatically; no separate proportional-shrink
+  code was needed.
+- *Sticker labels* (`app/globals.css`, `.home-panel-sticker` — one shared
+  rule for both "My Chart" and "Today's Sky" stickers, so a single edit
+  moved both): was `top: 0; transform: translate(-50%, -50%)`, straddling
+  the panel's own top edge (half overlapping the photo below). Changed to
+  `top: -10px; transform: translate(-50%, -100%)`, so the sticker sits
+  fully above the panel on the page background, confirmed 10px clear of
+  the panel's top edge by live measurement.
+
+**Verified** with a Playwright script against the running dev server (the
+dogfood reading, slug `hejkhjq1zns5`): screenshotted mobile My Chart
+(Chart + List tabs), mobile Today's Sky (Chart + List tabs), Reference
+(desktop + mobile), and the post-purchase home (both panels, list and
+chart modes) at their real viewports. Confirmed the cream-card margins and
+sticker gap by reading actual element bounding boxes, not just eyeballing
+the screenshots.
+
+Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`,
+`app/reading/[slug]/reference/page.tsx`,
+`app/components/HomeTodaySkyPanel.tsx`, `app/globals.css`, `docs/SPEC.md`.
+One commit, not pushed.

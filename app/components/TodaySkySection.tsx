@@ -50,8 +50,8 @@ const BODY_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Satur
 
 // Same offsets as ChartSection.tsx — pushes this page's own Chart|List row and
 // content below the fixed MobileNavShell bar (56px + safe-area-inset-top).
-const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 14px)';
-const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 50px)';
+const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 4px)';
+const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 34px)';
 
 const SKY_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png';
 const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png';
@@ -220,31 +220,38 @@ export default function TodaySkySection({ positions, aspects }: TodaySkySectionP
     }}>
 
       {/* Nav — Chart | List only, same offset/positioning as ChartSection.tsx
-          so it sits consistently below the fixed mobile nav bar. */}
+          so it sits consistently below the fixed mobile nav bar.
+          Left-anchored, pipe-divided group (spacing-cleanup task) — matches
+          the desktop toggle convention and ChartSection.tsx's own mobile
+          toggle, instead of the old full-width Chart-far-left/List-far-right
+          spread. */}
       <div style={{
         position: 'absolute', top: NAV_ROW_TOP, left: 0, right: 0,
-        display: 'flex', justifyContent: 'space-between',
-        paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
+        display: 'flex', paddingLeft: '20px', paddingRight: '20px', zIndex: 20,
       }}>
-        {(['chart', 'list'] as SkyView[]).map(view => (
-          <button
-            key={view}
-            onClick={() => setActiveView(view)}
-            style={{
-              fontFamily: 'var(--font-geist-mono), monospace',
-              fontSize: 'clamp(13px, 3.5vw, 16px)',
-              letterSpacing: '1px',
-              color: activeView === view
-                ? (isLight ? '#161612' : 'rgba(253,245,237,1)')
-                : (isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.35)'),
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '4px 0', textTransform: 'capitalize',
-              fontWeight: activeView === view ? 'bold' : 'normal',
-            }}
-          >
-            {view.charAt(0).toUpperCase() + view.slice(1)}
-          </button>
-        ))}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {(['chart', 'list'] as SkyView[]).map((view, i) => (
+            <button
+              key={view}
+              onClick={() => setActiveView(view)}
+              style={{
+                fontFamily: 'var(--font-geist-mono), monospace',
+                fontSize: 'clamp(13px, 3.5vw, 16px)',
+                letterSpacing: '1px',
+                color: activeView === view
+                  ? (isLight ? '#161612' : 'rgba(253,245,237,1)')
+                  : (isLight ? 'rgba(22,22,18,0.35)' : 'rgba(253,245,237,0.35)'),
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px 0', textTransform: 'capitalize',
+                fontWeight: activeView === view ? 'bold' : 'normal',
+                borderLeft: i > 0 ? `1px solid ${isLight ? 'rgba(22,22,18,0.20)' : 'rgba(253,245,237,0.30)'}` : 'none',
+                paddingLeft: i > 0 ? '10px' : '0',
+              }}
+            >
+              {view.charAt(0).toUpperCase() + view.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div style={{ position: 'absolute', top: CONTENT_TOP, bottom: 0, left: 0, right: 0 }}>
