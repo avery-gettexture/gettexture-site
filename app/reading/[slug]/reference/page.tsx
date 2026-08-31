@@ -30,25 +30,25 @@ import ReferencePage from '@/app/components/ReferencePage';
 // standalone page, and the wordmark sat exactly where the new nav bar's
 // "Menu" button now sits. No replacement wordmark is added on the card
 // itself — MobileNavShell already renders its own "TEXTURE" wordmark
-// top-right (linking home); a second one on the card duplicated it. The
-// card's `top` is overridden (instead of the shared class's plain 6.5%) so
-// the fixed 56px nav bar never sits over it — this only affects this one
-// instance; natal/transits' own nav-bar-overlap fix is a separate, later
-// brief per the prior SPEC entry.
+// top-right (linking home).
+//
+// Full-bleed fix (SPEC §16, Aug 31 2026): this used to sit inside
+// `.card-inner`, the shared class for the INSET-cream-rectangle-floating-
+// over-a-background pattern (8% side margins, so it reads correctly on
+// natal/transits, which really do have a background layer behind the
+// card). Reference has no background layer — it's full-bleed cream, same
+// as the mobile List views — so that inset was just dead space on both
+// sides. <ReferencePage/> already renders its own full-bleed
+// `position:absolute; inset:0` box, so it's mounted directly here instead,
+// and its own header padding (see ReferencePage.tsx) now reserves space
+// for the fixed nav bar itself rather than relying on this wrapper's `top`
+// offset.
 function MobileReference({ slug }: { slug: string }) {
   return (
     <div className="reading-container">
       <MobileNavShell slug={slug} active="reference" />
       <div className="reading-section" style={{ background: 'var(--cream)' }}>
-        <div
-          className="card-inner"
-          style={{
-            borderBottom: '1.5px solid rgba(185,18,18,0.50)',
-            top: 'max(6.5%, calc(56px + env(safe-area-inset-top) + 12px))',
-          }}
-        >
-          <ReferencePage />
-        </div>
+        <ReferencePage />
       </div>
     </div>
   );

@@ -6555,3 +6555,39 @@ measured via `boundingBox()` before (skewed low) and after (centered).
 `npx tsc --noEmit` clean. Files touched: `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. Committed, not
 pushed.
+
+**Mobile Reference — title position + full-width content (Aug 31 2026):**
+Founder brief of two visual bugs on the mobile Reference page, fixed
+together.
+
+*Wrong layout pattern:* `MobileReference` (in
+`app/reading/[slug]/reference/page.tsx`) mounted `<ReferencePage/>` inside
+`.card-inner` — the shared class for the app's INSET-cream-rectangle-
+floating-over-a-background pattern (8% left/right insets, meant for pages
+like natal/transits that really do have a background layer behind the
+card). Reference has no background layer; it's full-bleed cream, same as
+the mobile List views. The 8% side insets were just dead space on both
+edges with nothing to justify them. `ReferencePage` already renders its
+own full-bleed `position: absolute; inset: 0` box, so `.card-inner` was
+dropped and `<ReferencePage/>` now mounts directly inside `.reading-
+section`, matching how the List views mount full-bleed.
+
+*Title too far below the header:* with `.card-inner` gone, the fixed
+`MobileNavShell` bar (56px + `env(safe-area-inset-top)`) needed to be
+cleared a different way. `ReferencePage`'s own header now carries that
+clearance directly as top padding (`calc(56px + env(safe-area-inset-top) +
+10px)`, down from a flat `16px` that relied on the removed wrapper's own
+offset), landing the "Reference" title close under the header — the same
+distance "Placements" and "Current Sky" sit under the header on the mobile
+List views.
+
+**Verified** with a Playwright script against the running dev server
+(dogfood slug `hejkhjq1zns5`): screenshotted mobile Reference (390×844) —
+title sits close under the header, content (title, red rule, category
+rows) fills the full width edge-to-edge at the same 20px page padding as
+the My Chart List view, confirmed side-by-side against a screenshot of
+that List view. Screenshotted desktop Reference (1440×900) — unchanged;
+`DesktopReference` is a separate code path untouched by this fix. Files
+touched: `app/reading/[slug]/reference/page.tsx`,
+`app/components/ReferencePage.tsx`, `docs/SPEC.md`. Committed, not
+pushed.

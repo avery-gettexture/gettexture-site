@@ -155,10 +155,14 @@ export default function ReferencePage() {
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      {/* Header */}
+      {/* Header — top padding clears the fixed MobileNavShell bar (56px +
+          safe-area-inset-top) plus a small buffer, then sits close beneath
+          it (SPEC §16, Aug 31 2026 title-position fix), matching how
+          "Placements" sits close under the header on the mobile List
+          views (ChartSection.tsx's HEADER_ZONE_HEIGHT). */}
       <div style={{
         flexShrink: 0,
-        padding: '16px 20px 12px',
+        padding: 'calc(56px + env(safe-area-inset-top) + 10px) 20px 12px',
         borderBottom: '1.5px solid rgba(185,18,18,0.50)',
       }}>
         <div style={{
