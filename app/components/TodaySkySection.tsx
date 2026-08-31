@@ -50,8 +50,8 @@ const BODY_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Satur
 
 // Same offsets as ChartSection.tsx — pushes this page's own Chart|List row and
 // content below the fixed MobileNavShell bar (56px + safe-area-inset-top).
-const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 4px)';
-const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 34px)';
+const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) - 4px)';
+const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 24px)';
 
 const SKY_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/sky-background.png';
 const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/public/backgrounds/chart-radial.png';
@@ -158,25 +158,31 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
           "wheel above, fixed band below" split as ChartSection.tsx's own
           ChartView (there it's birth data; here there is none, so the band
           holds just today's date — SPEC §16, founder correction). */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{
-          position: 'absolute',
-          width: 'min(130vw, 85dvh)',
-          aspectRatio: '1',
-          borderRadius: '50%',
-          backgroundImage: `url(${RADIAL_BG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
-          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
-          aspectRatio: '1',
-          borderRadius: '50%',
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-          <TodaySkyWheel positions={positions} aspects={aspects} />
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            position: 'absolute',
+            width: 'min(130vw, 85dvh)',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            backgroundImage: `url(${RADIAL_BG})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }} />
+          <div style={{
+            width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <TodaySkyWheel positions={positions} aspects={aspects} />
+          </div>
         </div>
+        {/* Guaranteed minimum clearance before the date band — see
+            ChartSection.tsx's matching note (SPEC §16, Aug 30 2026
+            corrective pass). */}
+        <div style={{ height: '28px', flexShrink: 0 }} />
       </div>
 
       {/* Date — same position/styling as ChartSection.tsx's collapsed name

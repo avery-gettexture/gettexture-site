@@ -6075,3 +6075,57 @@ Files touched: `app/components/ChartSection.tsx`,
 `app/reading/[slug]/reference/page.tsx`,
 `app/components/HomeTodaySkyPanel.tsx`, `app/globals.css`, `docs/SPEC.md`.
 One commit, not pushed.
+
+**August 30, 2026 (corrective pass — mobile Chart/List header still too
+loose, Chart page wheel crowding the name below it):** Founder reported
+the prior same-day pass (above) hadn't landed correctly: the toggle was
+still sitting too far below the Menu/TEXTURE bar, and — a regression from
+that pass — the Chart page's wheel had moved close enough to the "avery"
+name band below it to look crowded. Mobile only, `app/components/
+ChartSection.tsx` (My Chart) and `app/components/TodaySkySection.tsx`
+(Today's Sky, same shared structure), same fix to both:
+
+- **Toggle-to-header gap:** `NAV_ROW_TOP`'s offset past the 56px nav bar
+  tightened again (4px → -4px, i.e. the toggle row now starts 4px before
+  the nav bar's own bottom edge — still clear of the "Menu"/"TEXTURE" text,
+  which sits centered well above that edge). `CONTENT_TOP`'s offset
+  tightened to match (34px → 24px).
+- **Wheel-to-name gap (the regression):** diagnosed as a fragile-layout
+  bug, not a sizing bug — the wheel's own size formula
+  (`min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)`) was unchanged
+  by the prior pass and is confirmed unchanged here too (not enlarged).
+  The actual issue: the wheel was centered (`alignItems`/`justifyContent:
+  'center'`) inside one `flex: 1` region, splitting whatever space was
+  left over evenly above and below it. That's fine in a full-height test
+  browser, but on a real phone — where the browser's own chrome (address
+  bar, etc.) eats into the visible height more than a headless test
+  reproduces — the leftover space can shrink a lot, and even centering
+  puts equally little on both sides; with less room, the wheel reads as
+  crowding whatever's below it. Fixed by no longer trusting pure centering
+  for the bottom gap: the wheel's flex region now has a sibling spacer div
+  (`height: 28px`, non-shrinking) between it and the name/date band below,
+  so that gap is always the auto-centered leftover *plus* a guaranteed
+  28px — never less, on any device, without depending on how much room
+  the centering happens to have. The birth-data band's own top padding
+  (`extraTopPadding`, `BirthDataToggle`) was also bumped 8px → 14px on the
+  Chart view specifically, adding further fixed clearance before "avery"
+  regardless of screen height. Today's Sky's chart view got the identical
+  spacer (its own "date" band standing in for the name band); its list
+  view was already fine and untouched.
+- **List pages:** unaffected structurally (no wheel, no centering
+  regression) — they simply follow the tightened header offsets up, same
+  as the prior pass already established (title moves up, `flex: 1` rows
+  fill the freed space automatically).
+
+**Verified** with the same Playwright-against-dev-server approach as the
+prior pass (dogfood slug `hejkhjq1zns5`): screenshotted mobile My Chart
+(Chart + List) and mobile Today's Sky (Chart + List) at 390×844. Confirmed
+by inspection: toggle sits visibly tighter under Menu/TEXTURE on both
+pages; the Chart wheel is the same diameter as before (unchanged, measured
+against the before screenshot); the gap between the wheel and "avery" is
+generous, not crowded, and structurally guaranteed rather than left to
+centering math; List pages remain balanced.
+
+Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
+pushed.

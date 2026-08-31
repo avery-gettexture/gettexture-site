@@ -73,8 +73,8 @@ const RADIAL_BG = 'https://smmevfkddgymxdjecrra.supabase.co/storage/v1/object/pu
 // below it — same "overlay, not reserved space, each page pushes its own
 // content down" fix already shipped for the standalone mobile Reference
 // screen (SPEC §16, Aug 17 2026).
-const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) + 4px)';
-const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 34px)';
+const NAV_ROW_TOP = 'calc(56px + env(safe-area-inset-top) - 4px)';
+const CONTENT_TOP = 'calc(56px + env(safe-area-inset-top) + 24px)';
 
 // Converts a stored "YYYY-MM-DD" birth date into a compact numeric form
 // (e.g. "10/18/1997") — the narrower fallback used when the spelled date
@@ -348,33 +348,46 @@ function ChartView({
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
       {/* Wheel — takes the remaining space above the birth-data band below,
-          same wheel sizing/component as before, just no longer filling
-          100% of the view's height (a dedicated band is reserved below it
-          instead of the wheel centering across the whole area). */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{
-          position: 'absolute',
-          width: 'min(130vw, 85dvh)',
-          aspectRatio: '1',
-          borderRadius: '50%',
-          backgroundImage: `url(${RADIAL_BG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
-          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
-          aspectRatio: '1',
-          borderRadius: '50%',
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-          <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
+          same wheel sizing/component as before (unchanged, not enlarged),
+          just no longer filling 100% of the view's height (a dedicated
+          band is reserved below it instead of the wheel centering across
+          the whole area). Corrective pass (SPEC §16, Aug 30 2026): plain
+          center-in-flex-1 used to split leftover space evenly above/below
+          the wheel, which on a real phone (less usable height than a
+          headless test browser, since the address bar eats into it) could
+          squeeze the gap between the wheel and the name below it down to
+          almost nothing — read as "the wheel is crowding the name." The
+          fixed 28px spacer below guarantees that gap is always bigger than
+          the gap above, on any device, instead of leaving it to whatever
+          centering happens to leave over. */}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            position: 'absolute',
+            width: 'min(130vw, 85dvh)',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            backgroundImage: `url(${RADIAL_BG})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }} />
+          <div style={{
+            width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
+          </div>
         </div>
+        {/* Guaranteed minimum clearance before the name band — see note above. */}
+        <div style={{ height: '28px', flexShrink: 0 }} />
       </div>
 
       {/* Birth data — collapsed default (name only), tap to expand. */}
       <div style={{ flexShrink: 0 }}>
-        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={8} />
+        <BirthDataToggle name={customerName} birthDate={birthDate} birthTime={birthTime} birthLocation={birthLocation} theme="dark" extraTopPadding={14} />
       </div>
     </div>
   );
