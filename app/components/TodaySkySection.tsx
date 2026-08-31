@@ -176,45 +176,48 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
 
 function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspects: SkyAspect[] }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      {/* Wheel — bottom-anchored within the remaining space above the date
-          band, matching ChartSection.tsx's own ChartView fix (SPEC §16, fix
-          pass): centering left a large, variable void between the wheel and
-          the date. The wheel-plus-glow unit is wrapped in its own relative
-          box sized exactly to the wheel's diameter (unchanged formula, not
-          enlarged) so the radial glow stays centered on the wheel itself. */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      {/* Wheel + gap + date band are one visual group, centered as a unit
+          in the content area — matches ChartSection.tsx's own ChartView fix
+          (SPEC §16, second fix pass). Anchoring the wheel to one edge of a
+          flexible region always dumped 100% of the leftover vertical space
+          on one side; centering the whole group instead splits it, and the
+          fixed 16px gap below never grows into a void. The wheel-plus-glow
+          unit is wrapped in its own relative box sized exactly to the
+          wheel's diameter (unchanged formula, not enlarged) so the radial
+          glow stays centered on the wheel itself. */}
+      <div style={{
+        position: 'relative',
+        width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+        aspectRatio: '1',
+        alignSelf: 'center',
+        flexShrink: 0,
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'min(130vw, 85dvh)',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          backgroundImage: `url(${RADIAL_BG})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
         <div style={{
           position: 'relative',
-          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
-          aspectRatio: '1',
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          overflow: 'hidden',
         }}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 'min(130vw, 85dvh)',
-            aspectRatio: '1',
-            borderRadius: '50%',
-            backgroundImage: `url(${RADIAL_BG})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }} />
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            borderRadius: '50%',
-            overflow: 'hidden',
-          }}>
-            <TodaySkyWheel positions={positions} aspects={aspects} />
-          </div>
+          <TodaySkyWheel positions={positions} aspects={aspects} />
         </div>
       </div>
 
       {/* Fixed, short gap so the date sits comfortably close under the
-          wheel rather than floating in empty space (SPEC §16, fix pass). */}
+          wheel rather than floating in empty space (SPEC §16). */}
       <div style={{ height: '16px', flexShrink: 0 }} />
 
       {/* Date — same position/styling as ChartSection.tsx's collapsed name

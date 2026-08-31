@@ -370,48 +370,52 @@ function ChartView({
   birthLocation: string;
 }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      {/* Wheel — bottom-anchored within the remaining space above the
-          name band, instead of centered (SPEC §16, fix pass: centering
-          left a large, variable void between the wheel and the name).
-          The wheel-plus-glow unit is wrapped in its own relative box sized
-          exactly to the wheel's diameter (unchanged formula, not enlarged)
-          so the radial glow stays centered on the wheel itself regardless
-          of where that unit sits in the region — previously the glow was
-          centered by the same flex alignment as the wheel, which broke
-          once that alignment became bottom-anchored instead of centered. */}
-      <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      {/* Wheel + gap + name band are one visual group, centered as a unit
+          in the content area (SPEC §16, second fix pass). Anchoring the
+          wheel to one edge of a flexible region (centered-with-fixed-gap,
+          then bottom-anchored) always dumped 100% of the leftover vertical
+          space on one side — a big void above the name, then a big void
+          above the wheel with the name/arrow crowded against the screen
+          bottom. Centering the whole group instead splits any leftover
+          space between above-the-wheel and below-the-band, and the fixed
+          16px gap below never grows into a void. The wheel-plus-glow unit
+          is wrapped in its own relative box sized exactly to the wheel's
+          diameter (unchanged formula, not enlarged) so the radial glow
+          stays centered on the wheel itself regardless of where the group
+          sits. */}
+      <div style={{
+        position: 'relative',
+        width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+        aspectRatio: '1',
+        alignSelf: 'center',
+        flexShrink: 0,
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'min(130vw, 85dvh)',
+          aspectRatio: '1',
+          borderRadius: '50%',
+          backgroundImage: `url(${RADIAL_BG})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
         <div style={{
           position: 'relative',
-          width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
-          aspectRatio: '1',
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          overflow: 'hidden',
         }}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 'min(130vw, 85dvh)',
-            aspectRatio: '1',
-            borderRadius: '50%',
-            backgroundImage: `url(${RADIAL_BG})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }} />
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            borderRadius: '50%',
-            overflow: 'hidden',
-          }}>
-            <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
-          </div>
+          <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} />
         </div>
       </div>
 
       {/* Fixed, short gap so the name sits comfortably close under the
-          wheel rather than floating in empty space (SPEC §16, fix pass). */}
+          wheel rather than floating in empty space (SPEC §16). */}
       <div style={{ height: '16px', flexShrink: 0 }} />
 
       {/* Birth data — collapsed default (name only), tap to expand. No red

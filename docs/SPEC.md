@@ -6266,3 +6266,44 @@ present above "avery"; Today's Sky: rule present above "August 30,
 Files touched: `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**Mobile Chart pages — wheel positioning overcorrection fixed (Aug 30 2026,
+founder correction, second pass same day):** The prior same-day pass (above)
+bottom-anchored the wheel (`alignItems: 'flex-end'`) to close the void the
+pass before that had left between the wheel and the name. Founder reported
+this new version pushed the wheel too far down, clipped/crowded at the
+bottom, colliding with the name/date, off-center. Diagnosed with a Playwright
+screenshot + pixel measurement against the running dev server (dogfood slug
+`hejkhjq1zns5`) at 390×844, on My Chart's Chart tab: the wheel itself was a
+full, unclipped 366×366 box (top 373/bottom 739), but bottom-anchoring within
+its flexible region left a 293px empty void ABOVE the wheel while the name
+(top 779/bottom 798) and the down-arrow (top 798/bottom 837, 7px from the
+screen edge) were crammed into a thin strip at the very bottom — the same
+underlying flaw as the original bug, just flipped: whichever edge the wheel
+was anchored to, 100% of the device's leftover vertical space collected on
+the OTHER side, either as a void before the name (centered) or a void above
+the wheel with the bottom crowded (bottom-anchored). Root cause: the wheel's
+flexible region and the name/date band below it were positioned as two
+independent flex items rather than one group. Fix, `ChartView`
+(`ChartSection.tsx`) and `SkyChartView` (`TodaySkySection.tsx`): removed the
+wheel's own flexible region wrapper; the outer column container now uses
+`justifyContent: 'center'` to center **wheel + fixed 16px gap + name/date
+band together as one group**, with the wheel box itself getting `alignSelf:
+'center'` (for horizontal centering, previously done by the removed region's
+`justifyContent`) and `flexShrink: 0`. Leftover vertical space now splits
+between above-the-wheel and below-the-band instead of collecting entirely on
+one side; the band's own height adds weight below the wheel, so the wheel
+naturally sits a little above true center, matching the founder's stated
+fallback preference. The wheel's size formula, the radial-glow positioning,
+the circular clip, the red-line removal, and the `overlayExpand` name-tap
+mechanic are all unchanged from the prior pass. **Verified** with the same
+Playwright approach: re-screenshotted both Chart tabs at 390×844 — wheel
+fully visible with a modest, balanced margin above it (no large void),
+name/date a short comfortable gap below, no red line. Re-ran the
+wheel-bounding-box before/after check on My Chart's "avery" tap —
+identical (`top: 224.5, bottom: 594.5` both times), confirming the wheel
+still doesn't move when birth data expands. List tabs spot-checked
+unchanged (red rule still present above the name/date on both pages).
+`npx tsc --noEmit` clean. Files touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
