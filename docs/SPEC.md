@@ -5937,3 +5937,60 @@ pre-existing, unrelated Google Maps API warning from the right panel).
 
 Files touched: `app/components/HomeBirthChartPanel.tsx`, `docs/SPEC.md`.
 One commit, not pushed.
+
+**August 30, 2026 (reading pane header — title/subtitle now goes inline
+when it fits, based on real measured width, not a fixed breakpoint):** The
+placement header (e.g. title "Sun", subtitle "Gemini · 11th House · 10°")
+previously always stacked the title above the subtitle, both centered, at
+one fixed size, regardless of available space. Founder request: use the
+room when there's room.
+
+**Change** (`PlacementCardContent` in `app/reading/[slug]/natal/page.tsx`
+— the only reading pane that pairs a title with a subtitle; Transits,
+Reference, and the Transit Calendar pane show a title only and are
+untouched):
+- **Inline state** (title + subtitle comfortably fit on one line): title
+  left-anchored, subtitle right-anchored, same line. Title renders larger
+  than its old fixed size.
+- **Stacked state** (they don't comfortably fit): title above subtitle,
+  both left-aligned (previously both centered) — this is also what mobile
+  now shows, since phone widths are narrow enough that the fit check
+  lands here in practice. Title returns to its old fixed size.
+- The fit check is a real, live measurement, not a hardcoded screen-width
+  cutoff: a hidden probe renders the candidate one-line layout off-screen
+  and its actual rendered pixel width is compared against the header's
+  actual available width (`ResizeObserver`, the same technique already
+  used elsewhere in this app for the birth-date line and the chart-wheel
+  sizing). A longer subtitle (e.g. one that also shows "Retrograde")
+  correctly needs more room and switches to stacked at a wider width than
+  a short one — confirmed directly (below), not assumed.
+- The header box's total height never changes between the two states.
+  Both the title and the subtitle use `line-height: 1`, so "stacked title
+  line + gap + subtitle line" and "one enlarged inline title line" can be
+  made to sum to the exact same pixel height (not an approximation) — a
+  second hidden probe measures the current stacked height for real, and
+  that number becomes the inline title's font size directly.
+- Judgment call, flagged for Avery: the gap enforced between title and
+  subtitle in the inline layout is 24px (`INLINE_MIN_GAP` in the new
+  code) — arbitrary, easy to adjust if it looks too tight or too loose.
+
+**Verified** with a Playwright script against the running dev server, on
+the real (non-dogfood) `marilyn-monroe` reading. Measured every placement
+at desktop widths 1440/1180/1024 (all render inline — the desktop pane is
+roomy enough even for Saturn's long "Retrograde" subtitle) and at mobile
+widths from 320 to 1000. Confirmed with actual numbers, not just visual
+inspection: at 430px wide, Sun's subtitle fits and goes inline while
+Moon's (a longer rendered string) stays stacked at that exact same width;
+Saturn's subtitle (the longest, with "Retrograde") stays stacked through
+600px and only goes inline at 700px, later than every shorter subtitle.
+The header's own pixel height was identical across every placement and
+every state at a given width (e.g. exactly 105.50px for every placement
+at 700-1000px wide, whether that placement happened to be inline or
+stacked) — the box never resizes. Screenshotted stacked (375px, left-
+aligned) and inline (1440px desktop, 1024px desktop, 430px mobile) states;
+confirmed the customer-name footer stayed centered throughout, unchanged.
+`eslint` clean (no new warnings/errors beyond three pre-existing ones
+unrelated to this change).
+
+Files touched: `app/reading/[slug]/natal/page.tsx`, `docs/SPEC.md`. One
+commit, not pushed.

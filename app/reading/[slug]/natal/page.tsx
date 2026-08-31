@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, use } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchAllPlanetReferences, type PlacementReferenceResult } from '@/lib/reference-utils';
 import ChartSection from '@/app/components/ChartSection';
@@ -243,11 +243,89 @@ function PlacementCardContent({
   const metaParts = [meta.sign, meta.house, meta.degree, (planet.id !== 'nodes' && meta.retrograde) ? 'Retrograde' : null].filter(Boolean);
   const metaString = metaParts.join(' · ');
 
+  // Responsive title/subtitle header (SPEC §16, Aug 30 2026): when the
+  // title + subtitle comfortably fit on one line, show them inline (title
+  // left, subtitle right, title enlarged); otherwise stack them (title
+  // above subtitle, both left-aligned, title back to its normal size).
+  // "Fits" is measured for real (rendered pixel widths), not a hardcoded
+  // screen-width breakpoint, so a longer subtitle stacks sooner than a
+  // short one. The header box's total height never changes: the title's
+  // enlarged inline size is set to exactly fill the vertical room the
+  // stacked title+gap+subtitle would have used (both use line-height: 1,
+  // so that sum is exact, not approximate).
+  const headerRef = useRef<HTMLDivElement>(null);
+  const stackProbeRef = useRef<HTMLDivElement>(null);
+  const inlineProbeRef = useRef<HTMLDivElement>(null);
+  const [headerWidth, setHeaderWidth] = useState(0);
+  const [stackedTextHeight, setStackedTextHeight] = useState(0);
+  const [isHeaderInline, setIsHeaderInline] = useState(false);
+  const INLINE_MIN_GAP = 24; // breathing room required between title and subtitle before calling it a comfortable fit
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || !metaString) return;
+    const obs = new ResizeObserver(entries => setHeaderWidth(entries[0].contentRect.width));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [metaString]);
+
+  useEffect(() => {
+    const el = stackProbeRef.current;
+    if (!el || !metaString) return;
+    const obs = new ResizeObserver(entries => setStackedTextHeight(entries[0].contentRect.height));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [metaString, planet.name]);
+
+  useLayoutEffect(() => {
+    if (!metaString || !stackedTextHeight || !headerWidth) return;
+    const probeWidth = inlineProbeRef.current?.getBoundingClientRect().width ?? Infinity;
+    setIsHeaderInline(probeWidth + INLINE_MIN_GAP <= headerWidth);
+  }, [metaString, planet.name, stackedTextHeight, headerWidth]);
+
+  const inlineTitleStyle = isHeaderInline ? { fontSize: `${stackedTextHeight}px`, lineHeight: 1 } : undefined;
+
   return (
     <>
       <div className="card-header">
-        <h1 className="planet-name">{planet.name}</h1>
-        {metaString ? <p className="planet-meta">{metaString}</p> : null}
+        {metaString ? (
+          <div
+            ref={headerRef}
+            style={{
+              display: 'flex',
+              flexDirection: isHeaderInline ? 'row' : 'column',
+              alignItems: isHeaderInline ? 'baseline' : 'flex-start',
+              justifyContent: isHeaderInline ? 'space-between' : 'flex-start',
+              alignSelf: 'stretch',
+              gap: isHeaderInline ? '12px' : '4px',
+              position: 'relative',
+            }}
+          >
+            <h1 className="planet-name" style={inlineTitleStyle}>{planet.name}</h1>
+            <p className="planet-meta">{metaString}</p>
+            {/* Hidden measurement probes (SPEC §16): never shown, used only to
+                read real rendered pixel sizes so the inline/stacked choice and
+                the inline title size are based on actual fit, not a guess. */}
+            <div
+              ref={stackProbeRef}
+              aria-hidden
+              style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', top: 0, left: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}
+            >
+              <span className="planet-name">{planet.name}</span>
+              <span className="planet-meta">{metaString}</span>
+            </div>
+            <div
+              ref={inlineProbeRef}
+              aria-hidden
+              style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', top: 0, left: 0, whiteSpace: 'nowrap', display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '12px' }}
+            >
+              <span className="planet-name" style={{ fontSize: stackedTextHeight ? `${stackedTextHeight}px` : undefined, lineHeight: 1, whiteSpace: 'nowrap' }}>{planet.name}</span>
+              <span className="planet-meta" style={{ whiteSpace: 'nowrap' }}>{metaString}</span>
+            </div>
+          </div>
+        ) : (
+          <h1 className="planet-name">{planet.name}</h1>
+        )}
         <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
       </div>
 
