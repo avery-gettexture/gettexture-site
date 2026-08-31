@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import TodaySkyWheel from './TodaySkyWheel';
 import { formatToday } from '@/lib/date-utils';
 import { RAIL_SIGN_GLYPHS } from '@/app/reading/[slug]/natal/page';
@@ -176,7 +176,13 @@ function SkyListView({ positions }: { positions: SkyPosition[] }) {
 
 function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspects: SkyAspect[] }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <div style={{
+      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      // Both circle sizes as CSS variables, defined once, so the gap below
+      // (which needs the exact difference between them) can never drift out
+      // of sync with the sizes actually used to draw the wheel and glow.
+      ...{ '--wheel-d': 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)', '--glow-d': 'min(130vw, 85dvh)' } as CSSProperties,
+    }}>
       {/* Wheel + gap + date band are one visual group, centered as a unit
           in the content area — matches ChartSection.tsx's own ChartView fix
           (SPEC §16, second fix pass). Anchoring the wheel to one edge of a
@@ -188,7 +194,7 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
           glow stays centered on the wheel itself. */}
       <div style={{
         position: 'relative',
-        width: 'min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)',
+        width: 'var(--wheel-d)',
         aspectRatio: '1',
         alignSelf: 'center',
         flexShrink: 0,
@@ -198,7 +204,7 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'min(130vw, 85dvh)',
+          width: 'var(--glow-d)',
           aspectRatio: '1',
           borderRadius: '50%',
           backgroundImage: `url(${RADIAL_BG})`,
@@ -216,9 +222,19 @@ function SkyChartView({ positions, aspects }: { positions: SkyPosition[]; aspect
         </div>
       </div>
 
-      {/* Fixed, short gap so the date sits comfortably close under the
-          wheel rather than floating in empty space (SPEC §16). */}
-      <div style={{ height: '16px', flexShrink: 0 }} />
+      {/* Gap sized to actually clear the glow, not just the wheel (SPEC §16,
+          third fix pass, founder correction — the date was still floating
+          inside the glow after the previous pass). The glow circle
+          (--glow-d) is deliberately larger than the wheel circle
+          (--wheel-d) it's centered on, so it bleeds past the wheel's own
+          box on every side by (--glow-d - --wheel-d) / 2 — a fixed 16px gap
+          measured from the wheel's box edge left most of that bleed
+          uncovered, which is exactly what let the glow reach down into the
+          date band below. This gap is that bleed amount plus a flat 24px of
+          genuinely clear space on top of it, so the date sits below the
+          glow's real visual edge on any phone size, not just below the
+          wheel's own edge. */}
+      <div style={{ height: 'calc((var(--glow-d) - var(--wheel-d)) / 2 + 24px)', flexShrink: 0 }} />
 
       {/* Date — same position/styling as ChartSection.tsx's collapsed name
           band (centered, geist mono), not tappable/expandable since there is

@@ -6307,3 +6307,44 @@ unchanged (red rule still present above the name/date on both pages).
 `npx tsc --noEmit` clean. Files touched: `app/components/ChartSection.tsx`,
 `app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**Mobile Chart pages — name/date given its own reserved bottom slot, clear of
+the wheel's glow (Aug 30 2026, founder correction, third pass same day):**
+The prior two same-day passes (above) got the wheel itself centered and
+fully visible, but the fixed 16px gap between the wheel and the name/date
+band didn't account for the radial glow being deliberately larger than the
+wheel it's centered on (`min(130vw, 85dvh)` vs. the wheel's own
+`min(calc(100dvh - 260px), calc(100vw - 24px), 62dvh)`). That size
+difference makes the glow bleed past the wheel's own box on every side —
+by roughly 68–77px on typical phone widths (375–430px), scaling with
+screen size — so a flat 16px gap measured from the wheel's edge left most
+of that bleed uncovered, and the glow visually reached down into the
+name/date band, which is what the founder was seeing ("floating up inside
+the wheel's background/glow area"). Fixed in `ChartView` (`ChartSection.tsx`)
+and `SkyChartView` (`TodaySkySection.tsx`): the wheel diameter and glow
+diameter are now both defined once, as CSS custom properties
+(`--wheel-d`, `--glow-d`) on the group's container, and the wheel box and
+glow circle both read their size from those variables instead of
+duplicating the formulas. The gap between the wheel and the name/date band
+is now computed as `calc((var(--glow-d) - var(--wheel-d)) / 2 + 24px)` —
+the glow's exact bleed distance, plus a flat 24px of genuinely clear space
+on top of it — so the name/date sits below the glow's real visual edge on
+any phone size, not just below the wheel's own edge, with comfortable
+separation rather than a bare minimum. No other behavior changed: wheel
+size/position, the radial-glow image itself, the circular clip, the
+red-line rule (List-only), and the `overlayExpand` name-tap mechanic are
+all unchanged from the prior pass.
+
+**Verified** with a Playwright script against the running dev server
+(dogfood slug `hejkhjq1zns5`) at 390×844: screenshotted both pages' Chart
+tabs — on both, the name/date now sits fully clear beneath the wheel's
+glow with visible breathing room, not overlapping it, and the wheel remains
+centered and fully visible as established by the prior pass. Measured real
+bounding boxes (not just visual inspection): My Chart's glow bottom edge at
+623.75px, name band top edge at 649.75px (26px of actual clear space);
+Today's Sky's glow bottom edge at 642.25px, name band top edge at 668.25px
+(26px of actual clear space) — confirming the band sits below the glow's
+true edge, not just below the wheel's. `npx tsc --noEmit` clean. Files
+touched: `app/components/ChartSection.tsx`,
+`app/components/TodaySkySection.tsx`, `docs/SPEC.md`. One commit, not
+pushed.
