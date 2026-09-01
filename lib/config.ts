@@ -2,11 +2,16 @@
 // unlinked build phase targets, kept out of page code per the build's rules.
 export const DOGFOOD_READING_SLUG = 'hejkhjq1zns5';
 
-// Natal reading price. Placeholder per AGENTS.md ("Prices are placeholders.
-// Never hardcode a price; use config values") — currently matches the live
-// Stripe checkout amount (app/api/checkout/route.ts), so the two can't drift
-// out of sync. Displayed on the pre-purchase home (app/page.tsx).
-export const NATAL_READING_PRICE_USD = 29;
+// Natal reading price — SINGLE SOURCE OF TRUTH. This is the only place the
+// price is set. Checkout (app/api/checkout/route.ts) builds the Stripe charge
+// inline from this number every time (unit_amount: NATAL_READING_PRICE_USD *
+// 100) — it does NOT read a Price stored in Stripe. Every on-site display
+// (HomeBirthChartPanel, MobileHomePage, HomeMyChartFormPanel, all via
+// HomeOrderForm) also reads this same constant. That means editing a price in
+// the Stripe Dashboard has NO EFFECT on what this site charges or shows — to
+// change the price, change this number and redeploy. Per AGENTS.md ("Prices
+// are placeholders. Never hardcode a price; use config values").
+export const NATAL_READING_PRICE_USD = 16;
 
 // Transit generation cost tracking. Placeholders (0) until Avery sets real
 // Opus prices from the Anthropic console — never guess a number here.

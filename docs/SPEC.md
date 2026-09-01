@@ -6591,3 +6591,47 @@ that List view. Screenshotted desktop Reference (1440×900) — unchanged;
 touched: `app/reading/[slug]/reference/page.tsx`,
 `app/components/ReferencePage.tsx`, `docs/SPEC.md`. Committed, not
 pushed.
+
+**Reading price $29 → $16 (Sep 1 2026):** Founder brief: the Stripe price
+was changed to $16; the site needed to (a) charge $16 and (b) display the
+price from a single driven source, not a stray hardcoded number. A prior
+attempt at this task had been interrupted after editing
+`NATAL_READING_PRICE_USD` in `lib/config.ts` from `29` to `16`, uncommitted
+— that edit was correct but unfinished.
+
+*Investigation before any further change:* audited every place the price
+appears. All four spots — the Stripe checkout amount
+(`app/api/checkout/route.ts`), and the three on-site displays
+(`HomeBirthChartPanel.tsx`, `MobileHomePage.tsx`, `HomeMyChartFormPanel.tsx`,
+all via `HomeOrderForm.tsx`'s review-step total) — already read the same
+`NATAL_READING_PRICE_USD` constant; none were hardcoded. No stray "$29"
+found anywhere in user-facing copy (the only other "29" hits in the repo
+are unrelated astrology-degree text and dated changelog entries, left
+alone). Checkout was also confirmed to build the Stripe charge inline via
+`price_data`/`unit_amount` every time, rather than referencing a stored
+Stripe Price ID — so there was no stale-Price-ID risk, but it also means
+Stripe holds no price object the app reads from today.
+
+**Judgment call, founder-decided:** offered two paths — (A) make Stripe
+the literal source of truth (create a persistent Stripe Price, point
+checkout at it, fetch it live for display), or (B) keep the existing
+single-config-constant architecture, which already prevents any drift
+*within* the app, and just make the sync-with-Stripe expectation explicit
+in the code comment. Founder chose **(B)**: a live per-request Stripe API
+call was judged unnecessary latency/failure-surface for how rarely the
+price changes.
+
+**Fix:** committed the `NATAL_READING_PRICE_USD = 16` edit, and rewrote its
+comment to state plainly that this constant is the single source of truth
+for both the charge and every display, and that editing a price in the
+Stripe Dashboard has **no effect** on the site — changing the price means
+editing this number and redeploying.
+
+**Verified** with a Playwright script against the running dev server:
+screenshotted the desktop pre-purchase home (1440×900) — the Birth Chart
+panel shows `$16` (was `$29`). Confirmed by source read that the mobile
+home (`MobileHomePage.tsx`) and the order-review-step total
+(`HomeOrderForm.tsx`) pass/read the same constant, so they render `$16`
+via the identical code path. `npx tsc --noEmit` not re-run (comment-only
+change beyond the already-landed number edit). Files touched:
+`lib/config.ts`, `docs/SPEC.md`. Committed, not pushed.
