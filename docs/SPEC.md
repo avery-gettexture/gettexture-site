@@ -7154,3 +7154,40 @@ confirmed, including a close-up of the Astrological Systems prose).
 homeContent.ts`, `app/components/HomeBirthChartPanel.tsx`, `app/
 components/MobileHomePage.tsx`, `docs/SPEC.md` (§7, §9, §16).
 Committed, not pushed.
+
+**"Sample" example reading generated (Sep 2, 2026):** ran the existing
+`scripts/create-example-reading.mjs` (no changes needed) for a
+constructed demonstration figure — not a real person, per the founder's
+brief — to eventually replace the dogfood stand-in behind the
+homepage's "see example" link.
+
+- Slug `sample`, name "Sample," birth data: December 12, 1996, 12:30 PM,
+  Los Angeles, CA, USA.
+- **Judgment call, flagged rather than silently decided:** the real
+  order form gets birth-location lat/lng from a live Google Places
+  Autocomplete click, which this offline admin script can't reproduce.
+  Used the standard published city-center coordinates for Los Angeles
+  (34.0522, -118.2437) — the same values already given as the worked
+  example in the script's own header docstring.
+- Ran for real (not `--dry-run`): inserted the `readings` row (no
+  `stripe_session_id`, admin-created) and the matching `reading_contacts`
+  row (placeholder email `example+sample@gettexture.app`, `NOT NULL`
+  column with no real customer to attach — same pattern already used for
+  prior example figures), then generated all 13 placements.
+
+**Verified independently of the script's own log**, per AGENTS.md's
+write-verification rule: a fresh, separate Supabase read (service-role,
+not the script's own re-read) confirmed all 13 placement columns
+(`sun` through `nodes`) non-empty, the legacy `north_node`/`south_node`
+columns still `null` (untouched), and `stripe_session_id` `null` as
+expected for an admin-created row. Retrograde-on-nodes was checked at
+the source rather than by reading a possibly-mis-keyed chart field:
+`lib/natal-generation/generate-piece.mjs`'s `buildNodesMessage()` never
+emits a `RETROGRADE:` line at all (only `buildPlanetOrAngleMessage()`
+does, for non-angle bodies) — so it's structurally impossible for the
+Nodes placement's generation input to have carried a retrograde flag,
+confirmed by reading that function, not just this one run's output.
+
+Files touched: `docs/SPEC.md` only — `scripts/create-example-reading.mjs`
+already existed and was used unmodified. One commit (data-producing run
++ SPEC entry), not pushed.
