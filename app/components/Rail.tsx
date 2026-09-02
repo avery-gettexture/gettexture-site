@@ -1,5 +1,3 @@
-import { UNSTYLED_BUTTON } from '@/lib/a11y';
-
 export interface RailControl {
   label: string;
   active?: boolean;
@@ -60,7 +58,7 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
                     className={`rail-control${c.active ? ' active' : ''}`}
                     onClick={c.onClick}
                     aria-pressed={c.active}
-                    style={{ ...UNSTYLED_BUTTON, fontFamily: 'inherit', fontSize: 'inherit', letterSpacing: 'inherit', fontWeight: 'inherit', cursor: 'pointer' }}
+                    style={{ cursor: 'pointer' }}
                   >
                     {c.label}
                   </button>

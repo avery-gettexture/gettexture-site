@@ -6840,3 +6840,53 @@ not a defect in the CSS changes themselves. Files touched: `lib/a11y.ts`
 `TodaySkySection`, `TransitCalendarPane`, `TransitChartPane`),
 `app/reading/[slug]/{natal,reference,transits}/page.tsx`, `docs/SPEC.md`.
 Committed, not pushed.
+
+**Fix: READ|CHART rail toggle broken by the accessibility pass (Sep 1
+2026):** the Phase 2 accessibility commit above converted the desktop My
+Chart / Today's Sky pages' READ|CHART toggle (`Rail.tsx`'s `rail-control`
+buttons) from a clickable `<span>` to a real `<button>`, and gave it an
+inline style spread (`UNSTYLED_BUTTON` plus explicit `fontSize:
+'inherit'`, `fontWeight: 'inherit'`) meant to strip the browser's default
+button chrome. Inline styles always beat CSS class rules regardless of
+selector specificity, and this toggle's actual look — the pipe separator
+between READ and CHART, the spacing around it, and the active/inactive
+color/weight/size distinction — was never inline; it lived entirely in
+`app/globals.css`'s `.rail-control` / `.rail-control + .rail-control` /
+`.rail-control.active` rules. The inline reset silently overrode all of
+it: `border: none` + `margin: 0` + `padding: 0` erased the sibling-selector
+separator/spacing, and `fontSize: 'inherit'` + `fontWeight: 'inherit'`
+erased the active state's bold/larger treatment, leaving "READCHART"
+rendered jammed together with no visual distinction between the two
+words. (The equivalent Phase 2 change to the mobile home panels' List|Chart
+toggles, `HomeMyChartPanel.tsx` / `HomeTodaySkyPanel.tsx`, was not
+affected — those set `borderLeft`/`paddingLeft` explicitly inline after
+the same spread, so the later keys won and nothing broke; confirmed by
+screenshot, no code change needed there.)
+
+*Fix:* removed the inline style override from `Rail.tsx`'s control button
+entirely (and the now-unused `UNSTYLED_BUTTON` import), down to just
+`{ cursor: 'pointer' }` — the one thing the CSS class doesn't already
+supply. `.rail-control`'s own base rule (added in the same Phase 2 commit)
+already zeroes background/border/padding/margin for the button case, so
+letting the class own 100% of the look, rather than duplicating a
+conflicting reset inline, restores the original separator/spacing/active
+styling with no loss of the keyboard-accessibility gain — the element is
+still a real `<button>`, still `aria-pressed`, still focusable and
+Enter/Space-operable.
+
+**Verified:** ran the dev server against the `marilyn-monroe` demo
+reading and screenshotted both affected pages with Playwright at
+1440×900. Natal (My Chart) and transits (Today's Sky) both show the
+pipe separator and correct spacing restored, READ bold/bright with CHART
+dimmed by default, and the swap correctly reverses (CHART bold/bright,
+wheel view shown) on click. Tabbed to the READ button by keyboard: focus
+ring visible, `aria-pressed="true"` reported correctly. Confirmed the
+wheel glyph accessibility labeling from the original pass
+(`NatalChartWheelWeb.tsx`'s `role="img"` + `aria-label`) is untouched.
+`npx tsc --noEmit` and `npx eslint app/components/Rail.tsx` both clean.
+One process note: while starting a dev server to screenshot, a blanket
+`pkill -f "next dev"` killed a pre-existing dev server process that was
+already running before this task started, not just the duplicate one
+just spawned — flagged to the founder; if that server had been left
+running for another purpose, it needed restarting. Files touched:
+`app/components/Rail.tsx`, `docs/SPEC.md`. Committed, not pushed.
