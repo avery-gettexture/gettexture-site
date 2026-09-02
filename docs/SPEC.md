@@ -7255,3 +7255,36 @@ clean.
 
 Files touched: `app/components/CategoryRail.tsx`, `docs/SPEC.md`. One
 commit, not pushed.
+
+**Chart-wheel Nodes retrograde flag removed (Sep 2, 2026):** the natal
+chart wheel (`NatalChartWheelWeb.tsx`) was drawing a retrograde "℞"
+glyph next to the Nodes wherever they appear on the wheel itself —
+astrologically wrong, since nodes always move backward by nature and
+"retrograde" is meaningless for them (§4.1: "the word 'retrograde'
+never appears in Nodes content"). The rail, the mobile list
+(`ChartSection.tsx`), the desktop natal card header, and the homepage
+panels had already been fixed the same way (Aug 17 and Aug 22, 2026
+entries above); the wheel's own SVG rendering was the one place still
+missing the guard.
+
+**Fix:** in `mapChartData()` (`NatalChartWheelWeb.tsx`), the point
+where each raw planet/node is converted into wheel-drawing data, the
+`retrograde` field is now forced to `false` for the two node IDs
+(`north-node`, `south-node`) instead of trusting the raw chart data's
+`retrograde` flag (which reads `true` on every node row, per the mean-
+node convention noted in §16's July 14–18 entries). Real planets are
+unaffected — their `retrograde` value still comes straight from the
+raw data. `TodaySkyWheel.tsx` renders by calling `NatalChartWheelWeb`
+directly, so this single change covers both the My Chart natal wheel
+and the Today's Sky wheel — no second edit needed.
+
+**Verified:** ran the dev server and screenshotted the `sample`
+reading's My Chart wheel and Today's Sky wheel (both ends of the
+Nodes axis, North and South, on the natal wheel; the North Node on the
+Today's Sky wheel). No "℞" appears next to either node on either
+wheel. Confirmed real retrograde planets are unaffected: the Today's
+Sky wheel still correctly shows "℞" on Saturn and Pluto, which are
+retrograde on today's date.
+
+Files touched: `app/components/NatalChartWheelWeb.tsx`, `docs/SPEC.md`.
+One commit, not pushed.

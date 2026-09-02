@@ -134,7 +134,11 @@ function mapChartData(chartData: any, birthTimeKnown: boolean): MappedChart {
       degree,
       minutes,
       longitude,
-      retrograde: raw.retrograde ?? false,
+      // Nodes always move backward by nature — "retrograde" is meaningless
+      // for them, so no R flag here (matches the desktop rail, mobile
+      // list, and homepage My Chart panel, which special-case this the
+      // same way; SPEC §16).
+      retrograde: (id === 'north-node' || id === 'south-node') ? false : (raw.retrograde ?? false),
     });
   }
 
