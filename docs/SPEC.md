@@ -7110,6 +7110,21 @@ in the same position with the Chart Calculation entry expanded
 correctly. Files touched: `docs/SPEC.md`. No code change, verification
 only.
 
+**Mobile pre-purchase home section retitled "Texture's Methodology"
+(Sep 2, 2026, founder request):** the mobile-only section label above
+Part 2's methodology content (`MobileHomePage.tsx`, `sectionLabelStyle`
+div) is renamed from "Methodology" to "Texture's Methodology" — the
+founder's own naming, matching the section's former "Texture's
+approach" title. Desktop's separate "Methodology" eyebrow label (added
+in Part 2, above the `HomeBirthChartPanel.tsx` approach-state panel) is
+unchanged — the founder's request named the mobile section
+specifically. Content underneath is unchanged (same
+`METHODOLOGY_SECTIONS`, already verified in Part 2). Screenshot-
+verified: mobile pre-purchase home, scrolled to the section, shows
+"TEXTURE'S METHODOLOGY" followed by the Chart Calculation / Writing
+subheaders. `npx tsc --noEmit` clean. Files touched: `app/components/
+MobileHomePage.tsx`, `docs/SPEC.md`. Committed, not pushed.
+
 **Methodology content, Part 2 — pre-purchase "approach" panel replaced
 (Sep 2, 2026):** the pre-purchase home's "approach" long-form panel
 (desktop `HomeBirthChartPanel.tsx`, mobile `MobileHomePage.tsx`) is

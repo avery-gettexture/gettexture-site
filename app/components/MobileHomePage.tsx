@@ -168,7 +168,7 @@ export default function MobileHomePage() {
           the About section / at the bottom of the content, before the
           footer) */}
       <section style={{ borderTop: '1px solid rgba(22,22,18,0.08)', padding: '40px 24px 64px' }}>
-        <div style={sectionLabelStyle}>Methodology</div>
+        <div style={sectionLabelStyle}>Texture's Methodology</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {METHODOLOGY_SECTIONS.map(({ heading, paragraphs }) => (
             <div key={heading}>
