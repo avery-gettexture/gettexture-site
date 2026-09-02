@@ -7191,3 +7191,29 @@ confirmed by reading that function, not just this one run's output.
 Files touched: `docs/SPEC.md` only — `scripts/create-example-reading.mjs`
 already existed and was used unmodified. One commit (data-producing run
 + SPEC entry), not pushed.
+
+**"see example" repointed to the Sample reading (Sep 2, 2026):** closes
+out the "dogfood stand-in" flagged in both the desktop
+(`HomeBirthChartPanel.tsx`) and mobile (`MobileHomePage.tsx`) homepage
+entries above ("swap for the real sample reading later"). Added
+`EXAMPLE_READING_SLUG = 'sample'` to `lib/config.ts`, same
+single-source-of-truth pattern as `DOGFOOD_READING_SLUG` right above it.
+Both components now import `EXAMPLE_READING_SLUG` instead of
+`DOGFOOD_READING_SLUG` for this one link and point it at
+`/reading/${EXAMPLE_READING_SLUG}/natal` — same URL shape both already
+used, landing directly on natal content rather than the reading home.
+The "Dogfood stand-in... swap for the real sample reading later" comment
+in `MobileHomePage.tsx` is removed now that the swap is done. No other
+`DOGFOOD_READING_SLUG` usage elsewhere in the app was touched — out of
+scope for this link.
+
+Verified with a Playwright script against the running dev server: read
+the "see example" link's `href` directly (not just visually) on both
+desktop (1440×900) and mobile (390×844) pre-purchase home — both
+resolved to `/reading/sample/natal`. Followed the link and confirmed the
+page shows real generated content (footer reads "Sample," not a "being
+prepared" placeholder). `npx tsc --noEmit` clean.
+
+Files touched: `lib/config.ts`, `app/components/HomeBirthChartPanel.tsx`,
+`app/components/MobileHomePage.tsx`, `docs/SPEC.md`. One commit, not
+pushed.

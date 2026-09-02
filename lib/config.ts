@@ -2,6 +2,12 @@
 // unlinked build phase targets, kept out of page code per the build's rules.
 export const DOGFOOD_READING_SLUG = 'hejkhjq1zns5';
 
+// The constructed demonstration reading ("Sample," not a real person —
+// SPEC §16, Sep 2 2026) that the pre-purchase homepage's "see example"
+// link points at. Single source of truth, same pattern as
+// DOGFOOD_READING_SLUG above.
+export const EXAMPLE_READING_SLUG = 'sample';
+
 // Natal reading price — SINGLE SOURCE OF TRUTH. This is the only place the
 // price is set. Checkout (app/api/checkout/route.ts) builds the Stripe charge
 // inline from this number every time (unit_amount: NATAL_READING_PRICE_USD *

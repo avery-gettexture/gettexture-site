@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import HomeOrderForm from './HomeOrderForm';
-import { DOGFOOD_READING_SLUG, NATAL_READING_PRICE_USD } from '@/lib/config';
+import { EXAMPLE_READING_SLUG, NATAL_READING_PRICE_USD } from '@/lib/config';
 import {
   OPENER_PARAGRAPH,
   FEATURES,
@@ -103,9 +103,8 @@ export default function MobileHomePage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Dogfood stand-in per the brief — swap for the real sample reading later */}
           <a
-            href={`/reading/${DOGFOOD_READING_SLUG}/natal`}
+            href={`/reading/${EXAMPLE_READING_SLUG}/natal`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: RED, letterSpacing: '1px', textDecoration: 'none' }}

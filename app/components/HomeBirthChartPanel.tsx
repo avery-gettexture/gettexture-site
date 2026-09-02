@@ -28,7 +28,7 @@
 // content always starts at its top edge.
 
 import { useState } from 'react';
-import { DOGFOOD_READING_SLUG, NATAL_READING_PRICE_USD } from '@/lib/config';
+import { EXAMPLE_READING_SLUG, NATAL_READING_PRICE_USD } from '@/lib/config';
 import {
   OPENER_PARAGRAPH,
   FEATURES,
@@ -154,7 +154,7 @@ export default function HomeBirthChartPanel() {
             {state === 'short' ? 'read more' : 'overview'}
           </button>
           <a
-            href={`/reading/${DOGFOOD_READING_SLUG}/natal`}
+            href={`/reading/${EXAMPLE_READING_SLUG}/natal`}
             target="_blank"
             rel="noopener noreferrer"
             style={footerLinkStyle}
