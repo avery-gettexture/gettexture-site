@@ -28,8 +28,7 @@ import {
   DESCRIPTION_PARAGRAPHS,
   WHATS_INCLUDED,
   PLACEMENTS_INTERPRETED,
-  APPROACH_PARAGRAPHS,
-  APPROACH_METHOD_NOTE,
+  METHODOLOGY_SECTIONS,
 } from './homeContent';
 
 const DARK = 'var(--dark)';
@@ -163,18 +162,22 @@ export default function MobileHomePage() {
         </div>
       </section>
 
-      {/* Section 5 — Texture's Approach (restored per Avery's follow-up
-          request, placed after the About section / at the bottom of the
-          content, before the footer) */}
+      {/* Section 5 — Methodology (renamed from "Texture's Approach", Sep 2
+          2026, SPEC §16 — same copy as the Reference page's Methodology
+          category, restored per Avery's follow-up request, placed after
+          the About section / at the bottom of the content, before the
+          footer) */}
       <section style={{ borderTop: '1px solid rgba(22,22,18,0.08)', padding: '40px 24px 64px' }}>
-        <div style={sectionLabelStyle}>Texture's approach</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {APPROACH_PARAGRAPHS.map((text, i) => (
-            <p key={i} style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: 'rgba(22,22,18,0.80)', lineHeight: 1.7 }}>{text}</p>
+        <div style={sectionLabelStyle}>Methodology</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {METHODOLOGY_SECTIONS.map(({ heading, paragraphs }) => (
+            <div key={heading}>
+              <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '14px', fontWeight: 700, color: DARK, marginBottom: '10px' }}>{heading}</p>
+              {paragraphs.map((text, i) => (
+                <p key={i} style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: 'rgba(22,22,18,0.80)', lineHeight: 1.7, marginBottom: i < paragraphs.length - 1 ? '12px' : 0 }}>{text}</p>
+              ))}
+            </div>
           ))}
-          <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px', color: 'rgba(22,22,18,0.35)', lineHeight: 1.7, paddingTop: '16px', borderTop: '0.5px solid rgba(22,22,18,0.10)' }}>
-            {APPROACH_METHOD_NOTE}
-          </p>
         </div>
       </section>
       </main>

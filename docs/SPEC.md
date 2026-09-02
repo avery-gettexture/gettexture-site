@@ -270,6 +270,22 @@ Plain names for the instrument; the brand name is spent on the free page.
 
 ## 7. METHODOLOGY & DISCLOSURE — DECIDED (one maybe)
 
+**Built, Sep 2, 2026 (§16):** rather than a standalone methodology page,
+this content lives as a "Methodology" category in the Reference
+dictionary (`reference_content`, 5 entries: Chart Calculation, Writing,
+Astrological Systems, Astrological Standards, Your Interpretation) and
+as the pre-purchase home's methodology panel (`app/components/
+homeContent.ts`'s `METHODOLOGY_SECTIONS`, same copy). Founder-ruled
+this replaces the standalone-page item in §9 (education layer), rather
+than sitting alongside it. It covers the AI-paragraph disclosure (the
+two-call pipeline, tradition-referenced interpretation, the "every
+reading is generated fresh" point) and the tendencies-not-verdicts
+limits language below. It does **not** cover the technical disclosure
+items below (orbs, decans, sect, node convention) — those already live
+in the separate System / Points and Calculations reference categories
+— and the mean-vs-true-node disclosure item is still PENDING, not
+addressed by this build.
+
 Methodology page, product-spec posture. **Disclose:**
 - House system: **Whole Sign**. Zodiac: **tropical**.
 - **Natal aspects and orbs:** major aspects only; 8° conjunction/opposition/square/trine, 6° sextile, 10° when the Sun or Moon is involved (8° aspects only — the sextile stays 6°); sign-consonant only.
@@ -310,7 +326,7 @@ Methodology page, product-spec posture. **Disclose:**
 6. **Moon blocks.** 12+12 static generation (one-time content job) + assembly logic. Prompt not yet drafted (§3.6).
 7. **Surfaces** per §5.5, including daily sky wheel component (derive from `NatalChartWheelWeb`).
 8. **Notification system** on Resend per §5.4 (blocked on the §12.1 bundle).
-9. **Education layer** (after transits — DECIDED order): chart orientation page ("planets are what, signs are how, houses are where"), how-to-read-a-wheel, profections, finding-your-birth-time. Methodology page can interleave (zero dependencies).
+9. **Education layer** (after transits — DECIDED order): chart orientation page ("planets are what, signs are how, houses are where"), how-to-read-a-wheel, profections, finding-your-birth-time. ~~Methodology page can interleave (zero dependencies).~~ **BUILT Sep 2, 2026 (§16, §7)** — not as a standalone page; the same content instead lives as a Reference-dictionary category plus the pre-purchase home's methodology panel. Founder-ruled this fulfills the item; the rest of the education layer (chart orientation, how-to-read-a-wheel, profections, finding-your-birth-time) remains open.
 10. **Natal parity:** unknown-birth-time purchase path live and correct.
 11. **Sample reading** page (subject deferred).
 12. **Natal engine + schema updates** from the natal sweep: decan, sect, degree flags, MC whole-sign house, axis-merged nodal aspects, widened sign-consonant orbs; 14 → 13 interpretation columns; node background assets. **BUILT August 17, 2026 — see §16 ("complete natal generation," Stages 1–2).** Node background assets (single Nodes image replacing the two per-end backgrounds) remain OPEN per §12.6 — unrelated to this build, an asset decision.
@@ -7075,3 +7091,33 @@ record the fresh-read + screenshot verification once the founder has
 run the script. Files touched: `scripts/
 add_methodology_reference_content.sql` (new), `lib/reference-
 taxonomy.ts`, `docs/SPEC.md`. Committed, not pushed.
+
+**Methodology content, Part 2 — pre-purchase "approach" panel replaced
+(Sep 2, 2026):** the pre-purchase home's "approach" long-form panel
+(desktop `HomeBirthChartPanel.tsx`, mobile `MobileHomePage.tsx`) is
+replaced with the same Methodology copy as Part 1, formatted with the
+five section names as light-bold Geist Mono subheaders (normal case,
+full-contrast dark, same size as body text — not the small-caps muted
+eyebrow-label treatment used elsewhere) above each section's body text.
+`app/components/homeContent.ts`'s `APPROACH_PARAGRAPHS`/
+`APPROACH_METHOD_NOTE` pair is replaced by `METHODOLOGY_SECTIONS` (an
+array of `{ heading, paragraphs }`), imported by both components. An
+overall "Methodology" eyebrow label was added above the sections
+(desktop had no heading in this state before; mobile's existing
+"Texture's approach" label is renamed). **Founder-confirmed call
+(this session):** the "Astrological Systems" bulleted list renders as
+semicolon-separated prose here too, matching Part 1's Reference-page
+treatment, for visual consistency between the two surfaces rather than
+because this panel's custom styling required it (it didn't — real
+`<ul>` bullets would have been low-risk here since this component isn't
+shared with any other category). **Flagged, not separately asked:**
+the desktop panel's footer trigger link is renamed from "approach" to
+"methodology" to match the new section name — easy to revert. Verified
+with Playwright screenshots against the live dev server (desktop panel
+open with all five subheaders and the prose Astrological Systems
+section visible; mobile section scrolled to and the same content
+confirmed, including a close-up of the Astrological Systems prose).
+`npx tsc --noEmit` clean. Files touched: `app/components/
+homeContent.ts`, `app/components/HomeBirthChartPanel.tsx`, `app/
+components/MobileHomePage.tsx`, `docs/SPEC.md` (§7, §9, §16).
+Committed, not pushed.

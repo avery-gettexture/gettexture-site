@@ -35,8 +35,7 @@ import {
   DESCRIPTION_PARAGRAPHS,
   WHATS_INCLUDED,
   PLACEMENTS_INTERPRETED,
-  APPROACH_PARAGRAPHS,
-  APPROACH_METHOD_NOTE,
+  METHODOLOGY_SECTIONS,
 } from './homeContent';
 
 type ContentState = 'short' | 'long' | 'approach';
@@ -133,13 +132,16 @@ export default function HomeBirthChartPanel() {
 
         {state === 'approach' && (
           <div style={scrollBoxStyle}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {APPROACH_PARAGRAPHS.map((text, i) => (
-                <p key={i} style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: DARK_MUTED, lineHeight: 1.7 }}>{text}</p>
+            <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.35)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '16px' }}>Methodology</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {METHODOLOGY_SECTIONS.map(({ heading, paragraphs }) => (
+                <div key={heading}>
+                  <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '14px', fontWeight: 700, color: DARK, marginBottom: '8px' }}>{heading}</p>
+                  {paragraphs.map((text, i) => (
+                    <p key={i} style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '14px', color: DARK_MUTED, lineHeight: 1.7, marginBottom: i < paragraphs.length - 1 ? '12px' : 0 }}>{text}</p>
+                  ))}
+                </div>
               ))}
-              <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '12px', color: 'rgba(22,22,18,0.35)', lineHeight: 1.7, paddingTop: '14px', borderTop: '0.5px solid rgba(22,22,18,0.10)' }}>
-                {APPROACH_METHOD_NOTE}
-              </p>
             </div>
           </div>
         )}
@@ -160,7 +162,7 @@ export default function HomeBirthChartPanel() {
             see example
           </a>
           <button onClick={() => setState('approach')} style={footerLinkStyle}>
-            approach
+            methodology
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
