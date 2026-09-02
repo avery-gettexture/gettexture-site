@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 import { formatDate } from './BirthDataSection';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 import {
   PLACEMENTS,
   type Reading,
@@ -76,7 +77,13 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
           top-anchored title, less reserved empty space below it before
           the body starts) */}
       <div style={{ flex: '0 0 9%', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div onClick={() => setExpanded(e => !e)} style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: expanded ? '2px' : '10px' }}>
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          aria-expanded={expanded}
+          aria-label={`${customerName}, ${expanded ? 'collapse' : 'show'} birth details`}
+          style={{ ...UNSTYLED_BUTTON, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: expanded ? '2px' : '10px' }}
+        >
           <span style={{
             fontFamily: 'var(--font-anton), sans-serif',
             fontSize: expanded ? 'clamp(20px, 2.2vw, 26px)' : 'clamp(26px, 2.8vw, 34px)',
@@ -98,15 +105,18 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
               {reading.birth_location ? `  ·  ${reading.birth_location}` : ''}
             </span>
           )}
-        </div>
+        </button>
 
         {/* List | Chart toggle — swaps the body in place, no navigation. */}
         <div style={{ display: 'flex', gap: '10px', paddingTop: '12px' }}>
           {(['list', 'chart'] as PaneMode[]).map((m, i) => (
-            <span
+            <button
+              type="button"
               key={m}
               onClick={() => setPaneMode(m)}
+              aria-pressed={paneMode === m}
               style={{
+                ...UNSTYLED_BUTTON,
                 fontFamily: 'var(--font-geist-mono), monospace',
                 fontSize: paneMode === m ? 'clamp(12px, 1vw, 14px)' : 'clamp(11px, 0.9vw, 13px)',
                 fontWeight: paneMode === m ? 700 : 400,
@@ -119,7 +129,7 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
               }}
             >
               {m}
-            </span>
+            </button>
           ))}
         </div>
       </div>
@@ -127,7 +137,10 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
       {/* Body */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         {paneMode === 'list' ? (
-          <div style={{
+          <div
+            tabIndex={0}
+            aria-label="Placement list"
+            style={{
             position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain',
             borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
           }}>
@@ -157,13 +170,13 @@ export default function HomeMyChartPanel({ slug }: { slug: string }) {
                   }}>
                     {icon
                       ? <img src={icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '13px', color: LIGHT_MUTED }}>{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>}
+                      : <span aria-hidden="true" style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '13px', color: LIGHT_MUTED }}>{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>}
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0, fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(14px, 1.3vw, 17px)', color: LIGHT }}>
-                    <span>{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>
+                    <span aria-hidden="true">{RAIL_PLANET_GLYPHS[placement.id] ?? '○'}</span>
                     <span>{placement.name}</span>
                     <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.85em', color: LIGHT_MUTED }}>{meta.degree}</span>
-                    <span style={{ fontSize: '0.9em', color: LIGHT_MUTED }}>{RAIL_SIGN_GLYPHS[meta.sign] ?? ''}</span>
+                    <span aria-hidden="true" style={{ fontSize: '0.9em', color: LIGHT_MUTED }}>{RAIL_SIGN_GLYPHS[meta.sign] ?? ''}</span>
                     <span style={{ fontSize: '0.85em', color: LIGHT_MUTED }}>{meta.sign}</span>
                     {meta.house && <span style={{ fontSize: '0.85em', color: LIGHT_MUTED }}>· {meta.house}</span>}
                     {showRetrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.8em', color: 'var(--red-strong)' }}>R</span>}

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 import { formatToday } from '@/lib/date-utils';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 // The CHART state of the desktop transits page (SPEC §16). A screen-state
 // swap of the reading pane's content, not a scroll target — mirrors
@@ -147,9 +148,14 @@ export default function TransitChartPane({
           fontFamily: 'var(--font-geist-mono), monospace',
           letterSpacing: '0.5px',
         }}>
-          <span
+          <button
+            type="button"
             onClick={() => onChartModeChange('today')}
+            aria-pressed={chartMode === 'today'}
             style={{
+              ...UNSTYLED_BUTTON,
+              fontFamily: 'inherit',
+              letterSpacing: 'inherit',
               cursor: 'pointer',
               color: chartMode === 'today' ? 'rgba(253,245,237,1)' : 'rgba(253,245,237,0.45)',
               fontWeight: chartMode === 'today' ? 700 : 400,
@@ -157,11 +163,16 @@ export default function TransitChartPane({
             }}
           >
             Today
-          </span>
+          </button>
           <span style={{ color: 'rgba(253,245,237,0.30)' }}>|</span>
-          <span
+          <button
+            type="button"
             onClick={() => onChartModeChange('transiting')}
+            aria-pressed={chartMode === 'transiting'}
             style={{
+              ...UNSTYLED_BUTTON,
+              fontFamily: 'inherit',
+              letterSpacing: 'inherit',
               cursor: 'pointer',
               color: chartMode === 'transiting' ? 'rgba(253,245,237,1)' : 'rgba(253,245,237,0.45)',
               fontWeight: chartMode === 'transiting' ? 700 : 400,
@@ -169,7 +180,7 @@ export default function TransitChartPane({
             }}
           >
             Transiting
-          </span>
+          </button>
         </div>
       )}
 

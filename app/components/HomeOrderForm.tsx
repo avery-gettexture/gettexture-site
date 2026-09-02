@@ -114,8 +114,14 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
   // SPEC §16) — replaces the old label-above/white-box fields so the whole
   // form fits the right panel with zero scroll. Sizes shrunk specifically
   // for that fit, not a general style change.
+  // flexWrap (a11y Phase 2, SPEC §16): at normal desktop widths every row
+  // still fits on one line, so this is invisible day-to-day — it only
+  // engages as a fallback when the row is squeezed narrower than its
+  // content can fit (200% browser zoom being the concrete case that was
+  // clipping fields), letting the input drop to its own line instead of
+  // being cut off by the panel's overflow:hidden.
   const rowStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 'clamp(9px, 2.1dvh, 20px)',
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 12px', marginBottom: 'clamp(9px, 2.1dvh, 20px)',
   };
 
   const inlineLabelStyle: React.CSSProperties = {
@@ -142,45 +148,45 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
     <>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={rowStyle}>
-          <label style={inlineLabelStyle}>name:</label>
+          <label htmlFor="birth-name" style={inlineLabelStyle}>name:</label>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <input type="text" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setErrors(er => ({ ...er, name: '' })); }} placeholder="as you'd like it to appear in your reading" style={underlineInputStyle('name')} />
+            <input id="birth-name" type="text" value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setErrors(er => ({ ...er, name: '' })); }} placeholder="as you'd like it to appear in your reading" style={underlineInputStyle('name')} />
             {errors.name && <div style={errorStyle}>{errors.name}</div>}
           </div>
         </div>
         <div style={rowStyle}>
-          <label style={inlineLabelStyle}>date of birth:</label>
-          <div style={{ flex: '0 0 auto' }}>
-            <input type="date" value={form.birthDate} onChange={e => { setForm(f => ({ ...f, birthDate: e.target.value })); setErrors(er => ({ ...er, birthDate: '' })); }} style={{ ...underlineInputStyle('birthDate'), width: '160px' }} />
+          <label htmlFor="birth-date" style={inlineLabelStyle}>date of birth:</label>
+          <div style={{ flex: '1 1 160px', minWidth: 0, maxWidth: '160px' }}>
+            <input id="birth-date" type="date" value={form.birthDate} onChange={e => { setForm(f => ({ ...f, birthDate: e.target.value })); setErrors(er => ({ ...er, birthDate: '' })); }} style={{ ...underlineInputStyle('birthDate'), maxWidth: '160px' }} />
             {errors.birthDate && <div style={errorStyle}>{errors.birthDate}</div>}
           </div>
         </div>
         <div style={rowStyle}>
-          <label style={inlineLabelStyle}>time of birth:</label>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: '8px' }}>
-            <select value={form.birthHour} onChange={e => setForm(f => ({ ...f, birthHour: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 48px' }}>
+          <span id="birth-time-label" style={inlineLabelStyle}>time of birth:</span>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <select aria-label="Hour of birth" value={form.birthHour} onChange={e => setForm(f => ({ ...f, birthHour: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '1 1 48px', minWidth: '36px' }}>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
-            <select value={form.birthMinute} onChange={e => setForm(f => ({ ...f, birthMinute: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 48px' }}>
+            <select aria-label="Minute of birth" value={form.birthMinute} onChange={e => setForm(f => ({ ...f, birthMinute: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '1 1 48px', minWidth: '36px' }}>
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-            <select value={form.birthAmPm} onChange={e => setForm(f => ({ ...f, birthAmPm: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '0 0 60px' }}>
+            <select aria-label="AM or PM" value={form.birthAmPm} onChange={e => setForm(f => ({ ...f, birthAmPm: e.target.value }))} style={{ ...underlineInputStyle('birthTime'), flex: '1 1 60px', minWidth: '44px' }}>
               <option value="AM">AM</option>
               <option value="PM">PM</option>
             </select>
           </div>
         </div>
         <div style={rowStyle}>
-          <label style={inlineLabelStyle}>place of birth:</label>
+          <label htmlFor="birth-location" style={inlineLabelStyle}>place of birth:</label>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <input ref={locationRef} type="text" placeholder="city, country" onChange={e => { setForm(f => ({ ...f, birthLocation: e.target.value, birthLat: null, birthLng: null })); setErrors(er => ({ ...er, birthLocation: '' })); }} style={underlineInputStyle('birthLocation')} />
+            <input id="birth-location" ref={locationRef} type="text" placeholder="city, country" onChange={e => { setForm(f => ({ ...f, birthLocation: e.target.value, birthLat: null, birthLng: null })); setErrors(er => ({ ...er, birthLocation: '' })); }} style={underlineInputStyle('birthLocation')} />
             {errors.birthLocation && <div style={errorStyle}>{errors.birthLocation}</div>}
           </div>
         </div>
         <div style={rowStyle}>
-          <label style={inlineLabelStyle}>email:</label>
+          <label htmlFor="birth-email" style={inlineLabelStyle}>email:</label>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <input type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: '' })); }} placeholder="your reading link will be sent here" style={underlineInputStyle('email')} />
+            <input id="birth-email" type="email" value={form.email} onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: '' })); }} placeholder="your reading link will be sent here" style={underlineInputStyle('email')} />
             {errors.email && <div style={errorStyle}>{errors.email}</div>}
           </div>
         </div>

@@ -47,7 +47,7 @@ export default function ReadingLayout({
           active="reference" today, but this guard keeps the mobile shell
           correct if that changes. */}
       {active !== 'settings' && <MobileNavShell slug={slug} active={active} />}
-      <div className="app-stage">
+      <main className="app-stage">
         {background && (
           <div
             className="reading-stage-bg"
@@ -68,7 +68,7 @@ export default function ReadingLayout({
             {children}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

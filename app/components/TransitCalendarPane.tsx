@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { formatToday, formatContextualDate, getTodayLocalISODate, parseLocalDate } from '@/lib/date-utils';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 // The CALENDAR state of the desktop transits page (SPEC §16, "Transit
 // Calendar, Part 2"). A DERIVED view -- no fetch of its own, no storage
@@ -193,7 +194,7 @@ export default function TransitCalendarPane({
         }}>
           {formatToday()}
         </div>
-        <h1 className="planet-name" style={{ marginTop: '6px' }}>Aspects and Events</h1>
+        <h2 className="planet-name" style={{ marginTop: '6px' }}>Aspects and Events</h2>
         <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', marginTop: '10px' }} />
       </div>
 
@@ -209,44 +210,61 @@ export default function TransitCalendarPane({
         letterSpacing: '0.5px',
       }}>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <span
+          <button
+            type="button"
             onClick={() => setTab('current')}
+            aria-pressed={tab === 'current'}
             style={{
+              ...UNSTYLED_BUTTON,
               cursor: 'pointer',
               color: tab === 'current' ? 'var(--dark)' : 'rgba(22,22,18,0.40)',
               fontWeight: tab === 'current' ? 700 : 400,
             }}
           >
             Current
-          </span>
-          <span
+          </button>
+          <button
+            type="button"
             onClick={() => setTab('upcoming')}
+            aria-pressed={tab === 'upcoming'}
             style={{
+              ...UNSTYLED_BUTTON,
               cursor: 'pointer',
               color: tab === 'upcoming' ? 'var(--dark)' : 'rgba(22,22,18,0.40)',
               fontWeight: tab === 'upcoming' ? 700 : 400,
             }}
           >
             Upcoming
-          </span>
+          </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', color: 'rgba(22,22,18,0.55)' }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => setFilterOpen(o => !o)}>
+          <button
+            type="button"
+            style={{ ...UNSTYLED_BUTTON, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit', fontSize: 'inherit', letterSpacing: 'inherit' }}
+            onClick={() => setFilterOpen(o => !o)}
+            aria-expanded={filterOpen}
+          >
             Filter {filterOpen ? '︿' : '⌄'}
-          </span>
+          </button>
           {filterOpen && ALL_BUCKETS.map(bucket => (
-            <span
+            <button
+              type="button"
               key={bucket}
               onClick={() => toggleBucket(bucket)}
+              aria-pressed={activeBuckets.has(bucket)}
               style={{
+                ...UNSTYLED_BUTTON,
                 cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+                letterSpacing: 'inherit',
                 color: activeBuckets.has(bucket) ? 'rgba(22,22,18,0.75)' : 'rgba(22,22,18,0.35)',
                 fontWeight: activeBuckets.has(bucket) ? 600 : 400,
               }}
             >
               {activeBuckets.has(bucket) ? '✓ ' : ''}{FILTER_LABELS[bucket]}
-            </span>
+            </button>
           ))}
         </div>
       </div>

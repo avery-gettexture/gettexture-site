@@ -18,10 +18,16 @@ const DARK_MUTED = 'var(--dark-muted)';
 
 export default function HomeMyChartFormPanel() {
   return (
-    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', padding: '4% 6%' }}>
-      <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(21px, 3.4dvh, 32px)', color: DARK, letterSpacing: '1px', marginBottom: 'clamp(6px, 1dvh, 10px)' }}>
+    // overflowY (a11y Phase 2, SPEC §16): invisible at normal desktop sizes,
+    // where this panel's content already fits with zero scroll by design —
+    // it only engages as a fallback when 200% browser zoom (or another
+    // extreme case) makes the content taller than the fixed-height panel,
+    // so the bottom of the form (email, submit) stays reachable instead of
+    // being clipped by the page's own overflow:hidden with nowhere to go.
+    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', padding: '4% 6%', overflowY: 'auto', overscrollBehavior: 'contain' }}>
+      <h2 style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(21px, 3.4dvh, 32px)', color: DARK, letterSpacing: '1px', marginBottom: 'clamp(6px, 1dvh, 10px)' }}>
         My Chart
-      </div>
+      </h2>
       <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 1.55dvh, 15px)', color: DARK_MUTED, lineHeight: 1.5, marginBottom: 'clamp(6px, 1.4dvh, 14px)' }}>
         Please enter the following information so we can deliver your personalized report. This information is used to calculate the position of the planets in the sky relative to the time and place you were born. Accurate information ensures you receive the highest quality report, and cannot be updated once you complete payment, so please be sure to check your entries. You'll receive your reading link by email immediately after purchase.
       </p>

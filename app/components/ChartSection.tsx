@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 import { formatDate } from './BirthDataSection';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 type ChartView = 'chart' | 'list';
 
@@ -135,7 +136,7 @@ function BirthDataToggle({
   extraTopPadding?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLButtonElement>(null);
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
@@ -215,10 +216,14 @@ function BirthDataToggle({
   });
 
   return (
-    <div
+    <button
+      type="button"
       ref={containerRef}
       onClick={() => setExpanded(e => !e)}
+      aria-expanded={expanded}
+      aria-label={`${name}, ${expanded ? 'collapse' : 'show'} birth details`}
       style={{
+        ...UNSTYLED_BUTTON,
         width: '100%',
         display: 'grid',
         position: 'relative',
@@ -238,7 +243,7 @@ function BirthDataToggle({
       <div style={cellStyle(stacked)}>
         {renderRows(stacked)}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -324,28 +329,34 @@ function ListView({
         justifyContent: 'space-evenly',
         padding: '0',
       }}>
-        {planets.map((planet, index) => (
-          <div
-            key={planet.key}
-            onClick={() => onScrollToPlanet?.(planet.key)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 20px',
-              borderBottom: index < planets.length - 1 ? '0.5px solid rgba(22,22,18,0.10)' : 'none',
-              cursor: onScrollToPlanet ? 'pointer' : 'default',
-              flex: 1,
-            }}
-          >
-            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3vw, 14px)', color: 'rgba(22,22,18,0.45)', width: '20px', flexShrink: 0 }}>{planet.glyph}</span>
-            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{planet.label}</span>
-            <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{planet.sign}</span>
-            <span style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '6px' }}>{planet.signGlyph}</span>
-            <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'rgba(22,22,18,0.55)', marginRight: '4px' }}>{planet.degree}°</span>
-            {planet.house && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 2.4vw, 11px)', color: 'rgba(22,22,18,0.35)', marginRight: '4px' }}>{planet.house}</span>}
-            {planet.retrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 2.4vw, 11px)', color: 'rgba(185,18,18,0.75)', letterSpacing: '1px' }}>R</span>}
-          </div>
-        ))}
+        {planets.map((planet, index) => {
+          const Tag = onScrollToPlanet ? 'button' : 'div';
+          return (
+            <Tag
+              key={planet.key}
+              type={onScrollToPlanet ? 'button' : undefined}
+              onClick={onScrollToPlanet ? () => onScrollToPlanet(planet.key) : undefined}
+              style={{
+                ...(onScrollToPlanet ? UNSTYLED_BUTTON : {}),
+                display: 'flex',
+                alignItems: 'center',
+                width: '100%',
+                padding: '0 20px',
+                borderBottom: index < planets.length - 1 ? '0.5px solid rgba(22,22,18,0.10)' : 'none',
+                cursor: onScrollToPlanet ? 'pointer' : 'default',
+                flex: 1,
+              }}
+            >
+              <span aria-hidden="true" style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3vw, 14px)', color: 'rgba(22,22,18,0.45)', width: '20px', flexShrink: 0 }}>{planet.glyph}</span>
+              <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', flex: 1 }}>{planet.label}</span>
+              <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(11px, 3.2vw, 14px)', color: '#161612', letterSpacing: '-0.2px', marginRight: '4px' }}>{planet.sign}</span>
+              <span aria-hidden="true" style={{ fontSize: 'clamp(10px, 2.8vw, 12px)', color: 'rgba(22,22,18,0.45)', marginRight: '6px' }}>{planet.signGlyph}</span>
+              <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(10px, 2.6vw, 12px)', color: 'rgba(22,22,18,0.55)', marginRight: '4px' }}>{planet.degree}°</span>
+              {planet.house && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 2.4vw, 11px)', color: 'rgba(22,22,18,0.35)', marginRight: '4px' }}>{planet.house}</span>}
+              {planet.retrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(9px, 2.4vw, 11px)', color: 'rgba(185,18,18,0.75)', letterSpacing: '1px' }}>R</span>}
+            </Tag>
+          );
+        })}
       </div>
 
       {/* Birth data — same collapse/expand control as Chart view, so birth

@@ -1,3 +1,5 @@
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
+
 export interface RailControl {
   label: string;
   active?: boolean;
@@ -51,14 +53,22 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
           <div className="rail-controls-slot">
             <div className="rail-controls">
               {controls.map(c => (
-                <span
-                  key={c.label}
-                  className={`rail-control${c.active ? ' active' : ''}`}
-                  onClick={c.onClick}
-                  style={c.onClick ? { cursor: 'pointer' } : undefined}
-                >
-                  {c.label}
-                </span>
+                c.onClick ? (
+                  <button
+                    type="button"
+                    key={c.label}
+                    className={`rail-control${c.active ? ' active' : ''}`}
+                    onClick={c.onClick}
+                    aria-pressed={c.active}
+                    style={{ ...UNSTYLED_BUTTON, fontFamily: 'inherit', fontSize: 'inherit', letterSpacing: 'inherit', fontWeight: 'inherit', cursor: 'pointer' }}
+                  >
+                    {c.label}
+                  </button>
+                ) : (
+                  <span key={c.label} className={`rail-control${c.active ? ' active' : ''}`}>
+                    {c.label}
+                  </span>
+                )
               ))}
             </div>
           </div>
@@ -66,27 +76,42 @@ export default function Rail({ title, controls, rows, onRowClick, fillHeight }: 
       </div>
       <div className={`rail-rect${fillHeight ? ' rail-rect--fill' : ''}`}>
         <div className={`rail-list${fillHeight ? ' rail-list--fill' : ''}`}>
-          {rows.map(row => (
-            <div
-              key={row.id}
-              className={`rail-row${row.active ? ' active' : ''}${fillHeight ? ' rail-row--fill' : ''}`}
-              onClick={() => onRowClick?.(row.id)}
-              style={onRowClick ? { cursor: 'pointer' } : undefined}
-            >
-              {row.active && <span className="rail-row-bar" />}
-              <div className="rail-row-line1">
-                <span>{row.glyph}</span>
-                <span>{row.name}</span>
-                <span>{row.degree}</span>
-                {row.retrograde && <span className="rail-row-retro">R</span>}
+          {rows.map(row => {
+            const rowContent = (
+              <>
+                {row.active && <span className="rail-row-bar" />}
+                <div className="rail-row-line1">
+                  <span aria-hidden="true">{row.glyph}</span>
+                  <span>{row.name}</span>
+                  <span>{row.degree}</span>
+                  {row.retrograde && <span className="rail-row-retro">R</span>}
+                </div>
+                <div className="rail-row-line2">
+                  <span aria-hidden="true">{row.signGlyph}</span>
+                  <span>{row.sign}</span>
+                  {row.house && <span>{row.house}</span>}
+                </div>
+              </>
+            );
+            return onRowClick ? (
+              <button
+                type="button"
+                key={row.id}
+                className={`rail-row${row.active ? ' active' : ''}${fillHeight ? ' rail-row--fill' : ''}`}
+                onClick={() => onRowClick(row.id)}
+                style={{ cursor: 'pointer' }}
+              >
+                {rowContent}
+              </button>
+            ) : (
+              <div
+                key={row.id}
+                className={`rail-row${row.active ? ' active' : ''}${fillHeight ? ' rail-row--fill' : ''}`}
+              >
+                {rowContent}
               </div>
-              <div className="rail-row-line2">
-                <span>{row.signGlyph}</span>
-                <span>{row.sign}</span>
-                {row.house && <span>{row.house}</span>}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <div className="rail-bottom-spacer" />

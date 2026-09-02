@@ -1345,6 +1345,39 @@ wait, 3% CPU). Stage 3 (wire writes) remains pending, unscheduled.
    eclipse, and requires regenerate + validate (confirm what
    newly appears, nothing spurious). Founder leaning toward wider
    given eclipse significance; not yet ruled.
+9. **Brand red contrast** — OPEN (accessibility audit, Sep 1 2026, §16).
+   The single red value in live use, `rgba(185,18,18,0.75)` (CSS var
+   `--red-strong`, also the literal used inline in several files), fails
+   WCAG AA in two of its four real contexts and there is no actual
+   per-background tuning happening today — every context uses the
+   identical value. Measured: **on cream** (#FDF5ED, the large majority
+   of instances — wordmarks, "Menu", card-name signatures, retrograde
+   flags, legal-page links, home panel labels/price) — 4.22:1, fails the
+   4.5:1 text minimum, passes the 3:1 large-text minimum (two instances,
+   the home-panel stickers and the birth-chart price, render large enough
+   at normal desktop widths to already clear AA via the large-text
+   exception; everything else fails). **On indigo** (`--indigo` #0E0C1A,
+   the brief loading-splash "TEXTURE" shown while natal/transits/
+   reference/reading-home resolve desktop-vs-mobile) — 2.06:1, fails even
+   the relaxed 3:1 minimum, and **cannot be fixed by raising opacity
+   alone** — pure, fully-opaque `rgb(185,18,18)` against this indigo caps
+   out at 2.91:1, still short of 3:1, so passing on indigo requires an
+   actually different (lighter) red, not just less transparency. **As a
+   button fill** (the order form's "REVIEW ORDER →" and the order-review
+   modal's confirm button, white/cream `#FDF5ED` text on this red
+   background) — same 4.22:1, fails at the buttons' 13–14px label size;
+   the disabled-state fill (0.40 opacity) computes to 2.09:1 but disabled
+   controls are exempt from the WCAG minimum. **Over the mobile "My
+   Chart" panel's photo backdrop** (`/sky-background.png`, the
+   retrograde "R" flags in that panel's List view, which sit directly on
+   the image with no cream card behind them) — not a fixable single
+   ratio at all; contrast depends on which pixel of the photo is behind
+   the text, which is why axe silently skips it rather than passing or
+   failing it. Cream alone is a small, near-passing tweak (~0.785 opacity
+   would clear 4.5:1); indigo needs a genuinely different color decision;
+   the photo case needs a scrim/shadow technique regardless of which red
+   is chosen. Not fixed — reported for founder decision, no red value
+   touched.
 
 ## 13. DEFERRED — DO NOT BUILD, DO NOT FORECLOSE
 
@@ -6635,3 +6668,175 @@ home (`MobileHomePage.tsx`) and the order-review-step total
 via the identical code path. `npx tsc --noEmit` not re-run (comment-only
 change beyond the already-landed number edit). Files touched:
 `lib/config.ts`, `docs/SPEC.md`. Committed, not pushed.
+
+**Accessibility audit + fix, Phase 1 + 2 (Sep 1 2026):** goal was
+substantially meeting WCAG 2.1 AA across the site's key pages (pre-purchase
+home, post-purchase home, natal reading, reference page — desktop and
+mobile) so the site isn't low-hanging fruit for an automated accessibility
+scan. Two-phase: Phase 1 audited and reported with nothing fixed; Phase 2
+fixed everything approved, investigated-and-reported (not fixed) on the
+one item explicitly held back.
+
+*Phase 1 method:* axe-core injected into a headless Playwright browser
+against the running dev server (dogfood slug `hejkhjq1zns5`), plus
+Lighthouse's accessibility category, run at 1440×900 and 390×844 for all
+four pages (8 runs). Baseline scores: pre-purchase home **84**, the other
+three pages **95**. Manual checks beyond what the scanners catch: tabbed
+through the site by keyboard, and simulated 200% zoom by resizing the
+Playwright viewport to half-width (the standard technique for this check —
+real browser zoom shrinks the effective CSS layout viewport the same way,
+confirmed by observing the site's own `matchMedia('(min-width: 1024px)')`
+breakpoint correctly kick over to the mobile layout at a simulated-200%
+width on a 1440 screen).
+
+*Phase 2 fixes (approved, applied):*
+- **Contrast:** `--dark-muted` (the shared muted-gray metadata/body-copy
+  token) raised 0.55→0.60 opacity (3.94:1→~4.6:1) — one CSS variable,
+  fixes every instance site-wide, minimal visible change. The
+  footer/copyright text (PRIVACY·TERMS·SUPPORT links, "© 2026 TEXTURE",
+  5 call sites across `globals.css`, `MobileHomePage.tsx`,
+  `ReferencePage.tsx`) raised 0.25–0.30→0.68 opacity (was ~1.7–1.9:1, now
+  ~6:1). Comment left at each site explaining the before/after ratio.
+- **Keyboard operability:** every clickable `<div>`/`<span>` found became
+  a real `<button>` (native focus + Enter/Space, no `onKeyDown` needed) —
+  the Reference page's category/entry accordion (mobile
+  `ReferencePage.tsx` and desktop `reference/page.tsx`, highest priority,
+  verified with an actual Tab+Enter Playwright test, screenshotted with
+  the resulting focus ring visible), the shared `.section-row`
+  Overview/Reference/Timeline toggles (natal and transits detail cards —
+  same component pattern as the Reference accordion, found and fixed
+  alongside it), the desktop rail's READ/CHART and category rows
+  (`Rail.tsx`, `CategoryRail.tsx` — corrected from the Phase 1 report,
+  which had mistakenly called the desktop toggle "already correct" based
+  on the separate, already-`<button>` mobile version), the birth-data
+  expand toggles (`ChartSection.tsx`, `NatalChartPane.tsx`,
+  `HomeMyChartPanel.tsx`), the List/Chart toggles on both post-purchase
+  home panels (`HomeMyChartPanel.tsx`, `HomeTodaySkyPanel.tsx` — same
+  correction as the rail), and the transit calendar's Current/Upcoming
+  tabs and Filter (`TransitCalendarPane.tsx`) plus the (currently
+  feature-flagged-off) transit chart's Today/Transiting toggle
+  (`TransitChartPane.tsx`). A shared `UNSTYLED_BUTTON` style reset lives
+  at `lib/a11y.ts`. One correctness bug caught by re-running Lighthouse
+  after the first pass: the birth-data buttons' `aria-label` ("Show birth
+  details") was overriding the visible name text ("avery"/customer name)
+  entirely, failing WCAG 2.5.3 (Label in Name) — fixed by folding the
+  visible name into the label (`"avery, show birth details"`) instead of
+  replacing it.
+- **Form labels:** all five purchase-form fields (`HomeOrderForm.tsx`) now
+  have real associated labels — `htmlFor`/`id` pairs for name, date,
+  location, email (the three that previously "passed" automated scans
+  only because they had placeholder text, which isn't a real label and
+  was explicitly flagged as a risk to fix anyway), and per-select
+  `aria-label`s ("Hour of birth" / "Minute of birth" / "AM or PM") for
+  the three time-of-birth dropdowns that share one visual label.
+- **Glyph accessibility:** planet/sign glyphs are Unicode characters
+  (☉, ♈, …), not images — screen readers would otherwise try to announce
+  the raw character unpredictably. Fixed two ways depending on context:
+  where a glyph sits next to its own name as visible text already (every
+  list/rail row — `Rail.tsx`, `ChartSection.tsx`, `TodaySkySection.tsx`,
+  `HomeMyChartPanel.tsx`, `HomeTodaySkyPanel.tsx`), the glyph is marked
+  `aria-hidden` so the adjacent real text carries the name without a
+  redundant/garbled double-announcement; where the glyph is the sole
+  visual representation with no adjacent text (the SVG chart wheel,
+  `NatalChartWheelWeb.tsx`, reused by `TodaySkyWheel.tsx` and the transit
+  chart), the whole `<svg>` got `role="img"` and one summary
+  `aria-label`, the standard technique for a complex redundant graphic
+  (the same data is already fully readable via the List view).
+- **`<main>` landmark:** added to every page — not just the pre-purchase
+  home that Phase 1's scan flagged, but all of them; a direct DOM check
+  found natal/transits/reference/reading-home had zero `<main>` landmarks
+  too despite Lighthouse not flagging them (the automated check appears
+  to score a page with *zero* main landmarks as passing, since it has no
+  specific failing node to point at — a scanner blind spot, not a real
+  pass). Desktop pages: the shared `.app-stage` wrapper (`app/page.tsx`,
+  `HomeLayout.tsx`, `ReadingLayout.tsx`, `natal/page.tsx`,
+  `transits/page.tsx`) is now a real `<main>`. Mobile natal/transits/
+  reference: `role="main"` added to the existing `.reading-container`
+  wrapper rather than restructuring it, to avoid touching the tuned
+  scroll-snap CSS underneath.
+- **200% zoom / reflow:** the pre-purchase order form
+  (`HomeOrderForm.tsx`) clipped the date field and the three
+  time-of-birth dropdowns at 200% zoom because their fixed pixel widths
+  didn't shrink with the column. Fixed with `flexWrap` on each form row
+  (invisible at normal desktop widths, where everything still fits one
+  line — confirmed unchanged down to ~1030px-equivalent, the realistic
+  floor before the site's own responsive breakpoint hands off to the
+  mobile layout at 1024px) plus shrinkable min-widths on the date input
+  and the three selects. The wrap fix initially traded the horizontal
+  clipping for a vertical one (wrapped rows made the form taller than
+  its zero-scroll-by-design panel budgeted for, pushing email/submit
+  off-screen with nowhere to go) — fixed by adding `overflowY: 'auto'`
+  to both pre-purchase panel roots (`HomeMyChartFormPanel.tsx`,
+  `HomeBirthChartPanel.tsx`) as a fallback that only engages when content
+  doesn't fit; at 100% zoom nothing changes, since nothing overflows by
+  design. Verified by resizing the Playwright viewport (not the CSS
+  `zoom` property, which has real quirks with nested `overflow:auto` in
+  headless Chromium and gave misleading results during this fix) down to
+  1280×800 and 1030×700 — both render the complete form with no clipped
+  or unreachable fields.
+- **Heading hierarchy:** the natal reading's 13 flat `<h1>`s (one per
+  placement card, same shared card component used by both List and
+  Chart views) are now `<h2>`s under one real page `<h1>` (visually
+  hidden via a new `.sr-only` utility class in `globals.css`, so there's
+  no visible change) — done identically for the transits page's 10 body
+  cards (same shared-component pattern, found and fixed alongside natal).
+  The pre-purchase home's two panel headlines ("Take a closer look at
+  your chart.", "My Chart") and the post-purchase home's two panel
+  labels ("My Chart", "Today's Sky") were plain styled `<div>`/`<span>`s
+  with no heading tag at all — promoted to real `<h1>`/`<h2>` tags with
+  zero visual change (Tailwind's Preflight base already zeroes heading
+  margins uniformly, confirmed before making the swap, so there was
+  nothing left for the tag itself to change visually). The mobile
+  Reference page's "Reference" title (`ReferencePage.tsx`) was also a
+  plain `<div>` — promoted to `<h1>`.
+- **Safari scrollable-region focusability:** `tabIndex={0}` (plus a
+  matching `aria-label`) added to every internally-scrolling region found
+  — the natal and transits pages' own scroll-snap containers
+  (`.natal-scroll`), the Overview/Timeline/Reference `.section-body`
+  panes on both pages, and the List-mode scroll areas on both
+  post-purchase home panels.
+
+*Not fixed, by design:* the brand red contrast investigation — see §12
+item 9. Also flagged but out of scope for this pass (not explicitly
+requested, left for a future task rather than expanded into silently):
+a second, lighter gray text tier (`rgba(22,22,18,0.30)`, used for
+transient "LOADING"/"GENERATING…" status text and `.placeholder-text`)
+that measures below AA and wasn't part of either named contrast category;
+the transit calendar's per-entry timeline rows (`TransitCalendarPane.tsx`)
+remain a clickable `<div>` without keyboard support, a narrower instance
+of the same pattern already fixed elsewhere on that page's tabs/filter;
+the pre-purchase desktop background's own "© 2026 TEXTURE"
+(`.prepurchase-bg-copyright`, cream-on-photo) wasn't measured — it wasn't
+flagged by either scanner and sits on a photo, the same non-measurable
+case as the retrograde flags noted in §12 item 9.
+
+**Verified:** re-ran axe-core and Lighthouse after the fixes (same 8
+runs). Lighthouse accessibility score — pre-purchase home **84 → 96**
+(target was 90+), reading-home **95 → 96**, natal **95 → 96**, reference
+**95 → 95** (unchanged; its one remaining finding is red contrast).
+Every page's only remaining axe/Lighthouse finding, on every page and
+viewport, is color-contrast on red text/accents — the single item
+deliberately left to founder decision. Real keyboard test (not just
+axe): Tab to the Reference page's first category button, press Enter,
+confirmed `aria-expanded` flips and the category visibly opens, with the
+browser's native focus ring visible around it (screenshotted). `npx tsc
+--noEmit` and `npx eslint` clean on every touched file — confirmed
+against a `git stash` diff that eslint's pre-existing warnings (unrelated
+`any` types, unescaped entities in legal-page copy) are unchanged in
+count, not introduced by this task. Visual spot-check via Playwright
+screenshots at both viewports on all four pages confirmed no unintended
+design change (buttons render pixel-identical to the divs/spans they
+replaced; contrast fixes are the only visible difference, as approved).
+One infrastructure snag: the dev server's Turbopack cache didn't pick up
+value-only edits to already-emitted CSS rules (new rules landed live via
+HMR; edits to existing rule values didn't, verified by diffing the served
+CSS chunk against the source file) — resolved by restarting `next dev`;
+not a defect in the CSS changes themselves. Files touched: `lib/a11y.ts`
+(new), `app/globals.css`, `app/page.tsx`, `app/components/*` (16 files —
+`CategoryRail`, `ChartSection`, `HomeBirthChartPanel`, `HomeLayout`,
+`HomeMyChartFormPanel`, `HomeMyChartPanel`, `HomeOrderForm`,
+`HomeTodaySkyPanel`, `MobileHomePage`, `NatalChartPane`,
+`NatalChartWheelWeb`, `Rail`, `ReadingLayout`, `ReferencePage`,
+`TodaySkySection`, `TransitCalendarPane`, `TransitChartPane`),
+`app/reading/[slug]/{natal,reference,transits}/page.tsx`, `docs/SPEC.md`.
+Committed, not pushed.

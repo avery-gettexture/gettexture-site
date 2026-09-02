@@ -2,13 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Screen-reader-only content (a11y Phase 2, SPEC §16): visually hidden but
+   still reachable by assistive tech — the standard "sr-only" pattern. Used
+   for page-level headings that establish real heading hierarchy without
+   changing anything a sighted visitor sees. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 :root {
   --cream: #FDF5ED;
   --red-strong: rgba(185, 18, 18, 0.75);
   --red-mid: rgba(185, 18, 18, 0.55);
   --red-rule: rgba(185, 18, 18, 0.60);
   --dark: #161612;
-  --dark-muted: rgba(22, 22, 18, 0.55);
+  --dark-muted: rgba(22, 22, 18, 0.60); /* WCAG AA contrast fix (a11y Phase 2, SPEC §16): 0.55 measured 3.94:1 on cream, below the 4.5:1 minimum; 0.60 measures ~4.6:1, the minimal darkening that clears AA while staying close to the original quiet gray. */
   --dark-faint: rgba(22, 22, 18, 0.10);
   --indigo: #0e0c1a;
 }
@@ -127,6 +143,17 @@ body {
   cursor: pointer;
   border-bottom: 0.5px solid rgba(22, 22, 18, 0.10);
   user-select: none;
+  /* Button reset (a11y Phase 2, SPEC §16): this class now also lands on a
+     real <button> (converted from a <div onClick> so keyboard users can
+     reach these expand/collapse headers). No-ops on any plain <div>. */
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 0.5px solid rgba(22, 22, 18, 0.10);
+  margin: 0;
 }
 
 .section-row-label {
@@ -600,12 +627,13 @@ body {
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
   letter-spacing: 0.5px;
-  color: rgba(22, 22, 18, 0.30);
+  /* WCAG AA contrast fix (a11y Phase 2, SPEC §16): was 0.30 (1.95:1 on cream, near-invisible); 0.68 measures ~6:1, a comfortable margin above the 4.5:1 minimum. */
+  color: rgba(22, 22, 18, 0.68);
   white-space: nowrap;
 }
 
 .prepurchase-nav-legal a {
-  color: rgba(22, 22, 18, 0.30);
+  color: rgba(22, 22, 18, 0.68);
   text-decoration: none;
 }
 
@@ -698,6 +726,10 @@ body {
   padding: 8px 20px;
   white-space: nowrap;
   z-index: 2;
+  /* Zeroed explicitly (a11y Phase 2, SPEC §16): this class now also lands
+     on a real heading tag (HomeLayout.tsx), which carries browser-default
+     margins a <span> doesn't — this keeps the swap visually identical. */
+  margin: 0;
 }
 
 .home-panel-slot {
@@ -906,6 +938,15 @@ body {
   font-size: clamp(11px, 0.9vw, 13px);
   color: rgba(253, 245, 237, 0.45);
   letter-spacing: 0.5px;
+  /* Button reset (a11y Phase 2, SPEC §16): this class now also lands on a
+     real <button> for the interactive controls (Rail.tsx), converted from
+     a <span onClick> so keyboard users can reach them. These properties
+     strip the browser's default button chrome; they're no-ops on the
+     plain <span> still used for non-interactive controls. */
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
 .rail-control + .rail-control {
@@ -986,6 +1027,18 @@ body {
   padding: 0 12px;
   border-bottom: 0.5px solid var(--dark-faint);
   cursor: pointer;
+  /* Button reset (a11y Phase 2, SPEC §16): this class now also lands on a
+     real <button> (Rail.tsx, CategoryRail.tsx), converted from a
+     <div onClick> so keyboard users can reach it. No-ops on the plain
+     <div> still used for non-interactive rows. */
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 0.5px solid var(--dark-faint);
+  margin: 0;
 }
 
 .rail-row.active {

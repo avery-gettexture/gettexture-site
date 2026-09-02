@@ -301,7 +301,7 @@ function PlacementCardContent({
               position: 'relative',
             }}
           >
-            <h1 className="planet-name" style={inlineTitleStyle}>{planet.name}</h1>
+            <h2 className="planet-name" style={inlineTitleStyle}>{planet.name}</h2>
             <p className="planet-meta">{metaString}</p>
             {/* Hidden measurement probes (SPEC §16): never shown, used only to
                 read real rendered pixel sizes so the inline/stacked choice and
@@ -324,32 +324,32 @@ function PlacementCardContent({
             </div>
           </div>
         ) : (
-          <h1 className="planet-name">{planet.name}</h1>
+          <h2 className="planet-name">{planet.name}</h2>
         )}
         <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
       </div>
 
       <div className="card-content">
-        <div className="section-row" onClick={() => setOpenSection('overview')}>
+        <button type="button" className="section-row" onClick={() => setOpenSection('overview')} aria-expanded={openSection === 'overview'}>
           <span className="section-row-label">Overview</span>
-          <span className="section-row-chevron">{openSection === 'overview' ? '−' : '+'}</span>
-        </div>
+          <span className="section-row-chevron" aria-hidden="true">{openSection === 'overview' ? '−' : '+'}</span>
+        </button>
 
         {openSection === 'overview' && (
-          <div className="section-body">
+          <div className="section-body" tabIndex={0} aria-label="Overview content">
             <p className="body-text">{synthesisText ?? PLACEHOLDER_SYNTHESIS}</p>
           </div>
         )}
 
         <div className="section-divider" />
 
-        <div className="section-row" onClick={() => setOpenSection('reference')}>
+        <button type="button" className="section-row" onClick={() => setOpenSection('reference')} aria-expanded={openSection === 'reference'}>
           <span className="section-row-label">Reference</span>
-          <span className="section-row-chevron">{openSection === 'reference' ? '−' : '+'}</span>
-        </div>
+          <span className="section-row-chevron" aria-hidden="true">{openSection === 'reference' ? '−' : '+'}</span>
+        </button>
 
         {openSection === 'reference' && (
-          <div className="section-body">
+          <div className="section-body" tabIndex={0} aria-label="Reference content">
             {planet.id === 'nodes' ? (
               (!referenceData || !referenceDataSecondary) ? (
                 <p className="placeholder-text">Loading...</p>
@@ -614,11 +614,14 @@ function DesktopNatal({
   return (
     <div className="app-shell">
       <NavBar slug={slug} active="natal" />
-      <div className="app-stage">
+      <main className="app-stage">
+        <h1 className="sr-only">Natal Reading</h1>
         <div className="reading-stage-bg" style={{ backgroundImage: 'url(/sky-background.png)' }} />
         <div
           className="natal-scroll"
           ref={containerRef}
+          tabIndex={0}
+          aria-label="Natal reading, placement by placement"
           style={{ display: paneMode === 'read' ? undefined : 'none' }}
         >
           {PLACEMENTS.map((placement, index) => {
@@ -718,7 +721,7 @@ function DesktopNatal({
             }}
           />
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -841,8 +844,9 @@ export default function ReadingPage({
   }
 
   return (
-    <div className="reading-container" ref={containerRef}>
+    <div className="reading-container" ref={containerRef} role="main">
       <MobileNavShell slug={slug} active="natal" />
+      <h1 className="sr-only">Natal Reading</h1>
 
       {/* ── 0. CHART ── */}
       <div

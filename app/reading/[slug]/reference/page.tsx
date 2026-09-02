@@ -45,7 +45,7 @@ import ReferencePage from '@/app/components/ReferencePage';
 // offset.
 function MobileReference({ slug }: { slug: string }) {
   return (
-    <div className="reading-container">
+    <div className="reading-container" role="main">
       <MobileNavShell slug={slug} active="reference" />
       <div className="reading-section" style={{ background: 'var(--cream)' }}>
         <ReferencePage />
@@ -105,13 +105,15 @@ function DesktopReference({ slug }: { slug: string }) {
           <p className="placeholder-text">Loading...</p>
         ) : activeCategory.slug === 'help' ? (
           <div>
-            <div
+            <button
+              type="button"
               className="section-row"
               onClick={() => setOpenEntryName(openEntryName === 'Help' ? null : 'Help')}
+              aria-expanded={openEntryName === 'Help'}
             >
               <span className="section-row-label">Help</span>
-              <span className="section-row-chevron">{openEntryName === 'Help' ? '−' : '+'}</span>
-            </div>
+              <span className="section-row-chevron" aria-hidden="true">{openEntryName === 'Help' ? '−' : '+'}</span>
+            </button>
             {openEntryName === 'Help' && (
               <div style={{ padding: '4px 4px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <p className="body-text">
@@ -137,13 +139,15 @@ function DesktopReference({ slug }: { slug: string }) {
             const isOpen = openEntryName === entry.name;
             return (
               <div key={entry.name}>
-                <div
+                <button
+                  type="button"
                   className="section-row"
                   onClick={() => setOpenEntryName(isOpen ? null : entry.name)}
+                  aria-expanded={isOpen}
                 >
                   <span className="section-row-label">{entry.name}</span>
-                  <span className="section-row-chevron">{isOpen ? '−' : '+'}</span>
-                </div>
+                  <span className="section-row-chevron" aria-hidden="true">{isOpen ? '−' : '+'}</span>
+                </button>
                 {isOpen && (
                   <div style={{ padding: '4px 4px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {splitParagraphs(entry.description).map((para, i) => (

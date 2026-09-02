@@ -17,19 +17,23 @@ export default function HomeLayout({ slug, leftPanel, rightPanel }: HomeLayoutPr
     <div className="app-shell">
       <NavBar slug={slug} active="home" />
       <MobileNavShell slug={slug} active="home" />
-      <div className="app-stage">
+      <main className="app-stage">
+        {/* sr-only page title (a11y Phase 2, SPEC §16): establishes real
+            heading hierarchy above the two panel headings below, with no
+            visible change — this page previously had no <h1> at all. */}
+        <h1 className="sr-only">Your Reading</h1>
         <MorphBackgroundPlaceholder />
         <div className="home-panels">
           <div className="home-panel home-panel-left">
-            <span className="home-panel-sticker">My Chart</span>
+            <h2 className="home-panel-sticker">My Chart</h2>
             <div className="home-panel-slot">{leftPanel}</div>
           </div>
           <div className="home-panel home-panel-right">
-            <span className="home-panel-sticker">Today&apos;s Sky</span>
+            <h2 className="home-panel-sticker">Today&apos;s Sky</h2>
             <div className="home-panel-slot">{rightPanel}</div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

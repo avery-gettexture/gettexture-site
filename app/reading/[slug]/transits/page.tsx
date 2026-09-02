@@ -162,29 +162,29 @@ function TransitBodyCardContent({ body, piece }: { body: TransitBodyConfig; piec
   return (
     <>
       <div className="card-header">
-        <h1 className="planet-name">{body.name}</h1>
+        <h2 className="planet-name">{body.name}</h2>
         <div style={{ height: '1.5px', background: 'rgba(185,18,18,0.50)', alignSelf: 'stretch', marginTop: '0' }} />
       </div>
 
       <div className="card-content">
-        <div className="section-row" onClick={() => setOpenSection('overview')}>
+        <button type="button" className="section-row" onClick={() => setOpenSection('overview')} aria-expanded={openSection === 'overview'}>
           <span className="section-row-label">Overview</span>
-          <span className="section-row-chevron">{openSection === 'overview' ? '−' : '+'}</span>
-        </div>
+          <span className="section-row-chevron" aria-hidden="true">{openSection === 'overview' ? '−' : '+'}</span>
+        </button>
         {openSection === 'overview' && (
-          <div className="section-body">
+          <div className="section-body" tabIndex={0} aria-label="Overview content">
             <p className="body-text">{piece ? piece.synthesis_prose : PLACEHOLDER_SYNTHESIS}</p>
           </div>
         )}
 
         <div className="section-divider" />
 
-        <div className="section-row" onClick={() => setOpenSection('timeline')}>
+        <button type="button" className="section-row" onClick={() => setOpenSection('timeline')} aria-expanded={openSection === 'timeline'}>
           <span className="section-row-label">Timeline</span>
-          <span className="section-row-chevron">{openSection === 'timeline' ? '−' : '+'}</span>
-        </div>
+          <span className="section-row-chevron" aria-hidden="true">{openSection === 'timeline' ? '−' : '+'}</span>
+        </button>
         {openSection === 'timeline' && (
-          <div className="section-body">
+          <div className="section-body" tabIndex={0} aria-label="Timeline content">
             {piece ? (
               piece.timeline_entries.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -203,12 +203,12 @@ function TransitBodyCardContent({ body, piece }: { body: TransitBodyConfig; piec
 
         <div className="section-divider" />
 
-        <div className="section-row" onClick={() => setOpenSection('reference')}>
+        <button type="button" className="section-row" onClick={() => setOpenSection('reference')} aria-expanded={openSection === 'reference'}>
           <span className="section-row-label">Reference</span>
-          <span className="section-row-chevron">{openSection === 'reference' ? '−' : '+'}</span>
-        </div>
+          <span className="section-row-chevron" aria-hidden="true">{openSection === 'reference' ? '−' : '+'}</span>
+        </button>
         {openSection === 'reference' && (
-          <div className="section-body">
+          <div className="section-body" tabIndex={0} aria-label="Reference content">
             <p className="placeholder-text">{PLACEHOLDER_REFERENCE}</p>
           </div>
         )}
@@ -373,11 +373,14 @@ function DesktopTransits({
   return (
     <div className="app-shell">
       <NavBar slug={slug} active="transits" />
-      <div className="app-stage">
+      <main className="app-stage">
+        <h1 className="sr-only">Transits</h1>
         <div className="reading-stage-bg" style={{ backgroundImage: 'url(/transits-background.png)' }} />
         <div
           className="natal-scroll"
           ref={containerRef}
+          tabIndex={0}
+          aria-label="Transits reading, body by body"
           style={{ display: paneMode === 'read' ? undefined : 'none' }}
         >
           {SKY_BODIES.map((body, index) => (
@@ -473,7 +476,7 @@ function DesktopTransits({
             }}
           />
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -560,8 +563,9 @@ export default function TransitsPage({
   // gone; `pieces`/`reading` here are still fetched above for the desktop
   // branch only.
   return (
-    <div className="reading-container">
+    <div className="reading-container" role="main">
       <MobileNavShell slug={slug} active="transits" />
+      <h1 className="sr-only">Transits</h1>
       <div className="reading-section" style={{ background: '#0e0c1a' }}>
         <TodaySkySection positions={positions} aspects={aspects} />
       </div>

@@ -394,7 +394,16 @@ export default function NatalChartWheelWeb({ chartData, birthTimeKnown = true, s
 
   return (
     <div ref={containerRef} style={{ width: '100%', maxWidth: size ? `${size}px` : '100%' }}>
-      <svg width={W} height={W} viewBox={`0 0 ${W} ${W}`}>
+      {/* role="img" + aria-label (a11y Phase 2, SPEC §16): this wheel is a
+          visual chart of data that's already fully readable as text
+          elsewhere on this page (the List view) — rather than trying to
+          label every individual planet/sign glyph and degree drawn inside
+          the SVG (which a screen reader would otherwise try to announce
+          character-by-character, unreliably), the whole graphic is
+          summarized in one label and its internals hidden from assistive
+          tech, the standard pattern for a complex decorative/redundant
+          inline SVG. */}
+      <svg width={W} height={W} viewBox={`0 0 ${W} ${W}`} role="img" aria-label="Chart wheel showing planet positions by sign and house">
 
         {/* Zodiac ring */}
         {zodiacWedges.map(({ sign, startAngle, endAngle, glyphAngle }) => {

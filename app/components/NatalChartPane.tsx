@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import NatalChartWheelWeb from './NatalChartWheelWeb';
 import { formatDate } from './BirthDataSection';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 // The CHART state of the desktop natal reading page (SPEC §16, Phase 3A
 // follow-up). A screen-state swap of the reading pane's content, not a
@@ -129,13 +130,18 @@ export default function NatalChartPane({
           dark backgrounds), per founder correction: at this larger circle
           size the text lands on the radial image's lighter outer band, not
           its dark center, so dark text is what actually reads there. */}
-      <div
+      <button
+        type="button"
         onClick={() => setExpanded(e => !e)}
+        aria-expanded={expanded}
+        aria-label={`${name}, ${expanded ? 'collapse' : 'show'} birth details`}
         style={{
+          ...UNSTYLED_BUTTON,
           position: 'absolute',
           bottom: '3%',
           left: expanded ? '8%' : 0,
           right: expanded ? '8%' : 0,
+          width: expanded ? undefined : '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: expanded ? 'flex-start' : 'center',
@@ -168,7 +174,7 @@ export default function NatalChartPane({
             {birthLocation && <span>{birthLocation}</span>}
           </div>
         )}
-      </div>
+      </button>
 
     </div>
   );

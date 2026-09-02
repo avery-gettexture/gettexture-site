@@ -4,13 +4,18 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { REFERENCE_TAXONOMY, splitParagraphs, type ReferenceCategory } from '@/lib/reference-taxonomy';
 import type { ReferenceEntry } from '@/lib/reference-utils';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 function EntryRow({ entry, isOpen, onToggle }: { entry: ReferenceEntry; isOpen: boolean; onToggle: () => void }) {
   return (
     <div>
-      <div
+      <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
         style={{
+          ...UNSTYLED_BUTTON,
+          width: '100%',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -28,14 +33,14 @@ function EntryRow({ entry, isOpen, onToggle }: { entry: ReferenceEntry; isOpen: 
         }}>
           {entry.name}
         </span>
-        <span style={{
+        <span aria-hidden="true" style={{
           fontFamily: 'var(--font-geist-mono), monospace',
           fontSize: 'clamp(12px, 3vw, 14px)',
           color: 'rgba(22,22,18,0.35)',
         }}>
           {isOpen ? '−' : '+'}
         </span>
-      </div>
+      </button>
       {isOpen && (
         <div style={{ paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {splitParagraphs(entry.description).map((para, i) => (
@@ -72,9 +77,13 @@ function CategorySection({
 }) {
   return (
     <div style={{ borderBottom: '0.5px solid rgba(22,22,18,0.10)' }}>
-      <div
+      <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
         style={{
+          ...UNSTYLED_BUTTON,
+          width: '100%',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -91,14 +100,14 @@ function CategorySection({
         }}>
           {title}
         </span>
-        <span style={{
+        <span aria-hidden="true" style={{
           fontFamily: 'var(--font-geist-mono), monospace',
           fontSize: 'clamp(12px, 3vw, 14px)',
           color: 'rgba(22,22,18,0.35)',
         }}>
           {isOpen ? '−' : '+'}
         </span>
-      </div>
+      </button>
 
       {isOpen && (
         <div style={{ padding: '0 4px 12px', display: 'flex', flexDirection: 'column' }}>
@@ -165,14 +174,14 @@ export default function ReferencePage() {
         padding: 'calc(56px + env(safe-area-inset-top) + 10px) 20px 12px',
         borderBottom: '1.5px solid rgba(185,18,18,0.50)',
       }}>
-        <div style={{
+        <h1 style={{
           fontFamily: 'var(--font-anton), sans-serif',
           fontSize: 'clamp(28px, 8vw, 40px)',
           color: '#161612',
           letterSpacing: '1px',
         }}>
           Reference
-        </div>
+        </h1>
       </div>
 
       {/* Scrollable content */}
@@ -208,13 +217,15 @@ export default function ReferencePage() {
                 new Help category (app/reading/[slug]/reference/page.tsx),
                 so both surfaces match. */}
             <div style={{ borderBottom: '0.5px solid rgba(22,22,18,0.10)' }}>
-              <div
+              <button
+                type="button"
                 onClick={() => toggleCategory('help')}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 4px', cursor: 'pointer', userSelect: 'none' }}
+                aria-expanded={openCategory === 'help'}
+                style={{ ...UNSTYLED_BUTTON, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 4px', cursor: 'pointer', userSelect: 'none' }}
               >
                 <span style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(14px, 3.8vw, 16px)', color: '#161612', letterSpacing: '-0.2px' }}>Help</span>
-                <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(12px, 3vw, 14px)', color: 'rgba(22,22,18,0.35)' }}>{openCategory === 'help' ? '−' : '+'}</span>
-              </div>
+                <span aria-hidden="true" style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: 'clamp(12px, 3vw, 14px)', color: 'rgba(22,22,18,0.35)' }}>{openCategory === 'help' ? '−' : '+'}</span>
+              </button>
               {openCategory === 'help' && (
                 <div style={{ padding: '0 4px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <p style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: 'clamp(13px, 3.6vw, 15px)', color: 'rgba(22,22,18,0.70)', lineHeight: '1.7', letterSpacing: '-0.2px' }}>
@@ -230,8 +241,8 @@ export default function ReferencePage() {
               )}
             </div>
 
-            {/* Copyright */}
-            <div style={{ padding: '20px 4px 8px', textAlign: 'center', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.25)', letterSpacing: '1px' }}>
+            {/* Copyright. WCAG AA contrast fix (a11y Phase 2, SPEC §16): was 0.25 (1.72:1 on cream); 0.68 measures ~6:1. */}
+            <div style={{ padding: '20px 4px 8px', textAlign: 'center', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.68)', letterSpacing: '1px' }}>
               © 2026 TEXTURE
             </div>
           </>

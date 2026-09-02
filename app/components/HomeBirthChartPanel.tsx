@@ -67,7 +67,10 @@ export default function HomeBirthChartPanel() {
   const [state, setState] = useState<ContentState>('short');
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', padding: '0 6%' }}>
+    // overflowY (a11y Phase 2, SPEC §16): same zoom-reflow fallback as
+    // HomeMyChartFormPanel.tsx — invisible at normal sizes, engages only
+    // when zoomed content would otherwise be clipped with no way to reach it.
+    <div style={{ position: 'absolute', inset: 0, background: 'var(--cream)', display: 'flex', flexDirection: 'column', padding: '0 6%', overflowY: 'auto', overscrollBehavior: 'contain' }}>
 
       {/* Title — fixed across all states. Sized/spaced off viewport HEIGHT
           (dvh), not width, so it — and the short-state content below —
@@ -77,9 +80,9 @@ export default function HomeBirthChartPanel() {
           refinements task, SPEC §16: the "no scroll" rule applies to this
           panel's default view too, not just the right panel's form). */}
       <div style={{ flex: '0 0 auto', paddingTop: 'clamp(8px, 2.6dvh, 28px)' }}>
-        <div style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 3.6dvh, 32px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(6px, 1dvh, 10px)' }}>
+        <h1 style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(22px, 3.6dvh, 32px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: 'clamp(6px, 1dvh, 10px)' }}>
           Take a closer look at your chart.
-        </div>
+        </h1>
       </div>
 
       {/* Content region — the only part that swaps */}

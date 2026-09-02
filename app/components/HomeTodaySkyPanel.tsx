@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase';
 import TodaySkyWheel from './TodaySkyWheel';
 import { formatToday, formatContextualDate, parseLocalDate, getTodayLocalISODate } from '@/lib/date-utils';
 import { RAIL_SIGN_GLYPHS } from '@/app/reading/[slug]/natal/page';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 interface SkyPosition {
   body: string;
@@ -190,10 +191,13 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
         {/* List | Chart toggle — swaps the body in place, no navigation. */}
         <div style={{ display: 'flex', gap: '10px' }}>
           {(['list', 'chart'] as PaneMode[]).map((m, i) => (
-            <span
+            <button
+              type="button"
               key={m}
               onClick={() => setPaneMode(m)}
+              aria-pressed={paneMode === m}
               style={{
+                ...UNSTYLED_BUTTON,
                 fontFamily: 'var(--font-geist-mono), monospace',
                 fontSize: paneMode === m ? 'clamp(12px, 1vw, 14px)' : 'clamp(11px, 0.9vw, 13px)',
                 fontWeight: paneMode === m ? 700 : 400,
@@ -206,7 +210,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               }}
             >
               {m}
-            </span>
+            </button>
           ))}
         </div>
       </div>
@@ -241,7 +245,10 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               }}>
                 Planets
               </div>
-              <div style={{
+              <div
+                tabIndex={0}
+                aria-label="Current planet positions"
+                style={{
                 flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingRight: '10px',
                 borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
               }}>
@@ -264,7 +271,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                       fontSize: 'clamp(12px, 1vw, 14px)',
                       color: DARK,
                     }}>
-                      <span>{BODY_GLYPH[pos.body] ?? '○'}</span>
+                      <span aria-hidden="true">{BODY_GLYPH[pos.body] ?? '○'}</span>
                       {/* flex:1 right-aligns the degree/sign/retro against
                           the row's far edge — reverted back to this per
                           Avery's request (home-page-polish task, §16
@@ -272,7 +279,7 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
                           and reverted the same day). */}
                       <span style={{ flex: 1 }}>{pos.body}</span>
                       <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.9em', color: DARK_MUTED }}>{Math.floor(pos.sign_degree)}°</span>
-                      <span style={{ fontSize: '0.9em', color: DARK_MUTED }}>{RAIL_SIGN_GLYPHS[pos.sign] ?? ''}</span>
+                      <span aria-hidden="true" style={{ fontSize: '0.9em', color: DARK_MUTED }}>{RAIL_SIGN_GLYPHS[pos.sign] ?? ''}</span>
                       <span style={{ color: DARK_MUTED }}>{pos.sign}</span>
                       {showRetrograde && <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '0.8em', color: 'var(--red-strong)' }}>R</span>}
                     </div>
@@ -297,7 +304,10 @@ export default function HomeTodaySkyPanel({ slug }: { slug: string }) {
               }}>
                 Aspects and Events
               </div>
-              <div style={{
+              <div
+                tabIndex={0}
+                aria-label="Aspects and events"
+                style={{
                 flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingRight: '10px',
                 borderTop: '1px solid var(--red-rule)', borderBottom: '1px solid var(--red-rule)',
               }}>

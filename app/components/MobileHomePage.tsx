@@ -74,7 +74,8 @@ export default function MobileHomePage() {
         borderBottom: '1px solid rgba(22,22,18,0.08)',
       }}>
         <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '18px', color: RED, letterSpacing: '2px' }}>TEXTURE</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '10px', color: 'rgba(22,22,18,0.30)', letterSpacing: '0.5px' }}>
+        {/* WCAG AA contrast fix (a11y Phase 2, SPEC §16): was 0.30 (1.95:1 on cream); 0.68 measures ~6:1. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '10px', color: 'rgba(22,22,18,0.68)', letterSpacing: '0.5px' }}>
           <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>PRIVACY</Link>
           <span>·</span>
           <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>TERMS</Link>
@@ -83,6 +84,7 @@ export default function MobileHomePage() {
         </div>
       </header>
 
+      <main>
       {/* Section 1 — Take a closer look at your chart. */}
       <section style={{ padding: '40px 24px 32px' }}>
         <h1 style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: 'clamp(26px, 8vw, 34px)', color: DARK, letterSpacing: '1px', lineHeight: 1.15, marginBottom: '16px' }}>
@@ -175,9 +177,11 @@ export default function MobileHomePage() {
           </p>
         </div>
       </section>
+      </main>
 
       <footer style={{ borderTop: '1px solid rgba(22,22,18,0.08)', padding: '20px 24px 100px', textAlign: 'center' }}>
-        <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.25)', letterSpacing: '1px' }}>© 2026 TEXTURE</span>
+        {/* WCAG AA contrast fix (a11y Phase 2, SPEC §16): was 0.25 (1.72:1 on cream); 0.68 measures ~6:1. */}
+        <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.68)', letterSpacing: '1px' }}>© 2026 TEXTURE</span>
       </footer>
 
       {/* Sticky "My Chart" CTA — hidden while the form section is in view */}

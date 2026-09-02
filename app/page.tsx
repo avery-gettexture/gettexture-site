@@ -51,7 +51,7 @@ export default function HomePage() {
   return (
     <div className="app-shell">
       <PrePurchaseNavBar />
-      <div className="app-stage">
+      <main className="app-stage">
         <MorphBackgroundPlaceholder />
         <div className="home-panels">
           <div className="home-panel home-panel-left" style={{ backgroundImage: "url('/transits-background.png')" }}>
@@ -69,7 +69,7 @@ export default function HomePage() {
             (pre-purchase-home-refinements task, SPEC §16) — Privacy/Terms/
             Support live in the nav's corner instead (PrePurchaseNavBar). */}
         <span className="prepurchase-bg-copyright">© 2026 TEXTURE</span>
-      </div>
+      </main>
     </div>
   );
 }

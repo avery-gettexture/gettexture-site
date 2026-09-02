@@ -9,6 +9,7 @@
 // a single-line row instead of Rail's two-line glyph/sign/house layout.
 
 import { REFERENCE_TAXONOMY } from '@/lib/reference-taxonomy';
+import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 interface CategoryRailProps {
   activeSlug: string;
@@ -25,17 +26,19 @@ export default function CategoryRail({ activeSlug, onSelect }: CategoryRailProps
       <div className="rail-rect rail-rect--fill">
         <div className="rail-list rail-list--fill">
           {REFERENCE_TAXONOMY.map(category => (
-            <div
+            <button
+              type="button"
               key={category.slug}
               className={`rail-row rail-row--fill${category.slug === activeSlug ? ' active' : ''}`}
               onClick={() => onSelect(category.slug)}
-              style={{ cursor: 'pointer' }}
+              aria-current={category.slug === activeSlug ? 'true' : undefined}
+              style={{ ...UNSTYLED_BUTTON, cursor: 'pointer' }}
             >
               {category.slug === activeSlug && <span className="rail-row-bar" />}
               <div className="rail-row-line1">
                 <span>{category.label}</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
