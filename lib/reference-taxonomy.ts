@@ -78,6 +78,14 @@ export const REFERENCE_TAXONOMY: ReferenceCategory[] = [
     label: 'Configurations and Events',
     entryNames: ['Stellium', 'Eclipses'],
   },
+  {
+    slug: 'methodology',
+    label: 'Methodology',
+    entryNames: [
+      'Chart Calculation', 'Writing', 'Astrological Systems',
+      'Astrological Standards', 'Your Interpretation',
+    ],
+  },
   // Not a reference_content DB category — its content is live mailto/URL
   // links, which the plain-text DB-driven renderer below can't produce.
   // Both Reference implementations (desktop page.tsx and mobile

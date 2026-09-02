@@ -7050,3 +7050,28 @@ the checkbox still gates the submit button (disabled unchecked,
 enabled checked). `npx tsc --noEmit` clean. Files touched:
 `app/components/HomeOrderForm.tsx`, `docs/SPEC.md`. Committed, not
 pushed.
+
+**Methodology content, Part 1a — reference_content script written, not
+yet run (Sep 2, 2026):** adds a new "Methodology" category to the
+Reference dictionary, 5 entries (Chart Calculation, Writing,
+Astrological Systems, Astrological Standards, Your Interpretation),
+founder-authored copy. Placed last in `lib/reference-taxonomy.ts`'s
+`REFERENCE_TAXONOMY`, immediately before `help`, so it sits at the end
+of the Reference rail on both desktop and mobile. No rendering-code
+change needed — `ReferencePage.tsx`, `app/reading/[slug]/reference/
+page.tsx`, and `CategoryRail.tsx` already read categories/entries
+generically, and multi-paragraph bodies already render via
+`splitParagraphs()` (same mechanism as "How to Read a Chart", "Sect",
+"Nodes", "Orb", "Eclipses"). **Bullets-to-prose call:** the
+"Astrological Systems" entry was given to this session as a bulleted
+list; rendered as semicolon-separated prose instead, since no bullet/
+list rendering exists anywhere in the codebase and the founder
+confirmed (this session) that prose is fine rather than extending the
+shared accordion component for one entry. `scripts/
+add_methodology_reference_content.sql` holds the 5 INSERTs — the
+founder runs it (no DB write access here), same pattern as `scripts/
+update_reference_content.sql`. **Not yet verified** — Part 1b will
+record the fresh-read + screenshot verification once the founder has
+run the script. Files touched: `scripts/
+add_methodology_reference_content.sql` (new), `lib/reference-
+taxonomy.ts`, `docs/SPEC.md`. Committed, not pushed.
