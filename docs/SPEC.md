@@ -7023,3 +7023,30 @@ Files touched: `app/components/HomeOrderForm.tsx`,
 `scripts/add_waiver_acknowledged_column.sql` (new), `docs/SPEC.md`.
 Committed, not pushed. `npx tsc --noEmit` clean on all touched
 TypeScript files.
+
+**Checkout checkbox copy revised to plain language (Sep 2, 2026):**
+replaced the checkbox text in `HomeOrderForm.tsx`'s "Review Your Order"
+modal with a friendlier, on-brand version, at the founder's request:
+"I have checked that the details I entered are correct and I agree to
+the Terms and Conditions. I understand that the reading starts
+generating immediately after checkout and cannot be changed or
+refunded once it begins." "Terms and Conditions" is a real link to
+`/terms` (opens in a new tab, so an in-progress order isn't lost) —
+the founder's instruction didn't specify same-tab vs. new-tab, so this
+session made that call as the safer default and is flagging it here
+rather than treating it as pre-approved. The formal Section 19
+withdrawal-waiver language stays on the Terms page, unchanged; the
+checkbox now carries the plain-language consent while Terms carries
+the legal detail. Because the new checkbox text already covers "I
+confirmed my details are correct," the separate line above it
+("Please confirm your birth data is correct. These details cannot be
+updated after purchase.") was removed as redundant. No behavior or
+data-flow change: same `waiverAcknowledged` state, same
+disabled-until-checked button, same `waiverAcknowledgedAt` timestamp →
+`/api/checkout` → Stripe metadata → `stripe-webhook` →
+`readings.waiver_acknowledged_at`. Screenshot-verified: new copy
+renders, the link goes to `/terms`, the redundant line is gone, and
+the checkbox still gates the submit button (disabled unchecked,
+enabled checked). `npx tsc --noEmit` clean. Files touched:
+`app/components/HomeOrderForm.tsx`, `docs/SPEC.md`. Committed, not
+pushed.

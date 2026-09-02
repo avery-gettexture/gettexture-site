@@ -23,6 +23,7 @@
 // 1440×900, 1920×1080 — the ZERO-scroll constraint holds at all of them.
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 
 declare global {
   interface Window { google: any; initGooglePlaces: () => void; }
@@ -222,9 +223,6 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
                 <span style={{ fontFamily: 'var(--font-anton), sans-serif', fontSize: '22px', color: '#161612' }}>${priceUsd}.00</span>
               </div>
             </div>
-            <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.45)', lineHeight: 1.7, marginBottom: '24px' }}>
-              Please confirm your birth data is correct. These details cannot be updated after purchase.
-            </p>
             <label htmlFor="waiver-acknowledged" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '20px', cursor: 'pointer' }}>
               <input
                 id="waiver-acknowledged"
@@ -234,7 +232,11 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
                 style={{ marginTop: '3px', flexShrink: 0, width: '16px', height: '16px', cursor: 'pointer' }}
               />
               <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.65)', lineHeight: 1.6 }}>
-                I request immediate generation of my reading and understand that once generation begins I waive any statutory 14-day right of withdrawal for digital content.
+                I have checked that the details I entered are correct and I agree to the{' '}
+                <Link href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(22,22,18,0.65)', textDecoration: 'underline' }}>
+                  Terms and Conditions
+                </Link>
+                . I understand that the reading starts generating immediately after checkout and cannot be changed or refunded once it begins.
               </span>
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
