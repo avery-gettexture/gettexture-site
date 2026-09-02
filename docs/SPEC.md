@@ -7217,3 +7217,41 @@ prepared" placeholder). `npx tsc --noEmit` clean.
 Files touched: `lib/config.ts`, `app/components/HomeBirthChartPanel.tsx`,
 `app/components/MobileHomePage.tsx`, `docs/SPEC.md`. One commit, not
 pushed.
+
+**Reference page active-indicator spacing fix (Sep 2, 2026):** Avery
+reported the red active-indicator bar on the Reference page's desktop
+rail sitting flush against the selected category's text, unlike every
+other rail (My Chart, Transits), which has visible breathing room.
+
+**Cause, confirmed by measuring computed styles in a running browser
+(not guessed from CSS alone):** `CategoryRail.tsx` (Reference's rail)
+spread `UNSTYLED_BUTTON` (`lib/a11y.ts`, which includes `padding: 0`)
+onto its row `<button>`'s inline `style`. As an inline style, that
+overrode the shared `.rail-row` CSS class's own `padding: 0 12px` — the
+rule that creates the gap between the absolutely-positioned
+`.rail-row-bar` (pinned to `left: 0`) and the row's text. `.rail-row`
+already ships its own button reset for exactly this purpose (see the
+comment at `app/globals.css` ~line 1030), so `UNSTYLED_BUTTON` was both
+redundant and actively breaking the spacing. `Rail.tsx` (My Chart /
+Transits, unaffected) never spread `UNSTYLED_BUTTON` — only
+`style={{ cursor: 'pointer' }}` — which is why those rails were already
+correct. Measured before the fix: My Chart's active row had a 9px gap
+between bar and text; Reference's had −3px (text slightly overlapping
+the bar).
+
+**Fix:** removed `...UNSTYLED_BUTTON` from `CategoryRail.tsx`'s button
+style (now matches `Rail.tsx`'s `style={{ cursor: 'pointer' }}` exactly)
+and dropped the now-unused `UNSTYLED_BUTTON` import. One-line
+behavioral change — `.rail-row`'s built-in reset already covers
+background/border/margin/font, so no visual or accessibility regression
+from dropping the spread.
+
+**Verified:** re-measured the same bounding boxes after the fix — the
+Reference rail's active row (clicked to "Signs," matching the founder's
+example) now has a 9px gap, identical to My Chart's. Screenshotted the
+Reference page at 1440×900 with "Signs" active, confirming visible
+breathing room between the red bar and the text. `npx tsc --noEmit`
+clean.
+
+Files touched: `app/components/CategoryRail.tsx`, `docs/SPEC.md`. One
+commit, not pushed.

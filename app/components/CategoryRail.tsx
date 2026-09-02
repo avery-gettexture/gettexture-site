@@ -9,7 +9,6 @@
 // a single-line row instead of Rail's two-line glyph/sign/house layout.
 
 import { REFERENCE_TAXONOMY } from '@/lib/reference-taxonomy';
-import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
 interface CategoryRailProps {
   activeSlug: string;
@@ -32,7 +31,7 @@ export default function CategoryRail({ activeSlug, onSelect }: CategoryRailProps
               className={`rail-row rail-row--fill${category.slug === activeSlug ? ' active' : ''}`}
               onClick={() => onSelect(category.slug)}
               aria-current={category.slug === activeSlug ? 'true' : undefined}
-              style={{ ...UNSTYLED_BUTTON, cursor: 'pointer' }}
+              style={{ cursor: 'pointer' }}
             >
               {category.slug === activeSlug && <span className="rail-row-bar" />}
               <div className="rail-row-line1">
