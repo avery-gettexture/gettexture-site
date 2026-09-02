@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import NatalChartWheelWeb from './NatalChartWheelWeb';
+import TodaySkyWheel from './TodaySkyWheel';
 import { formatToday } from '@/lib/date-utils';
 import { UNSTYLED_BUTTON } from '@/lib/a11y';
 
@@ -14,12 +14,14 @@ import { UNSTYLED_BUTTON } from '@/lib/a11y';
 // only the backdrop image, the bottom band (date + Today/Transiting toggle
 // instead of name/birth data), and the wheel content itself differing.
 //
-// WHEEL STAND-IN (flagged per founder instruction): there is no real
-// transit/bi-wheel component yet. Both "Today" and "Transiting" render the
-// EXISTING <NatalChartWheelWeb> fed this reading's own natal chart data, as
-// a temporary placeholder — the real transit-vs-natal bi-wheel replaces
-// this later. The natal chart_data plumbing wired in here is not
-// throwaway: the real bi-wheel will need it too.
+// WHEEL FIX (Sep 2, 2026): this used to render the natal <NatalChartWheelWeb>
+// fed the reading's own birth chart data, as a temporary stand-in — there
+// was no real "today's sky" wheel yet. TodaySkyWheel now exists (built for
+// the Home page's Today's Sky panel) and is used here instead, fed the same
+// live current-sky positions/aspects the rail already fetches. The
+// `chartData`/`birthTimeKnown` props are kept, unused, for the still-unbuilt
+// "Transiting" bi-wheel (natal-vs-transit overlay) — the Today/Transiting
+// toggle below stays hidden until that exists.
 
 export type ChartMode = 'today' | 'transiting';
 
@@ -28,9 +30,24 @@ export type ChartMode = 'today' | 'transiting';
 // restore it. Nothing else in this file changes.
 const SHOW_TODAY_TRANSITING_TOGGLE = false;
 
+interface SkyPosition {
+  body: string;
+  sign: string;
+  sign_degree: number;
+  retrograde: boolean;
+}
+
+interface SkyAspect {
+  body_1: string;
+  body_2: string;
+  event: string;
+}
+
 interface TransitChartPaneProps {
   chartData: any;
   birthTimeKnown: boolean;
+  positions: SkyPosition[];
+  aspects: SkyAspect[];
   slug: string;
   chartMode: ChartMode;
   onChartModeChange: (mode: ChartMode) => void;
@@ -39,6 +56,8 @@ interface TransitChartPaneProps {
 export default function TransitChartPane({
   chartData,
   birthTimeKnown,
+  positions,
+  aspects,
   slug,
   chartMode,
   onChartModeChange,
@@ -99,7 +118,7 @@ export default function TransitChartPane({
         Chart 101
       </Link>
 
-      {/* Wheel stand-in — see file-level comment. */}
+      {/* Today's Sky wheel — see file-level comment. */}
       {wheelSize !== undefined && (
         <div style={{
           position: 'absolute',
@@ -109,7 +128,7 @@ export default function TransitChartPane({
           height: wheelSize,
           transform: 'translate(-50%, -50%)',
         }}>
-          <NatalChartWheelWeb chartData={chartData} birthTimeKnown={birthTimeKnown} size={wheelSize} />
+          <TodaySkyWheel positions={positions} aspects={aspects} size={wheelSize} />
         </div>
       )}
 

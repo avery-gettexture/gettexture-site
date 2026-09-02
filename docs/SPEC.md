@@ -7287,4 +7287,39 @@ Sky wheel still correctly shows "℞" on Saturn and Pluto, which are
 retrograde on today's date.
 
 Files touched: `app/components/NatalChartWheelWeb.tsx`, `docs/SPEC.md`.
+
+**Transits page CHART view: natal-wheel stand-in replaced with the real
+Today's Sky wheel (Sep 2, 2026):** the desktop Transits page's CHART
+pane (`TransitChartPane.tsx`) was still rendering the customer's own
+birth (natal) chart wheel — a leftover placeholder from before the real
+"Today's Sky" wheel (`TodaySkyWheel.tsx`, built Aug 15, 2026, §16) existed.
+`TodaySkyWheel` was later wired correctly into the Home page's Today's
+Sky panel, but the Transits page's own CHART view was never switched
+over, so it kept showing the reading's birth chart instead of the
+current sky.
+
+**Fix:** `TransitChartPane.tsx` now renders `<TodaySkyWheel>` — the
+same component the Home page's Today's Sky panel already uses — fed
+live `positions`/`aspects` data instead of the reading's natal
+`chart_data`. `DesktopTransits` (`app/reading/[slug]/transits/page.tsx`)
+now also fetches `get_current_sky_aspects()` (it already fetched
+`get_current_sky_positions()` for the rail), mirroring the identical
+fetch the page already does for the mobile view, and passes both into
+`TransitChartPane`. The reading's natal `chart_data`/`birth_time_known`
+props are left in place, unused, per the existing note in that file:
+they're reserved for the still-unbuilt natal-vs-transit "bi-wheel"
+behind the currently-hidden Today/Transiting toggle — this fix only
+corrects what's shown today, it doesn't build that toggle's other mode.
+
+**Verified:** ran the dev server and screenshotted the `sample`
+reading's Transits page CHART view at 1440×900. The rail and wheel now
+show live sky positions (e.g. Sun 9° Virgo, Saturn 13° Aries ℞) that
+match the Home page's Today's Sky panel exactly — not the reading's
+natal placements (Sun 21° Sagittarius, Moon 20° Capricorn, etc., as
+shown on the Home page's My Chart panel), confirming the natal-chart
+leftover is gone. Also screenshotted the Home page to confirm its
+Today's Sky panel is unaffected. `npx tsc --noEmit` clean.
+
+Files touched: `app/components/TransitChartPane.tsx`,
+`app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`.
 One commit, not pushed.

@@ -244,15 +244,20 @@ function DesktopTransits({
   const [paneMode, setPaneMode] = useState<'read' | 'chart' | 'calendar'>('chart');
   const [chartMode, setChartMode] = useState<ChartMode>('today');
   const [positions, setPositions] = useState<SkyPosition[]>([]);
+  const [aspects, setAspects] = useState<SkyAspect[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const activeIndexRef = useRef(0);
 
   // Rail sign/degree data (SPEC §16 rail-tweaks follow-up) — same RPC and
   // fetch pattern as HomeTodaySkyPanel.tsx. No slug argument: this is
-  // today's sky, not tied to any one reading.
+  // today's sky, not tied to any one reading. Aspects added (Sep 2, 2026
+  // wheel fix) so the CHART pane's now-real TodaySkyWheel can draw aspect
+  // lines, same as HomeTodaySkyPanel's wheel and the mobile fetch below.
   useEffect(() => {
+    const today = getTodayLocalISODate();
     supabase.rpc('get_current_sky_positions').then(({ data }) => setPositions((data as SkyPosition[]) ?? []));
+    supabase.rpc('get_current_sky_aspects', { p_local_date: today }).then(({ data }) => setAspects((data as SkyAspect[]) ?? []));
   }, []);
 
   useEffect(() => {
@@ -404,15 +409,16 @@ function DesktopTransits({
         </div>
 
         {/* CHART pane — a screen-state swap, not a scroll target, same
-            mechanism as natal's CHART state. Two variants (Today /
-            Transiting) both render the stand-in wheel — see
-            TransitChartPane.tsx. */}
+            mechanism as natal's CHART state. Renders the real Today's Sky
+            wheel (Sep 2, 2026 fix) — see TransitChartPane.tsx. */}
         {paneMode === 'chart' && (
           <div className="natal-zone">
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
               <TransitChartPane
                 chartData={reading.chart_data}
                 birthTimeKnown={reading.birth_time_known}
+                positions={positions}
+                aspects={aspects}
                 slug={slug}
                 chartMode={chartMode}
                 onChartModeChange={setChartMode}
