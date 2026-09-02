@@ -7,10 +7,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, birthDate, birthTime, birthLocation, birthLat, birthLng, email } = body;
+    const { name, birthDate, birthTime, birthLocation, birthLat, birthLng, email, waiverAcknowledgedAt } = body;
 
     if (!name || !birthDate || !birthTime || !birthLocation || !email) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+    if (!waiverAcknowledgedAt) {
+      return NextResponse.json({ error: 'Withdrawal-waiver acknowledgment required' }, { status: 400 });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -37,6 +40,7 @@ export async function POST(req: NextRequest) {
         birth_lat: birthLat?.toString() ?? '',
         birth_lng: birthLng?.toString() ?? '',
         email,
+        waiver_acknowledged_at: waiverAcknowledgedAt,
       },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/`,

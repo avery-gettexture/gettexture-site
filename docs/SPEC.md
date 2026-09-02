@@ -291,7 +291,7 @@ Methodology page, product-spec posture. **Disclose:**
 ## 8. EXISTING INFRASTRUCTURE (build on, don't rebuild)
 
 - Natal pipeline: 2-call Opus synthesis, prompts in `lib/prompts/`, cache-warming pattern, admin retry. Production-proven.
-- `readings` table: birth data, chart_data jsonb, 15 interpretation columns (14 original + `nodes`), slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page renders 13 sections (North Node + South Node merged into one "Nodes" section), sourced from a new `nodes` column, empty until content is generated for it. `scripts/add_nodes_column.sql` ran successfully against Supabase on the second attempt — the first attempt hit Postgres error 42P13 ("cannot change return type of existing function") because `CREATE OR REPLACE FUNCTION` cannot add a column to a function's `RETURNS TABLE` (named OUT parameters) shape; fixed by adding an explicit `DROP FUNCTION IF EXISTS get_reading_by_slug(text);` before recreating it (table/data untouched, only the function definition briefly gone). Verified with a live read via the anon-key RPC before any app code changed: `get_reading_by_slug` returns a `nodes` key (value `null`, as expected). App code then swapped from its temporary `north_node` stand-in to the real `nodes` column — confirmed by screenshot: the Nodes card now shows the "being prepared" placeholder instead of the old dogfood `north_node` text. The old `north_node`/`south_node` columns are left in place, unused by the app now but not dropped (a separate, not-yet-authorized decision). **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture. **Desktop rail row (Phase 3A follow-up, August 5, 2026, §16):** the natal page's desktop rail now shows the Nodes row as both axis ends side by side (North + South, one shared degree, no retrograde flag) rather than the North Node's own placement standing in for the whole axis — see the §16 entry below. The per-section card header's own meta line still shows the North Node's placement only; that narrower simplification is unchanged and still flagged for founder review. Mobile's one-line List view (`ChartSection.tsx`) carries the same narrower simplification and is also unchanged — out of scope for this pass.
+- `readings` table: birth data, chart_data jsonb, 15 interpretation columns (14 original + `nodes`), slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page renders 13 sections (North Node + South Node merged into one "Nodes" section), sourced from a new `nodes` column, empty until content is generated for it. `scripts/add_nodes_column.sql` ran successfully against Supabase on the second attempt — the first attempt hit Postgres error 42P13 ("cannot change return type of existing function") because `CREATE OR REPLACE FUNCTION` cannot add a column to a function's `RETURNS TABLE` (named OUT parameters) shape; fixed by adding an explicit `DROP FUNCTION IF EXISTS get_reading_by_slug(text);` before recreating it (table/data untouched, only the function definition briefly gone). Verified with a live read via the anon-key RPC before any app code changed: `get_reading_by_slug` returns a `nodes` key (value `null`, as expected). App code then swapped from its temporary `north_node` stand-in to the real `nodes` column — confirmed by screenshot: the Nodes card now shows the "being prepared" placeholder instead of the old dogfood `north_node` text. The old `north_node`/`south_node` columns are left in place, unused by the app now but not dropped (a separate, not-yet-authorized decision). **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture. **Desktop rail row (Phase 3A follow-up, August 5, 2026, §16):** the natal page's desktop rail now shows the Nodes row as both axis ends side by side (North + South, one shared degree, no retrograde flag) rather than the North Node's own placement standing in for the whole axis — see the §16 entry below. The per-section card header's own meta line still shows the North Node's placement only; that narrower simplification is unchanged and still flagged for founder review. Mobile's one-line List view (`ChartSection.tsx`) carries the same narrower simplification and is also unchanged — out of scope for this pass. **`waiver_acknowledged_at` (timestamptz, Sep 2, 2026, §16):** server-side/audit-only proof-of-consent column for the Terms Section 19 checkout withdrawal-waiver acknowledgment — populated by `stripe-webhook/route.ts` at the same insert that creates the row, from Stripe session metadata set by `/api/checkout`. Migration is `scripts/add_waiver_acknowledged_column.sql`; not yet run against the live table as of this SPEC entry (see the §16 log entry for status) — not part of the `get_reading_by_slug` anon RPC.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
@@ -6963,3 +6963,64 @@ section against the live dev server — all confirmed correct, including
 the Section 6 consistency fix rendering live. `npx tsc --noEmit` clean on
 the touched file. Files touched: `app/privacy/page.tsx`, `docs/SPEC.md`.
 Committed, not pushed.
+
+**Legal document revisions, Part C — checkout withdrawal-waiver
+acknowledgment (Sep 2, 2026):** implements `docs/TEXTURE_LEGAL_REVISIONS.md`
+Part 3 item 1, the piece that makes the new Terms Section 19 waiver
+language actually provable. **Approach: explicit checkbox**, not a
+passive statement — matches the founder's stated lean and the revisions
+doc's own recommendation, since a checkbox produces an unambiguous
+per-user consent event rather than an inferred one. `HomeOrderForm.tsx`'s
+"Review Your Order" modal (the one shared component behind both the
+desktop and mobile order forms, per its own header comment) gained a
+`waiverAcknowledged` state and a checkbox above `PROCEED TO PAYMENT →`
+carrying the exact founder-authored acknowledgment text from the
+revisions doc verbatim; the button is `disabled` until the box is
+checked (screenshot-verified both states: dimmed/unclickable unchecked,
+full red enabled once checked). On confirm, a client-captured
+`waiverAcknowledgedAt` ISO timestamp rides through the existing
+`/api/checkout` POST body → is required there (400 if missing, same
+pattern as the route's existing required-field check) → becomes Stripe
+checkout session metadata `waiver_acknowledged_at` → is read by
+`stripe-webhook/route.ts` and written into the new `readings.waiver_
+acknowledged_at` column at the same `insert` that creates the reading
+row. Migration: `scripts/add_waiver_acknowledged_column.sql` (same
+`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` + `COMMENT ON COLUMN` pattern
+as `scripts/add_nodes_column.sql`). Server-side/audit field only — not
+added to the `get_reading_by_slug` anon RPC, since the reading display
+page has no reason to expose it.
+
+**Not yet run — this session has no direct DB/CLI connection to
+Supabase** (consistent with every prior schema migration in this
+project's history — see e.g. §16's "Fix: Supabase SQL editor" entries
+throughout this log): the founder needs to run
+`scripts/add_waiver_acknowledged_column.sql` in the Supabase SQL editor.
+Once run, verification will be a fresh service-role read confirming the
+column exists (e.g. selecting it back on an existing row and getting
+`null`, not a missing-column error) — not just trusting the SQL editor's
+own success message, per AGENTS.md's live-table-write verification rule.
+This SPEC entry will be updated once that's done.
+
+**Part 3 item 2 (marketing opt-in capture) — deferred, not built,** per
+the task's own explicit instruction: it depends on the transits "notify
+me" feature, which doesn't exist yet. No data model, no UI added. The
+Privacy Part B entry above already gives the eventual feature a
+documented consent legal basis, so nothing here is blocking that later
+build.
+
+**Part 3 item 4 (confirm no PII reaches Anthropic) — confirmed, no code
+change:** read through `lib/natal-generation/generate-piece.mjs`'s
+`buildPlanetOrAngleMessage` / `buildNodesMessage` (what actually becomes
+the Anthropic user-message content) and `app/api/generate/route.ts` (the
+caller) — the message body is built entirely from `PLANET/SIGN/DEGREE/
+DECAN/HOUSE/ASPECTS`-style chart facts pulled from `reading.chart_data`;
+`reading.name` and the email in `reading_contacts` are never read into
+it. This confirms the Fix 1C/2B Anthropic language ("we do not send your
+name or email address to Anthropic") is factually accurate, not
+aspirational.
+
+Files touched: `app/components/HomeOrderForm.tsx`,
+`app/api/checkout/route.ts`, `app/api/stripe-webhook/route.ts`,
+`scripts/add_waiver_acknowledged_column.sql` (new), `docs/SPEC.md`.
+Committed, not pushed. `npx tsc --noEmit` clean on all touched
+TypeScript files.

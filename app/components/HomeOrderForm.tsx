@@ -51,6 +51,7 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showReview, setShowReview] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [waiverAcknowledged, setWaiverAcknowledged] = useState(false);
   const locationRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
 
@@ -92,6 +93,7 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
   }
 
   async function handleConfirm() {
+    if (!waiverAcknowledged) return;
     setLoading(true);
     try {
       const birthTime = `${form.birthHour}:${form.birthMinute} ${form.birthAmPm}`;
@@ -102,6 +104,7 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
           name: form.name, birthDate: form.birthDate, birthTime,
           birthLocation: form.birthLocation, birthLat: form.birthLat,
           birthLng: form.birthLng, email: form.email,
+          waiverAcknowledgedAt: new Date().toISOString(),
         }),
       });
       const data = await res.json();
@@ -222,8 +225,20 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
             <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.45)', lineHeight: 1.7, marginBottom: '24px' }}>
               Please confirm your birth data is correct. These details cannot be updated after purchase.
             </p>
+            <label htmlFor="waiver-acknowledged" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '20px', cursor: 'pointer' }}>
+              <input
+                id="waiver-acknowledged"
+                type="checkbox"
+                checked={waiverAcknowledged}
+                onChange={e => setWaiverAcknowledged(e.target.checked)}
+                style={{ marginTop: '3px', flexShrink: 0, width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.65)', lineHeight: 1.6 }}>
+                I request immediate generation of my reading and understand that once generation begins I waive any statutory 14-day right of withdrawal for digital content.
+              </span>
+            </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={handleConfirm} disabled={loading} style={{ padding: '16px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: loading ? 'rgba(185,18,18,0.40)' : 'rgba(185,18,18,0.75)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', width: '100%' }}>
+              <button onClick={handleConfirm} disabled={loading || !waiverAcknowledged} style={{ padding: '16px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: '#FDF5ED', backgroundColor: (loading || !waiverAcknowledged) ? 'rgba(185,18,18,0.40)' : 'rgba(185,18,18,0.75)', border: 'none', cursor: (loading || !waiverAcknowledged) ? 'not-allowed' : 'pointer', width: '100%' }}>
                 {loading ? 'REDIRECTING...' : 'PROCEED TO PAYMENT →'}
               </button>
               <button onClick={() => setShowReview(false)} style={{ padding: '14px', fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', letterSpacing: '2px', color: 'rgba(22,22,18,0.45)', backgroundColor: 'transparent', border: '1px solid rgba(22,22,18,0.15)', cursor: 'pointer', width: '100%' }}>

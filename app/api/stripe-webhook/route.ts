@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
         birth_time_known: true,
         chart_data: chartData,
         stripe_session_id: session.id,
+        waiver_acknowledged_at: meta.waiver_acknowledged_at || null,
       })
       .select('id')
       .single();
