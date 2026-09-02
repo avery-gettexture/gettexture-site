@@ -6890,3 +6890,41 @@ already running before this task started, not just the duplicate one
 just spawned — flagged to the founder; if that server had been left
 running for another purpose, it needed restarting. Files touched:
 `app/components/Rail.tsx`, `docs/SPEC.md`. Committed, not pushed.
+
+**Legal document revisions, Part A — Terms & Conditions (Sep 2, 2026):**
+applied `docs/TEXTURE_LEGAL_REVISIONS.md` Part 1 in full to
+`app/terms/page.tsx`: Section 15's payment-processor sentence now names
+Stripe instead of Etsy (the site has used Stripe for checkout for some
+time; the copy was stale, not the integration); the Anthropic sentence in
+that same section now says what's actually true — no name/email sent,
+processed under Anthropic's own commercial terms, not used for training,
+retained for a limited period per Anthropic's own policies — replacing
+the prior "not linked to your identity or stored" claim, which overstated
+what's verifiable about a third party's retention practice. Section 19
+("Purchases and Refunds") is fully replaced with "19. Purchases,
+Delivery, and Refunds": adds a delay/failure remedy (48-hour delivery
+window, then a refund path), an explicit immediate-performance /
+withdrawal-waiver acknowledgment for EU/UK digital-content cooling-off
+rights, a sole-remedy clause, an inaccurate-birth-data clause, and a
+statutory-rights savings sentence — this is the clause the founder's
+checkout waiver checkbox (Part C entry below) exists to make provable.
+Section 8 (Governing Law) gained an international consumer-protection
+savings sentence. A new Section 20, "Marketing and Product-Update
+Communications," was added ahead of the transits "notify me" feature —
+consent-based, unsubscribe-honoring — which pushed the old Sections
+20–25 to 21–26 (Minor Access through Contact Us); the TOC array was
+updated to match. Business address is "Long Beach, California" (founder-
+confirmed) — Terms already read this way everywhere, so this page needed
+no address edit itself. **Judgment call, flagged, not separately
+approved:** the revisions doc's Fix 1C says "Section 15 + wherever it
+appears" for the Anthropic claim; Section 22 ("User Data") repeated the
+same inaccurate framing in miniature, so it was corrected too (now
+Section 23 after renumbering) for internal consistency — this one
+sentence goes beyond the doc's literal section-number pointer but not
+its stated intent. "Last updated" → September 2, 2026. All legal-clause
+text is verbatim from the revisions doc — no paraphrasing. Verified with
+Playwright screenshots of every changed section against the live dev
+server (Stripe/Anthropic language, new Section 19 and 20, renumbered
+Section 26 Contact Us, address, date) — all confirmed correct.
+`npx tsc --noEmit` clean on the touched file. Files touched:
+`app/terms/page.tsx`, `docs/SPEC.md`. Committed, not pushed.
