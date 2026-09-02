@@ -6928,3 +6928,38 @@ server (Stripe/Anthropic language, new Section 19 and 20, renumbered
 Section 26 Contact Us, address, date) — all confirmed correct.
 `npx tsc --noEmit` clean on the touched file. Files touched:
 `app/terms/page.tsx`, `docs/SPEC.md`. Committed, not pushed.
+
+**Legal document revisions, Part B — Privacy Policy (Sep 2, 2026):**
+applied `docs/TEXTURE_LEGAL_REVISIONS.md` Part 2 in full to
+`app/privacy/page.tsx`: Section 1's Payment Data sentence and Section 13's
+closing sentence now name Stripe instead of Etsy; Section 5 and Section
+13's Anthropic sentences replaced with the accurate framing (no name/
+email sent, Anthropic's own commercial terms, no training use, limited
+retention) — same correction as Terms Part A, since both pages made the
+same overstated "not linked to your identity / not stored" claim. Section
+4's Third-Party Service Providers bullet now lists Stripe alongside
+Vercel/Anthropic/Supabase. A new "Marketing communications." paragraph
+was added to Section 2, and a consent-basis sentence for marketing was
+added to Section 3's EU/UK paragraph — together these give the upcoming
+transits "notify me" opt-in a documented legal basis (consent) before any
+such email is ever sent. Section 1's "Sensitive Information" line was
+expanded from a bare "we do not process sensitive information" into the
+fuller GDPR special-category clarification the revisions doc specifies.
+Business address unified to "Long Beach, California" everywhere on this
+page (Section 15's contact block previously read "Long Beach, CA 90802",
+inconsistent with Terms) — founder-confirmed as the correct form. "Last
+updated" → September 2, 2026. **Judgment call, flagged, not separately
+approved:** same pattern as the Terms Section 22 fix above — Section 6
+("How long do we keep your information") had its own leftover claim that
+Anthropic "does not retain" birth data, which directly contradicted the
+corrected Section 5 language two sections above it; reworded to point to
+Section 5 rather than repeat a now-inaccurate claim. The top-of-page
+"SUMMARY OF KEY POINTS" sensitive-data one-liner was deliberately left
+as-is (a short FAQ-style summary of the fuller Section 1 answer, not
+itself flagged in the revisions doc, and not contradicted by the new
+language). All legal-clause text is verbatim from the revisions doc — no
+paraphrasing. Verified with Playwright screenshots of every changed
+section against the live dev server — all confirmed correct, including
+the Section 6 consistency fix rendering live. `npx tsc --noEmit` clean on
+the touched file. Files touched: `app/privacy/page.tsx`, `docs/SPEC.md`.
+Committed, not pushed.
