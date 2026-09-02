@@ -7092,6 +7092,24 @@ run the script. Files touched: `scripts/
 add_methodology_reference_content.sql` (new), `lib/reference-
 taxonomy.ts`, `docs/SPEC.md`. Committed, not pushed.
 
+**Methodology content, Part 1b — script run and verified (Sep 2,
+2026):** the founder ran `scripts/add_methodology_reference_content.sql`
+in the Supabase SQL editor. Verified live afterward, not assumed from
+the SQL editor's own success message, per AGENTS.md's live-table-write
+rule: a fresh anon-key read (`select id, category, name, version,
+description from reference_content where category = 'methodology'
+order by id`) returned exactly the 5 expected rows (Chart Calculation,
+Writing, Astrological Systems, Astrological Standards, Your
+Interpretation), each with a non-trivial description length and
+`version = 1`. Also confirmed by loading the live Reference page and
+screenshotting: desktop rail shows Methodology last before Help, all 5
+entries listed, and the Astrological Systems entry's prose renders
+cleanly (the semicolon-separated list, the parenthetical, and the
+closing paragraph each their own line); mobile shows the same category
+in the same position with the Chart Calculation entry expanded
+correctly. Files touched: `docs/SPEC.md`. No code change, verification
+only.
+
 **Methodology content, Part 2 — pre-purchase "approach" panel replaced
 (Sep 2, 2026):** the pre-purchase home's "approach" long-form panel
 (desktop `HomeBirthChartPanel.tsx`, mobile `MobileHomePage.tsx`) is
