@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <div style={{ maxWidth: '760px', margin: '0 auto', padding: '60px 48px 100px', fontFamily: 'var(--font-questrial), sans-serif', fontSize: '15px', lineHeight: 1.7, color: 'rgba(22,22,18,0.85)' }}>
 
         <h1 style={{ fontFamily: 'var(--font-questrial), sans-serif', fontSize: '28px', fontWeight: 700, color: '#161612', marginBottom: '8px' }}>PRIVACY POLICY</h1>
-        <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', color: 'rgba(22,22,18,0.40)', marginBottom: '48px' }}>Last updated September 2, 2026</p>
+        <p style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '13px', color: 'rgba(22,22,18,0.40)', marginBottom: '48px' }}>Last updated September 8, 2026</p>
 
         <p style={{ marginBottom: '16px' }}>This Privacy Notice for Texture LLC ("we," "us," or "our") describes how and why we might access, collect, store, use, and/or share ("process") your personal information when you use our services ("Services"), including when you:</p>
         <ul style={{ margin: '12px 0 16px 24px' }}>
@@ -41,12 +41,13 @@ export default function PrivacyPage() {
             '8. DO WE COLLECT INFORMATION FROM MINORS?',
             '9. WHAT ARE YOUR PRIVACY RIGHTS?',
             '10. CONTROLS FOR DO-NOT-TRACK FEATURES',
-            '11. DO UNITED STATES RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?',
-            '12. DO OTHER REGIONS HAVE SPECIFIC PRIVACY RIGHTS?',
-            '13. THIRD-PARTY SERVICE PROVIDERS',
-            '14. DO WE MAKE UPDATES TO THIS NOTICE?',
-            '15. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?',
-            '16. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?',
+            '11. COOKIES AND TRACKING',
+            '12. DO UNITED STATES RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?',
+            '13. DO OTHER REGIONS HAVE SPECIFIC PRIVACY RIGHTS?',
+            '14. THIRD-PARTY SERVICE PROVIDERS',
+            '15. DO WE MAKE UPDATES TO THIS NOTICE?',
+            '16. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?',
+            '17. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?',
           ].map(item => (
             <div key={item} style={{ color: 'rgba(185,18,18,0.75)', fontSize: '14px' }}>{item}</div>
           ))}
@@ -80,7 +81,7 @@ export default function PrivacyPage() {
         <p style={{ marginBottom: '12px' }}>We may share information in the following situations:</p>
         <ul style={{ margin: '12px 0 16px 24px' }}>
           <li style={{ marginBottom: '8px' }}><strong>Business Transfers.</strong> We may share or transfer your information in connection with any merger, sale of company assets, financing, or acquisition of all or a portion of our business.</li>
-          <li style={{ marginBottom: '8px' }}><strong>Third-Party Service Providers.</strong> We share birth data transiently with Vercel for chart calculation and with Anthropic for interpretation generation. Your reading data is stored in Supabase. Payment information is processed by Stripe. See Section 13 for full details.</li>
+          <li style={{ marginBottom: '8px' }}><strong>Third-Party Service Providers.</strong> We share birth data transiently with Vercel for chart calculation and with Anthropic for interpretation generation. Your reading data is stored in Supabase. Payment information is processed by Stripe. See Section 14 for full details.</li>
         </ul>
         <p style={{ marginBottom: '32px' }}>We do not sell, trade, or share your personal information with third parties for marketing purposes.</p>
 
@@ -104,25 +105,29 @@ export default function PrivacyPage() {
         <H2>10. CONTROLS FOR DO-NOT-TRACK FEATURES</H2>
         <p style={{ marginBottom: '32px' }}>Most web browsers include a Do-Not-Track ("DNT") feature. We do not currently respond to DNT browser signals or any other mechanism that automatically communicates your choice not to be tracked online, as no uniform technology standard for recognizing and implementing DNT signals has been finalized. California law requires us to let you know how we respond to DNT signals — we do not respond to them at this time.</p>
 
-        <H2>11. DO UNITED STATES RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?</H2>
+        <H2>11. COOKIES AND TRACKING</H2>
+        <p style={{ marginBottom: '32px' }}>We do not use advertising or analytics cookies, and we do not track your activity across websites. Our site uses only essential, functional cookies necessary for it to operate. When you make a purchase, our payment processor, Stripe, may set functional cookies on its own checkout pages (hosted on Stripe's domain) to process your payment securely; these are governed by Stripe's own privacy policy. Because we do not use non-essential or tracking cookies, we do not display a cookie consent banner. If this changes in the future, we will update this policy and provide appropriate consent controls.</p>
+
+        <H2>12. DO UNITED STATES RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?</H2>
         <p style={{ marginBottom: '12px' }}>If you are a resident of California, Colorado, Connecticut, Delaware, Florida, Indiana, Iowa, Kentucky, Maryland, Minnesota, Montana, Nebraska, New Hampshire, New Jersey, Oregon, Rhode Island, Tennessee, Texas, Utah, or Virginia, you may have the right to request access to and receive details about the personal information we maintain about you, correct inaccuracies, get a copy of, or delete your personal information.</p>
         <p style={{ marginBottom: '12px' }}>The personal information we collect includes names (Category B — California Customer Records statute), birth data, and email addresses. We have not disclosed, sold, or shared any personal information to third parties for a business or commercial purpose and will not do so in the future.</p>
         <p style={{ marginBottom: '12px' }}>To exercise your rights, contact us at <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a>. If your appeal is denied, you may submit a complaint to your state attorney general.</p>
         <p style={{ marginBottom: '32px' }}><strong>California "Shine The Light" Law:</strong> California residents may request information about categories of personal information (if any) we disclosed to third parties for direct marketing purposes in the preceding calendar year. We do not disclose personal information to third parties for direct marketing purposes.</p>
 
-        <H2>12. DO OTHER REGIONS HAVE SPECIFIC PRIVACY RIGHTS?</H2>
+        <H2>13. DO OTHER REGIONS HAVE SPECIFIC PRIVACY RIGHTS?</H2>
         <H3>Australia and New Zealand</H3>
         <p style={{ marginBottom: '12px' }}>We collect and process your personal information under the obligations and conditions set by Australia's Privacy Act 1988 and New Zealand's Privacy Act 2020. If you believe we are unlawfully processing your personal information, you have the right to complain to the <a href="https://www.oaic.gov.au/privacy/privacy-complaints/" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)' }}>Office of the Australian Information Commissioner</a> or the <a href="https://www.privacy.org.nz/your-rights/making-a-complaint/" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)' }}>Office of New Zealand Privacy Commissioner</a>.</p>
         <H3>Republic of South Africa</H3>
         <p style={{ marginBottom: '32px' }}>If you are unsatisfied with how we address any complaint regarding our processing of personal information, you can contact the <a href="https://inforegulator.org.za/" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(185,18,18,0.75)' }}>Information Regulator (South Africa)</a> at <a href="mailto:enquiries@inforegulator.org.za" style={{ color: 'rgba(185,18,18,0.75)' }}>enquiries@inforegulator.org.za</a>.</p>
 
-        <H2>13. THIRD-PARTY SERVICE PROVIDERS</H2>
-        <p style={{ marginBottom: '32px' }}>Texture uses third-party service providers to deliver its core functionality. Birth date, time, and location are transmitted to Vercel (vercel.com) solely for the purpose of calculating your astrological chart. This data is not stored by Vercel. Chart data (planetary positions and placements) is transmitted to Anthropic (anthropic.com) via Vercel solely for the purpose of generating personalized interpretations. We do not send your name or email address to Anthropic. The chart data is processed by Anthropic under its own commercial terms and is not used to train its models; Anthropic may retain data for a limited period under its data-retention and trust-and-safety policies. Your reading data — name, birth data, email, and generated content — is stored in Supabase (supabase.com), a secured cloud database provider. Payments are processed through Stripe, Inc. (stripe.com) and their payment partners; Texture does not receive or store your full payment card information.</p>
+        <H2>14. THIRD-PARTY SERVICE PROVIDERS</H2>
+        <p style={{ marginBottom: '16px' }}>Texture uses third-party service providers to deliver its core functionality. Birth date, time, and location are transmitted to Vercel (vercel.com) solely for the purpose of calculating your astrological chart. This data is not stored by Vercel. Chart data (planetary positions and placements) is transmitted to Anthropic (anthropic.com) via Vercel solely for the purpose of generating personalized interpretations. We do not send your name or email address to Anthropic. The chart data is processed by Anthropic under its own commercial terms and is not used to train its models; Anthropic may retain data for a limited period under its data-retention and trust-and-safety policies. Your reading data — name, birth data, email, and generated content — is stored in Supabase (supabase.com), a secured cloud database provider. Payments are processed through Stripe, Inc. (stripe.com) and their payment partners; Texture does not receive or store your full payment card information.</p>
+        <p style={{ marginBottom: '32px' }}>Google. When you enter your birth location, we use Google Places (a Google service) to help you select an accurate location. The text you type into the location field is sent to Google to provide autocomplete suggestions and to determine the coordinates of your birthplace. This data is processed by Google under its own privacy policy. We use it solely to calculate your chart accurately.</p>
 
-        <H2>14. DO WE MAKE UPDATES TO THIS NOTICE?</H2>
+        <H2>15. DO WE MAKE UPDATES TO THIS NOTICE?</H2>
         <p style={{ marginBottom: '32px' }}>We may update this Privacy Notice from time to time. The updated version will be indicated by an updated "Last updated" date at the top of this Privacy Notice. We encourage you to review this Privacy Notice frequently to be informed of how we are protecting your information.</p>
 
-        <H2>15. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?</H2>
+        <H2>16. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?</H2>
         <p style={{ marginBottom: '12px' }}>If you have questions or comments about this notice, you may contact our Data Protection Officer (DPO) by email at <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a>, or by mail at:</p>
         <p style={{ marginBottom: '32px' }}>
           <strong>Texture LLC</strong><br />
@@ -131,7 +136,7 @@ export default function PrivacyPage() {
           United States
         </p>
 
-        <H2>16. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?</H2>
+        <H2>17. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?</H2>
         <p style={{ marginBottom: '32px' }}>Based on the applicable laws of your country or state of residence, you may have the right to request access to the personal information we collect from you, correct inaccuracies, or delete your personal information. To make a request, contact us at <a href="mailto:help@gettexture.app" style={{ color: 'rgba(185,18,18,0.75)' }}>help@gettexture.app</a>. We will respond within 30 days.</p>
 
       </div>

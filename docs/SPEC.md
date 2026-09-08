@@ -7531,3 +7531,31 @@ on all three; result to be recorded here.
 Files touched: `scripts/revoke_anon_select_on_reading_transit_tables.sql`
 (new), `docs/SPEC.md`. One commit, not pushed. Founder runs the SQL in
 Supabase.
+
+**Privacy Policy — cookie disclosure + Google Places (Sep 8, 2026):** closes
+gap 3 from the audit above. Two additions to `app/privacy/page.tsx`, both in
+founder-supplied verbatim language:
+- New **Section 11 "COOKIES AND TRACKING"**, inserted right after Section 10
+  (Do-Not-Track) as topically adjacent. States that the site uses only
+  essential functional cookies, no advertising/analytics cookies, no
+  cross-site tracking, and therefore no consent banner; notes Stripe may set
+  functional cookies on its own hosted checkout pages. Existing Sections
+  11–16 renumbered to 12–17; Table of Contents updated to match. One internal
+  cross-reference was corrected as a consequence of the renumber — Section 4's
+  "See Section 13 for full details" → "See Section 14" (the Third-Party
+  Service Providers section moved). No other existing wording changed.
+- New paragraph appended to **Section 14 "THIRD-PARTY SERVICE PROVIDERS"**
+  (formerly 13) naming **Google** and disclosing that birth-location text
+  typed into the form is sent to Google Places for autocomplete and
+  coordinates, processed under Google's own privacy policy.
+- "Last updated" → September 8, 2026.
+
+Flagged for founder / counsel, not changed: the SUMMARY, Section 2, Section 4,
+and Section 5 all enumerate third parties by name and still omit Google — left
+untouched under the "do not alter other legal text" instruction, but worth a
+consistency pass.
+
+Verified with Playwright screenshots against the dev server — the new cookie
+section, the Google paragraph, and the updated date all render correctly.
+`npx tsc --noEmit` clean. Files touched: `app/privacy/page.tsx`,
+`docs/SPEC.md`. One commit, not pushed.
