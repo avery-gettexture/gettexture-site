@@ -7524,9 +7524,11 @@ activations` and the other sky-calc tables named in gap 1 are chart-independent
 and were left as-is (optional follow-up).
 
 Baseline probe before the change (public/anon key, read-only): all three
-tables returned `HTTP 200 []`. **Verification after the founder runs the
-script is pending** — re-probe expects `HTTP 401` + `42501 permission denied`
-on all three; result to be recorded here.
+tables returned `HTTP 200 []`. **Verified after the founder ran the script
+(Sep 8, 2026):** a fresh public/anon-key probe now returns `HTTP 401` with
+`{"code":"42501","message":"permission denied for table <name>"}` on all
+three — the hard-deny posture, matching `readings` / `reading_contacts` /
+`transit_pieces`. Gap 1 closed.
 
 Files touched: `scripts/revoke_anon_select_on_reading_transit_tables.sql`
 (new), `docs/SPEC.md`. One commit, not pushed. Founder runs the SQL in
