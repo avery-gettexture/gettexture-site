@@ -1308,6 +1308,13 @@ with every intended column present and are genuinely empty (0 rows) —
 `reading_eclipse_catches` (9), `sky_pair_activations` (9),
 `eclipse_transiting_catches` (9).
 
+**Access hardening (Sep 8, 2026):** the three per-reading tables
+(`reading_transit_contacts`, `reading_natal_activations`,
+`reading_eclipse_catches`) additionally have the leftover default anon `SELECT`
+grant revoked (`scripts/revoke_anon_select_on_reading_transit_tables.sql`), so
+the public key is denied outright rather than returned an empty array — matching
+`readings` / `transit_pieces`. Full record in §16.
+
 **Stage 2 status: BUILT.** New file `scripts/engine/structured-records.mjs`
 holds five pure, side-effect-free builder functions (`buildTransitContactRecord`,
 `buildNatalActivationRecord`, `buildEclipseCatchRecord`,
@@ -7502,3 +7509,25 @@ directly.
 
 Files touched: `docs/SPEC.md` only (this ruling entry). No code, no SQL, no
 copy. One commit, not pushed.
+
+**Pre-launch hardening — REVOKE anon SELECT on the per-reading transit tables
+(Sep 8, 2026):** closes gap 1 from the audit above. New script
+`scripts/revoke_anon_select_on_reading_transit_tables.sql` runs a one-line
+`REVOKE SELECT ... FROM anon` on each of `reading_transit_contacts`,
+`reading_natal_activations`, `reading_eclipse_catches`. These three already had
+RLS on with zero policies (default-deny — the real protection); they retained
+the leftover default anon SELECT grant, so the public key got an empty array
+instead of a hard `42501 permission denied`. After the REVOKE they match the
+"denied" posture of `readings` / `reading_contacts` / `transit_pieces`. The
+script changes no data, no RLS, no function, and no other table. `sky_pair_
+activations` and the other sky-calc tables named in gap 1 are chart-independent
+and were left as-is (optional follow-up).
+
+Baseline probe before the change (public/anon key, read-only): all three
+tables returned `HTTP 200 []`. **Verification after the founder runs the
+script is pending** — re-probe expects `HTTP 401` + `42501 permission denied`
+on all three; result to be recorded here.
+
+Files touched: `scripts/revoke_anon_select_on_reading_transit_tables.sql`
+(new), `docs/SPEC.md`. One commit, not pushed. Founder runs the SQL in
+Supabase.
