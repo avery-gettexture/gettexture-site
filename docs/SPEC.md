@@ -7422,3 +7422,83 @@ not from the SQL editor's success message):**
 Files touched: `scripts/create_marketing_consents.sql` (new),
 `app/components/HomeOrderForm.tsx`, `app/api/checkout/route.ts`,
 `app/api/stripe-webhook/route.ts`, `docs/SPEC.md`. One commit, not pushed.
+
+**Supabase security review — production-readiness audit (Sep 8, 2026, no
+code/SQL/copy changed):** ran a live probe with both the public (anon) key
+and the service-role key against the production database. This entry is the
+ruling record.
+
+**GO on the core data-lock posture.** Every table holding personal data is
+properly protected:
+- `readings` (name + birth data, no email since Stage Three) — anon direct
+  read refused (`42501 permission denied`). Only path is
+  `get_reading_by_slug(p_slug)`; confirmed live that its output columns are
+  `slug, name, birth_date, birth_time, birth_location, birth_lat, birth_lng,
+  birth_time_known, chart_data, <13 interpretation cols>` — **no `email`
+  key**. The slug is the bearer secret (§5.1); anyone holding a reading URL
+  can see that reading's name + birth data by design, email excepted.
+- `reading_contacts` (email) — anon refused, no policy, no RPC, no path in.
+- `marketing_consents` (new this session) — anon refused on both SELECT and
+  INSERT; same locked posture.
+- `transit_pieces` — anon direct read refused; reachable only via
+  `get_transit_pieces_by_slug(p_reading_slug)`, which returns no personal
+  identity fields.
+- `reading_transit_contacts`, `reading_natal_activations`,
+  `reading_eclipse_catches` (per-reading, keyed by `reading_slug`) — RLS
+  confirmed genuinely ON by a positive test: inserted a probe row with the
+  service-role key into `reading_transit_contacts`, then read the table with
+  the anon key — **zero rows returned while the row existed** (RLS filtering,
+  not an empty table). Probe row deleted, deletion verified by fresh read.
+  The other two were created with the identical `ENABLE ROW LEVEL SECURITY`
+  statement and posture.
+- `sky_positions`, `aspect_calendar` — anon direct read refused; only the
+  deliberately-open slug-less `get_current_sky_*` functions, each
+  window-filtered server-side.
+
+**Service-role key** — referenced only in server route handlers
+(`app/api/stripe-webhook/route.ts`, `app/api/reading-by-session/route.ts`,
+`app/api/generate/route.ts`). Never `NEXT_PUBLIC_`-prefixed, never imported
+into a client component, and `grep` of the key's value against the build
+output (`.next/`) found nothing — it is read from the environment at
+runtime, not inlined. Not exposed to the browser. `/api/reading-by-session`
+returns only `{ slug }`.
+
+**Anon key** — used only by client pages (`lib/supabase.ts`), and only to
+call the four gate RPCs (`get_reading_by_slug`, `get_transit_pieces_by_slug`,
+`get_current_sky_positions`, `get_current_sky_aspects`) plus a direct read of
+`reference_content`. Confirmed it cannot reach any personal-data table
+directly.
+
+**Gaps recorded for the founder (none are active data leaks):**
+1. **Defense-in-depth inconsistency — RECOMMEND a follow-up `REVOKE`.** The
+   per-reading transit tables (`reading_transit_contacts`,
+   `reading_natal_activations`, `reading_eclipse_catches`) and several
+   sky-calc tables (`transit_calendar`, `eclipse_aspects`,
+   `eclipse_transiting_catches`, `sky_pair_activations`) have RLS on with
+   zero policies (which is what actually protects them) but still carry the
+   default anon `SELECT` grant, so the anon key gets an *empty array* rather
+   than a hard `42501 permission denied`. The most sensitive tables
+   (`readings`, `reading_contacts`, `transit_pieces`, `sky_positions`,
+   `aspect_calendar`) additionally had that grant revoked. Suggested
+   pre-launch cleanup: `REVOKE SELECT ON reading_transit_contacts,
+   reading_natal_activations, reading_eclipse_catches FROM anon` (and
+   optionally the sky-calc tables) to match. Low urgency — the tables are
+   empty and RLS holds — not fixed here (audit-only task).
+2. **`reference_content`** (public glossary) is anon-readable by design;
+   confirmed anon **cannot** write to it (`42501 new row violates
+   row-level security policy`). It has no creation script in `/scripts`
+   (predates the convention), so its exact settings can't be read from the
+   repo — founder to eyeball in Supabase that it stays SELECT-only for anon.
+3. **Privacy Policy has no cookie section.** Checkout is a redirect to
+   Stripe's hosted page, so Stripe sets its fraud-prevention cookies on
+   `checkout.stripe.com`, not on the Texture domain (Stripe.js is not
+   embedded on the site — confirmed no `@stripe/stripe-js`, no
+   `js.stripe.com`). A short, accurate cookie disclosure is still standard
+   practice and Stripe's own guidance recommends noting it. Separately, the
+   birth-location field sends typed input to **Google Places Autocomplete**
+   client-side (`HomeOrderForm.tsx`) and Google is not named in the Privacy
+   Policy's §13 third-parties list. Both are copy questions for the founder /
+   counsel — no legal text was changed by this task.
+
+Files touched: `docs/SPEC.md` only (this ruling entry). No code, no SQL, no
+copy. One commit, not pushed.
