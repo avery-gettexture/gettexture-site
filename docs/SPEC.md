@@ -7552,12 +7552,46 @@ founder-supplied verbatim language:
   coordinates, processed under Google's own privacy policy.
 - "Last updated" → September 8, 2026.
 
-Flagged for founder / counsel, not changed: the SUMMARY, Section 2, Section 4,
-and Section 5 all enumerate third parties by name and still omit Google — left
-untouched under the "do not alter other legal text" instruction, but worth a
-consistency pass.
-
 Verified with Playwright screenshots against the dev server — the new cookie
 section, the Google paragraph, and the updated date all render correctly.
 `npx tsc --noEmit` clean. Files touched: `app/privacy/page.tsx`,
 `docs/SPEC.md`. One commit, not pushed.
+
+**Privacy Policy — Google named consistently in every third-party enumeration
+(Sep 8, 2026):** follow-up to the entry above. Google was added, in each
+section's own existing style and granularity, everywhere the policy lists
+third parties by name:
+- **SUMMARY** ("How do we process your information?") — brief clause: the
+  birth location you type is sent to Google (Google Places) for autocomplete
+  and birthplace coordinates.
+- **Section 2** (How we process) — role-style sentence matching the Vercel /
+  Anthropic / Supabase descriptions.
+- **Section 4** (Third-Party Service Providers bullet) — "We share the birth
+  location you type with Google (Google Places) to determine your birthplace
+  coordinates," matching the "We share X with Y" pattern.
+- **Section 6** (retention) — "Birth location text sent to Google for location
+  lookup is processed under Google's own privacy policy — see Section 14."
+  States no retention duration (none is known); added for parity with the
+  Vercel / Anthropic retention lines. **Founder-confirmed** this placement.
+- **Section 5** (AI-based products) — **deliberately left without Google.**
+  Founder-confirmed: that section is specifically about the AI service
+  provider (Anthropic) and Google Places is not an AI product, so naming it
+  there would misrepresent it.
+
+Consistent facts conveyed wherever Google appears: Google (via Google Places)
+receives the birth-location text the user types, for autocomplete and
+birthplace coordinates, used solely to calculate the chart, processed under
+Google's own privacy policy. Sections that name a single party in a scoped
+context and where Google does not apply were left as-is: Section 1 "Payment
+Data" (Stripe only), the new Section 11 cookie disclosure (Stripe only —
+Google sets no cookies on our domain), Section 7 (Supabase as the storage
+location). The SUMMARY "Do we collect any information from third parties? —
+No" line was left unchanged: a geocoding lookup of user-typed input is not
+"collecting information from a third party" in the data-broker / social-login
+sense that phrasing denotes — **flagged for counsel** rather than silently
+reworded.
+
+Verified with Playwright screenshots of the SUMMARY and Sections 2, 4, 5, 6
+against the dev server — Google present and style-matched in each, Section 5
+correctly clean. `npx tsc --noEmit` clean. Files touched:
+`app/privacy/page.tsx`, `docs/SPEC.md`. One commit, not pushed.
