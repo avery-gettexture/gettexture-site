@@ -310,6 +310,23 @@ Methodology page, product-spec posture. **Disclose:**
 - `readings` table: birth data, chart_data jsonb, 15 interpretation columns (14 original + `nodes`), slug, stripe_session_id. **Nodes consolidation status (Phase 3A, August 4, 2026, §16):** the natal page renders 13 sections (North Node + South Node merged into one "Nodes" section), sourced from a new `nodes` column, empty until content is generated for it. `scripts/add_nodes_column.sql` ran successfully against Supabase on the second attempt — the first attempt hit Postgres error 42P13 ("cannot change return type of existing function") because `CREATE OR REPLACE FUNCTION` cannot add a column to a function's `RETURNS TABLE` (named OUT parameters) shape; fixed by adding an explicit `DROP FUNCTION IF EXISTS get_reading_by_slug(text);` before recreating it (table/data untouched, only the function definition briefly gone). Verified with a live read via the anon-key RPC before any app code changed: `get_reading_by_slug` returns a `nodes` key (value `null`, as expected). App code then swapped from its temporary `north_node` stand-in to the real `nodes` column — confirmed by screenshot: the Nodes card now shows the "being prepared" placeholder instead of the old dogfood `north_node` text. The old `north_node`/`south_node` columns are left in place, unused by the app now but not dropped (a separate, not-yet-authorized decision). **Locked at the database level since Stage Two (§5.1, §16, July 29, 2026):** the public role has no direct SELECT; anon reads go only through `get_reading_by_slug(p_slug)`. Server code (webhook, generation, admin scripts) reads/writes with the service-role key, which bypasses this and is unaffected. `readings.name` is the reader-facing display name (optional, free-form, not the legal/Stripe name) and correctly stays in `readings`, slug-gated — it does not move in Stage Three. **`email` column removed as of Stage Three (§16, July 30, 2026)** — it now lives exclusively in the new `reading_contacts` table (keyed 1:1 on `readings.id`, service-role access only, no anon path of any kind), alongside a new, currently-empty `full_name` column reserved for future billing/identity capture. **Desktop rail row (Phase 3A follow-up, August 5, 2026, §16):** the natal page's desktop rail now shows the Nodes row as both axis ends side by side (North + South, one shared degree, no retrograde flag) rather than the North Node's own placement standing in for the whole axis — see the §16 entry below. The per-section card header's own meta line still shows the North Node's placement only; that narrower simplification is unchanged and still flagged for founder review. Mobile's one-line List view (`ChartSection.tsx`) carries the same narrower simplification and is also unchanged — out of scope for this pass. **`waiver_acknowledged_at` (timestamptz, Sep 2, 2026, §16):** server-side/audit-only proof-of-consent column for the Terms Section 19 checkout withdrawal-waiver acknowledgment — populated by `stripe-webhook/route.ts` at the same insert that creates the row, from Stripe session metadata set by `/api/checkout`. Migration is `scripts/add_waiver_acknowledged_column.sql`; founder ran it in the Supabase SQL editor and it's live — verified by this session with a fresh service-role read (`null` on all existing rows, as expected; see the §16 log entry) — not part of the `get_reading_by_slug` anon RPC.
 - `transit_calendar` table (app-era, Supabase): rows = (planet, sign, transit_type [DIRECT_INGRESS | RETROGRADE_INGRESS | RE_INGRESS_DIRECT], ingress_date, egress_date, entering_degree, station_retrograde_{sign,degree,date}, station_direct_{sign,degree,date}, cacheable). **RETIRED** → renamed `transit_calendar_archive`, superseded by the rebuilt `transit_calendar` and new `aspect_calendar` (§11A). ~~Adaptation needed: stations are fields on ingress rows, not first-class events — normalize into an event stream (ingress/station events with dates) for triggers and calendar.~~ Obsolete — resolved as a full rebuild, not an adaptation.
 - `sky_positions` table (NEW — created in Supabase; see §11.1).
+- `reading_contacts` table (Stage Three, §5.1, §16): the buyer's email (and a
+  reserved-but-empty `full_name`), keyed 1:1 on `readings.id`. RLS on, zero
+  policies, no exposing function — service-role access only. Transactional:
+  this email is what the reading link is sent to.
+- `marketing_consents` table (marketing-opt-in task, Sep 8, 2026, §16):
+  `id uuid PK`, `email text NOT NULL UNIQUE`, `consented_at timestamptz`,
+  `source text` (`'checkout'`), `unsubscribe_token uuid` (generated now,
+  unused until an email program exists), `created_at timestamptz`. The list
+  of buyers who ticked the **optional** opt-in checkbox in the order-review
+  modal (`HomeOrderForm.tsx`); the Stripe webhook upserts on `email` (one row
+  per person) only when `marketing_opt_in` metadata is `'true'`. Same locked
+  posture as `reading_contacts` — RLS on, zero policies, no RPC, service-role
+  only. **Deliberately separate from `reading_contacts`:** different legal
+  basis (opt-in consent vs. contract performance); a buyer who does not tick
+  the box still gets their reading and a `reading_contacts` row, just no row
+  here. No emails are sent from this list yet. Migration:
+  `scripts/create_marketing_consents.sql`.
 - App-era transit prompts (`transit-prompts.json`): transit_a (collective — **archived, ignore**), transit_c (chart-grounded — the base of the current revision), transit_c_sunmoon (**superseded, retired**: the Sun gets full standing treatment, the Moon went ambient).
 - App UI patterns: transits list screen, detail screen — translate to web, don't reinvent.
 - Stripe (checkout mode today), Resend, Vercel, astrology-proxy for natal charts.
@@ -7323,3 +7340,85 @@ Today's Sky panel is unaffected. `npx tsc --noEmit` clean.
 Files touched: `app/components/TransitChartPane.tsx`,
 `app/reading/[slug]/transits/page.tsx`, `docs/SPEC.md`.
 One commit, not pushed.
+
+**Marketing opt-in capture — new `marketing_consents` table + review-modal
+checkbox (Sep 8, 2026):** Texture is starting to build a list of people who
+explicitly consented, at checkout, to receive marketing / product-update
+emails, ahead of a future email program. No emails are sent yet — this only
+captures consent.
+
+- **New table `marketing_consents`** (`scripts/create_marketing_consents.sql`,
+  run by the founder in the Supabase SQL editor): `id uuid PK DEFAULT
+  gen_random_uuid()`, `email text NOT NULL UNIQUE`, `consented_at timestamptz
+  DEFAULT now()`, `source text DEFAULT 'checkout'`, `unsubscribe_token uuid
+  DEFAULT gen_random_uuid()` (generated now, nothing uses it yet — cheap to
+  add, saves a later migration), `created_at timestamptz DEFAULT now()`. Same
+  locked posture as `reading_contacts`: `ALTER TABLE ... ENABLE ROW LEVEL
+  SECURITY`, **zero policies**, no SECURITY DEFINER function, `REVOKE ALL ...
+  FROM anon, authenticated`. No public path in of any kind — service-role key
+  (the Stripe webhook) only.
+- **Deliberately NOT `reading_contacts`.** `reading_contacts.email` is
+  transactional — it's how the reading link is delivered (contract
+  performance). `marketing_consents` is opt-in marketing consent, a different
+  legal basis. A buyer who does not tick the opt-in box still gets their
+  reading and a `reading_contacts` row; they simply get no row here.
+- **Checkbox** (`app/components/HomeOrderForm.tsx`): a second checkbox in the
+  order-review modal, directly below the existing withdrawal-waiver checkbox,
+  styled to match it. Copy (founder-approved this session; founder typed
+  "Yoou", shipped as "You" — apparent typo, not a paraphrase): "I'd like to
+  receive emails about new features and offerings (optional). You may
+  unsubscribe anytime." **UNCHECKED by default** (a pre-ticked opt-in
+  violates GDPR) and **OPTIONAL** — new state `marketingOptIn`, which unlike
+  `waiverAcknowledged` never touches `handleConfirm`'s early return or the
+  confirm button's `disabled` state. The purchase completes identically
+  whether or not it is ticked.
+- **Carry-through** (`app/api/checkout/route.ts`): the checked/unchecked value
+  rides in the Stripe checkout session `metadata` as
+  `marketing_opt_in: 'true' | 'false'` (Stripe metadata values are strings).
+  No validation, no gating.
+- **Write** (`app/api/stripe-webhook/route.ts`): after the existing
+  `reading_contacts` insert (unchanged — still `throw`s on failure, it's
+  required for delivery), a **best-effort** block runs only when
+  `meta.marketing_opt_in === 'true'`: `supabase.from('marketing_consents')
+  .upsert({ email, consented_at: now, source: 'checkout' }, { onConflict:
+  'email' })`. It does **not** `throw` — a failure here logs and is swallowed
+  so it can never break reading delivery or trigger a Stripe webhook retry.
+  Upsert on `email` keeps one row per person; a repeat opt-in refreshes
+  `consented_at`/`source` and leaves `unsubscribe_token`/`created_at`
+  untouched. Unchecked / absent → nothing is written.
+- The Privacy Policy already anticipates opt-in marketing (§2 "Marketing
+  communications", §3 legal-bases → consent, unsubscribe-link language), so
+  no legal-copy change was needed for this task. Nothing in the SPEC marked a
+  marketing opt-in OPEN or DEFERRED.
+
+**Verification (founder ran the SQL Sep 8, 2026; checked live this session,
+not from the SQL editor's success message):**
+- Fresh service-role read: `marketing_consents` exists, 0 rows. Public
+  (anon) key is refused on both a direct `SELECT` and a direct `INSERT`
+  (`42501 permission denied for table marketing_consents`) — the locked
+  posture holds.
+- Review modal screenshotted at 1440×900 (Playwright against the dev
+  server, Google Places loader stubbed so the location field validates):
+  opt-in checkbox present, **unchecked** by default, and with only the
+  waiver box checked the "PROCEED TO PAYMENT" button is **enabled** — the
+  purchase is not gated on the opt-in. A second shot with both boxes
+  unchecked shows the button correctly disabled (the waiver still gates).
+- Carry-through checked with a real test-mode call to `/api/checkout`
+  (Stripe test key): `marketingOptIn: true` → the created session's
+  `metadata.marketing_opt_in === 'true'`; `false` → `'false'`. Unused test
+  sessions expired afterward.
+- Webhook DB write simulated with the exact `.upsert(..., { onConflict:
+  'email' })` call the webhook runs (founder chose DB-write simulation over
+  firing a real webhook, to avoid a throwaway reading + a real natal
+  generation + an email): ticked → exactly one row, correct email,
+  `consented_at` set, `source='checkout'`, `unsubscribe_token` populated,
+  `created_at` set. Repeat opt-in for the same email → still one row,
+  `consented_at` refreshed, `unsubscribe_token` and `created_at` unchanged.
+  Unticked path writes nothing (the `meta.marketing_opt_in === 'true'`
+  guard is simply false, so no call is made). All probe rows deleted;
+  fresh read confirms the table back at 0 rows.
+- `npx tsc --noEmit` clean.
+
+Files touched: `scripts/create_marketing_consents.sql` (new),
+`app/components/HomeOrderForm.tsx`, `app/api/checkout/route.ts`,
+`app/api/stripe-webhook/route.ts`, `docs/SPEC.md`. One commit, not pushed.

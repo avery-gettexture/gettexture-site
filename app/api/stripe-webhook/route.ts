@@ -100,6 +100,23 @@ export async function POST(req: NextRequest) {
 
     if (contactError) throw new Error(`Supabase reading_contacts insert error: ${contactError.message}`);
 
+    // Marketing opt-in (separate from reading_contacts, which is the
+    // transactional email needed to deliver the reading). Only written when
+    // the buyer ticked the optional opt-in box in the review modal. This is
+    // best-effort: a failure here must never block reading delivery or make
+    // Stripe retry the webhook, so it does not throw. Upsert on email keeps
+    // one row per person — a repeat opt-in refreshes consented_at/source and
+    // leaves unsubscribe_token/created_at untouched.
+    if (meta.marketing_opt_in === 'true') {
+      const { error: consentError } = await supabase
+        .from('marketing_consents')
+        .upsert(
+          { email: meta.email, consented_at: new Date().toISOString(), source: 'checkout' },
+          { onConflict: 'email' }
+        );
+      if (consentError) console.error('marketing_consents upsert error:', consentError.message);
+    }
+
     const readingUrl = `https://gettexture.app/reading/${slug}/natal`;
 
     // Trigger content generation in background (don't await — let it run async)

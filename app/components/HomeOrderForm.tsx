@@ -53,6 +53,10 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
   const [showReview, setShowReview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [waiverAcknowledged, setWaiverAcknowledged] = useState(false);
+  // Marketing opt-in — UNCHECKED by default (a pre-ticked opt-in violates
+  // GDPR) and OPTIONAL: unlike waiverAcknowledged, this never gates the
+  // purchase. Only its checked/unchecked value is sent on to /api/checkout.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const locationRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
 
@@ -106,6 +110,7 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
           birthLocation: form.birthLocation, birthLat: form.birthLat,
           birthLng: form.birthLng, email: form.email,
           waiverAcknowledgedAt: new Date().toISOString(),
+          marketingOptIn,
         }),
       });
       const data = await res.json();
@@ -237,6 +242,21 @@ export default function HomeOrderForm({ priceUsd }: { priceUsd: number }) {
                   Terms and Conditions
                 </Link>
                 . I understand that the reading starts generating immediately after checkout and cannot be changed or refunded once it begins.
+              </span>
+            </label>
+            {/* Marketing opt-in — optional, unchecked by default, never gates
+                the purchase (no effect on handleConfirm or the confirm
+                button's disabled state). */}
+            <label htmlFor="marketing-opt-in" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '20px', cursor: 'pointer' }}>
+              <input
+                id="marketing-opt-in"
+                type="checkbox"
+                checked={marketingOptIn}
+                onChange={e => setMarketingOptIn(e.target.checked)}
+                style={{ marginTop: '3px', flexShrink: 0, width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <span style={{ fontFamily: 'var(--font-geist-mono), monospace', fontSize: '11px', color: 'rgba(22,22,18,0.65)', lineHeight: 1.6 }}>
+                I&rsquo;d like to receive emails about new features and offerings (optional). You may unsubscribe anytime.
               </span>
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
