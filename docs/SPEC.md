@@ -230,6 +230,28 @@ Event standard:
 - **Door B → subscribe later:** checkout is initiated FROM the reading page; slug rides into the Stripe session; webhook attaches subscription to the existing row. This is the linking mechanism — no matching problem.
 - Lost link: "resend my link" email lookup.
 - Billing management: Stripe hosted customer portal (cancel, card). Build no billing UI. Cancel must be trivially easy — no retention flows, no winbacks in the cancel path (brand refusal).
+- **Search indexing (search-indexing task, Sep 10, 2026, §16):** the
+  marketing/legal pages (`/`, `/terms`, `/privacy`, `/support`) are
+  crawlable and indexable. **Everything under `/reading/*` is `noindex,
+  nofollow`, and so is `/success`** — a private reading (name, birth data,
+  full personality text) must never appear in a search result. The
+  directive is enforced two ways: an `X-Robots-Tag: noindex, nofollow`
+  HTTP response header (`next.config.ts` `headers()`, matching
+  `/reading/:path*` and `/success` — authoritative, seen without parsing
+  the page) plus a server-rendered `<meta name="robots">` tag from thin
+  server layouts (`app/reading/layout.tsx`, `app/success/layout.tsx` —
+  needed because the reading/success pages are client components and can't
+  export metadata themselves). Two generated metadata routes were added:
+  `app/robots.ts` → `/robots.txt` (`Allow: /`, `Disallow: /reading/`,
+  `Disallow: /success`, sitemap link) and `app/sitemap.ts` →
+  `/sitemap.xml` (the four marketing/legal pages only; no reading routes —
+  they're per-person and DB-gated — and no `/success`). The production
+  domain `https://gettexture.app` is hardcoded in those two files (as it
+  already is in `stripe-webhook/route.ts` and the legal pages) rather than
+  read from `NEXT_PUBLIC_SITE_URL`, which is a preview URL on preview
+  deploys. **Founder rulings:** the `/reading/sample` demo (the homepage
+  "see example" link) is covered by the blanket `/reading/*` rule with no
+  carve-out — it stays out of search; `/success` is hidden too.
 
 ### 5.2 Lapse behavior — DECIDED (black and white)
 At paid-through end: the ENTIRE transit surface gates — calendar, upcoming, all standing pieces, Moon content, profections — replaced by a resubscribe surface at the same address. No content-lifespan grace, no staggered decay. The natal reading is untouched, permanent. Resubscribe = same row, fresh monthly batch. (Whether prior months' pieces reappear as history on resubscribe: DEFERRED.)
@@ -7595,3 +7617,67 @@ Verified with Playwright screenshots of the SUMMARY and Sections 2, 4, 5, 6
 against the dev server — Google present and style-matched in each, Section 5
 correctly clean. `npx tsc --noEmit` clean. Files touched:
 `app/privacy/page.tsx`, `docs/SPEC.md`. One commit, not pushed.
+
+**Search indexing — marketing pages in, readings out (Sep 10, 2026):** goal:
+the marketing/legal pages rank in Google; nothing under `/reading/*` ever
+appears in a search result (a reading holds a person's name, birth date/
+time/place, and full personality text, reachable only by the emailed slug).
+
+*Audit — the site had NO search controls at all:*
+- No `robots.txt` (no `app/robots.ts`, nothing in `public/`).
+- No `sitemap.xml`.
+- **No `noindex` on the reading routes.** All five (`/reading/[slug]`,
+  `/natal`, `/transits`, `/reference`, `/settings`) are client components
+  that fetch in the browser; the server response was a shell with no
+  `robots` meta and no `X-Robots-Tag` header — i.e. readings were fully
+  indexable, with only "nobody links to the URL" protecting them.
+- `/` and the legal pages were already clean and indexable — no stray
+  `noindex`, nothing blocking (`app/layout.tsx` sets only title/description).
+- Discoverability surface: real reading URLs are delivered only by email;
+  the one public link into `/reading/*` anywhere is the homepage "see
+  example" link to `/reading/sample/natal`. `public/llms.txt` names no
+  reading URLs.
+
+*Founder rulings (asked and answered this session):* (1) the `/reading/sample`
+demo is covered by the blanket `/reading/*` rule — no carve-out, it stays out
+of search (the "see example" link still works for anyone who clicks it);
+(2) `/success` (the post-payment "being prepared" screen — thin, can briefly
+show a link to a real reading) is hidden too.
+
+*Fix (belt-and-suspenders):*
+- `app/reading/layout.tsx` (new) + `app/success/layout.tsx` (new) — thin
+  server layouts that render children unchanged but export
+  `robots: { index: false, follow: false, googleBot: {…} }`, putting a
+  server-rendered `<meta name="robots" content="noindex, nofollow">` into
+  every `/reading/*` and `/success` response. (The pages themselves are
+  client components and can't export metadata.)
+- `next.config.ts` — added `headers()` setting `X-Robots-Tag: noindex,
+  nofollow` on `/reading/:path*` and `/success`. This is the authoritative
+  directive — a crawler honors it without parsing the page.
+- `app/robots.ts` (new) → `/robots.txt`: `Allow: /`, `Disallow: /reading/`,
+  `Disallow: /success`, `Sitemap: https://gettexture.app/sitemap.xml`.
+- `app/sitemap.ts` (new) → `/sitemap.xml`: `/`, `/terms`, `/privacy`,
+  `/support` only. No reading routes (per-person, DB-gated, not
+  enumerable), no `/success`. Production domain hardcoded (same as
+  `stripe-webhook/route.ts` and the legal pages) rather than
+  `NEXT_PUBLIC_SITE_URL`, which is a preview URL on preview deploys.
+
+*Verified* against a production build (`npm run build` + `npm start`), by
+reading the actual server responses with `curl` (stronger than a screenshot
+for headers; the browser tool was unavailable this session):
+- `X-Robots-Tag: noindex, nofollow` present on all five `/reading/sample*`
+  routes and on `/success`.
+- `<meta name="robots" content="noindex, nofollow">` present in the raw
+  (server-sent) HTML of `/reading/sample/natal` and `/success` — confirming
+  it's server-rendered, not browser-injected.
+- `/`, `/terms`, `/privacy`, `/support` — no `X-Robots-Tag`, no robots meta
+  (still fully indexable).
+- `/robots.txt` and `/sitemap.xml` serve the expected content; sitemap
+  contains the four marketing pages and no `reading`/`success` strings.
+- `npx tsc --noEmit` and `npm run build` clean; `/robots.txt` and
+  `/sitemap.xml` show as static routes in the build output.
+
+Files touched: `app/reading/layout.tsx` (new), `app/success/layout.tsx`
+(new), `app/robots.ts` (new), `app/sitemap.ts` (new), `next.config.ts`,
+`docs/SPEC.md` (this entry + the §5.1 search-indexing bullet). No reading-page
+code, no SQL, no user-facing prose. One commit, not pushed.
