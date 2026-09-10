@@ -7680,4 +7680,15 @@ for headers; the browser tool was unavailable this session):
 Files touched: `app/reading/layout.tsx` (new), `app/success/layout.tsx`
 (new), `app/robots.ts` (new), `app/sitemap.ts` (new), `next.config.ts`,
 `docs/SPEC.md` (this entry + the §5.1 search-indexing bullet). No reading-page
-code, no SQL, no user-facing prose. One commit, not pushed.
+code, no SQL, no user-facing prose. Two commits (search indexing; a separate
+icon-art swap Avery had staged), pushed to production and re-verified live on
+`www.gettexture.app` — all six checks above pass against the deployed site.
+
+**Canonical-domain note (flagged, deferred by Avery Sep 10, 2026):** Vercel
+serves `www.gettexture.app` as the primary domain; the apex `gettexture.app`
+307-redirects to it. `robots.ts` / `sitemap.ts` (and the pre-existing
+`stripe-webhook/route.ts`) hardcode the apex `https://gettexture.app`, so the
+sitemap lists URLs that redirect once before resolving. This works (Google
+follows the redirect) but is not clean. Avery's ruling: **leave as-is for
+now**, revisit picking one canonical host (and aligning the Vercel domain
+config + the hardcoded strings) as its own later task.
